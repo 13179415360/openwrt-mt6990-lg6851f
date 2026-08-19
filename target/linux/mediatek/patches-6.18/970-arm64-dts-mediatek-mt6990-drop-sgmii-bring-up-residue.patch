@@ -1,0 +1,32 @@
+From: MT6990 OpenWrt port <noreply@example.com>
+Subject: [PATCH] arm64: dts: mediatek: mt6990: drop unused SGMII bring-up nodes
+
+Drop obsolete SGMII bring-up nodes. SGMII/PCS resources are now modeled
+through sgmiisys clock providers, mediatek,sgmiisys, pcs-handle, and
+static MDIO PHY nodes.
+
+--- a/arch/arm64/boot/dts/mediatek/mt6990.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6990.dtsi
+@@ -337,21 +337,7 @@
+ 		#size-cells = <2>;
+ 		ranges;
+ 
+-		sgmii_pwr0: sgmii-pwr0 {
+-			compatible = "mediatek,sgmii-bring-up";
+-			mediatek,pwr_type = <1>;
+-			mediatek,pwr_id = <0>;
+-			power-domains = <&scpsys MT6990_POWER_DOMAIN_SGMII_TOP_0>;
+-		};
+-
+-		sgmii_pwr1: sgmii-pwr1 {
+-			compatible = "mediatek,sgmii-bring-up";
+-			mediatek,pwr_type = <1>;
+-			mediatek,pwr_id = <1>;
+-			power-domains = <&scpsys MT6990_POWER_DOMAIN_SGMII_TOP_1>;
+-		};
+-
+-		eth: ethernet@15100000 {
++eth: ethernet@15100000 {
+ 			compatible = "mediatek,mt6990-eth";
+ 			reg = <0x00 0x15100000 0x00 0x30000>;
+ 			mediatek,sgmiisys = <&sgmiisys0>, <&sgmiisys1>;

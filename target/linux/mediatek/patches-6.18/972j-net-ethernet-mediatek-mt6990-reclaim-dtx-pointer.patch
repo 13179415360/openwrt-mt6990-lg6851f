@@ -1,0 +1,33 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: ethernet: mediatek: reclaim MT6990 QDMA to DTX
+
+MT6990 runs QDMA with TX_WB_DDONE clear, so the release DRX pointer is not
+the hardware completion boundary used by the vendor driver.  Use the acquire
+DTX pointer instead.  The hardware also stores status in the low bits of the
+linked-list next pointer; mask those bits before converting it to a virtual
+descriptor address.
+
+This restores the two completion rules previously validated on MT6990 and
+keeps the generic QDMA path unchanged for all other SoCs.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -2844,13 +2844,17 @@ static int mtk_poll_tx_qdma(struct mtk_eth *eth, int budget,
+ 	u32 cpu, dma;
+ 
+ 	cpu = ring->last_free_ptr;
+-	dma = mtk_r32(eth, reg_map->qdma.drx_ptr);
++	dma = mtk_r32(eth, MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ?
++		      reg_map->qdma.dtx_ptr : reg_map->qdma.drx_ptr);
+ 
+ 	desc = mtk_qdma_phys_to_virt(ring, cpu);
+ 	xdp_frame_bulk_init(&bq);
+ 
+ 	while ((cpu != dma) && budget) {
+ 		u32 next_cpu = desc->txd2;
++
++		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990))
++			next_cpu &= ~((1U << eth->soc->tx.desc_shift) - 1);
+ 
+ 		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
+ 			/* Exact SDK order: DDONE belongs to the release anchor. */

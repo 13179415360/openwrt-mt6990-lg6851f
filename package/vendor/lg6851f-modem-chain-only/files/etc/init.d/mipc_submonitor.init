@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+STOP=99
+
+USE_PROCD=1
+NAME=mipc_submonitor
+
+service_triggers() {
+    procd_add_reload_trigger system
+}
+
+start_service() 
+{
+	echo "start mipc_submonitor"
+	procd_open_instance mipc_submonitor
+	procd_set_param command /usr/bin/mipc_submonitor
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
+
+stop_service() 
+{
+    echo "stop mipc_submonitor"
+    set_state shutdown
+}
+
+restart()
+{
+	echo "restart mipc_submonitor"
+	stop
+	start
+}
+
+reload_service() 
+{
+    echo "reload mipc_submonitor"
+	procd_send_signal mipc_submonitor.init
+}

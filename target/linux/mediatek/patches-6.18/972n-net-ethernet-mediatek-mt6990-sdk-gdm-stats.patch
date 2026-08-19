@@ -1,0 +1,30 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: ethernet: mediatek: use MT6990 SDK GDM counters
+
+MT6990 uses the NETSYS_V2 vendor counter layout: each GDM counter block is
+0x80 bytes and the TX counters start at offsets 0x40/0x48.  The SoC keeps
+version 1 for its legacy PDMA RX descriptor, so select the counter layout by
+the dedicated capability instead of changing the data-path version.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -1300,7 +1300,8 @@ void mtk_stats_update_mac(struct mtk_mac
+ 		hw_stats->rx_flow_control_packets +=
+ 			mtk_r32(mac->hw, reg_map->gdm1_cnt + 0x24 + offs);
+ 
+-		if (mtk_is_netsys_v3_or_greater(eth)) {
++		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ||
++		    mtk_is_netsys_v3_or_greater(eth)) {
+ 			hw_stats->tx_skip +=
+ 				mtk_r32(mac->hw, reg_map->gdm1_cnt + 0x50 + offs);
+ 			hw_stats->tx_collisions +=
+@@ -5513,7 +5514,8 @@ static int mtk_add_mac(struct mtk_eth *e
+ 	spin_lock_init(&mac->hw_stats->stats_lock);
+ 	u64_stats_init(&mac->hw_stats->syncp);
+ 
+-	if (mtk_is_netsys_v3_or_greater(eth))
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ||
++	    mtk_is_netsys_v3_or_greater(eth))
+ 		mac->hw_stats->reg_offset = id * 0x80;
+ 	else
+ 		mac->hw_stats->reg_offset = id * 0x40;

@@ -1,0 +1,135 @@
+#!/bin/sh
+
+. /lib/functions.sh
+
+TAG=lg6851f-network-led
+STATE=/tmp/lg6851f-network-led.state
+LEDROOT=/sys/class/leds
+PANEL_LEDS='lg6851f:4g-good lg6851f:4g-fair lg6851f:4g-bad lg6851f:5g-bad lg6851f:5g-fair lg6851f:5g-good'
+MODEM_STATE=/tmp/lg6851f-modem-status.state
+
+config_load lg6851f_network_led
+config_get start_delay main start_delay 30
+config_get poll_seconds main poll_seconds 5
+config_get ping_interval main ping_interval 15
+config_get normal_max_ms main normal_max_ms 150
+config_get orange_max_ms main orange_max_ms 500
+config_get good_rsrp main good_rsrp -95
+config_get fair_rsrp main fair_rsrp -110
+
+set_led() {
+	[ -w "$LEDROOT/$1/brightness" ] && echo "$2" >"$LEDROOT/$1/brightness"
+}
+
+panel_off() {
+	local led
+	for led in $PANEL_LEDS; do set_led "$led" 0; done
+}
+
+wifi_state() {
+	local netdev master state
+	for netdev in /sys/class/net/phy*-ap*; do
+		[ -e "$netdev" ] || continue
+		state="$(cat "$netdev/operstate" 2>/dev/null)"
+		master="$(readlink -f "$netdev/master" 2>/dev/null)"
+		case "$state:$master" in
+			up:*/br-lan|unknown:*/br-lan) return 0 ;;
+		esac
+	done
+	return 1
+}
+
+update_quality() {
+	local now result loss avg
+	now="$(date +%s)"
+	[ $((now - last_ping)) -lt "$ping_interval" ] && return
+	last_ping="$now"
+	result="$(ping -c 3 -W 2 1.1.1.1 2>/dev/null)"
+	loss="$(echo "$result" | sed -n 's/.* \([0-9][0-9]*\)% packet loss.*/\1/p' | tail -n 1)"
+	avg="$(echo "$result" | sed -n 's|.*= [0-9.]*\/\([0-9][0-9]*\)\.[0-9]*/.*|\1|p' | tail -n 1)"
+	PING_LOSS="${loss:-100}"
+	PING_AVG_MS="${avg:-9999}"
+	if [ "$PING_LOSS" -eq 0 ] && [ "$PING_AVG_MS" -lt "$normal_max_ms" ]; then
+		QUALITY=NORMAL
+	elif [ "$PING_LOSS" -lt 100 ] && [ "$PING_AVG_MS" -lt "$orange_max_ms" ]; then
+		QUALITY=ORANGE
+	else
+		QUALITY=RED
+	fi
+}
+
+update_signal_quality() {
+	case "$RSRP" in
+		-*[!0-9]*|*[!0-9-]*|'') update_quality; return ;;
+	esac
+	if [ "$RSRP" -ge "$good_rsrp" ]; then
+		QUALITY=NORMAL
+	elif [ "$RSRP" -ge "$fair_rsrp" ]; then
+		QUALITY=ORANGE
+	else
+		QUALITY=RED
+	fi
+}
+
+trap 'panel_off; set_led "lg6851f:wifi" 0; exit 0' TERM INT EXIT
+sleep "$start_delay"
+
+for led in lg6851f:wifi $PANEL_LEDS; do
+	if [ ! -w "$LEDROOT/$led/brightness" ]; then
+		logger -t "$TAG" "missing DTS LED class: $led"
+		exit 1
+	fi
+done
+
+last_ping=0
+QUALITY=RED
+PING_LOSS=100
+PING_AVG_MS=9999
+RAT=UNKNOWN
+RAT_RAW=
+
+while :; do
+	if wifi_state; then WIFI=ON; set_led lg6851f:wifi 1; else WIFI=OFF; set_led lg6851f:wifi 0; fi
+
+	NET_JSON="$(ubus call network.interface.modem5g status 2>/dev/null)"
+	UP="$(echo "$NET_JSON" | jsonfilter -e '@.up')"
+	WAN="$(echo "$NET_JSON" | jsonfilter -e '@.l3_device')"
+
+	# A single collector owns all periodic MIPC queries. LED and LuCI consume
+	# the same atomic cache, preventing independent control-channel polling.
+	if [ -r "$MODEM_STATE" ]; then
+		cached_rat="$(sed -n 's/^RAT=//p' "$MODEM_STATE" | head -n 1)"
+		cached_raw="$(sed -n 's/^RAT_RAW=//p' "$MODEM_STATE" | head -n 1)"
+		cached_registered="$(sed -n 's/^REGISTERED=//p' "$MODEM_STATE" | head -n 1)"
+		RSRP="$(sed -n 's/^RSRP=//p' "$MODEM_STATE" | head -n 1)"
+		case "$cached_rat" in 4G|5G) RAT="$cached_rat"; RAT_RAW="$cached_raw" ;; esac
+	fi
+
+	REGISTERED=NO
+	[ "$UP" = true ] && [ -n "$WAN" ] && ip -4 addr show dev "$WAN" 2>/dev/null | grep -q 'inet ' && REGISTERED=YES
+	[ "$cached_registered" = YES ] && REGISTERED=YES
+	if [ "$REGISTERED" = YES ]; then update_signal_quality; else QUALITY=RED; PING_LOSS=100; PING_AVG_MS=9999; fi
+
+	panel_off
+	case "$RAT:$QUALITY" in
+		4G:NORMAL) set_led lg6851f:4g-good 1 ;;
+		4G:ORANGE) set_led lg6851f:4g-fair 1 ;;
+		4G:*) set_led lg6851f:4g-bad 1 ;;
+		5G:NORMAL) set_led lg6851f:5g-good 1 ;;
+		5G:ORANGE) set_led lg6851f:5g-fair 1 ;;
+		5G:*) set_led lg6851f:5g-bad 1 ;;
+	esac
+
+	{
+		echo "REGISTERED=$REGISTERED"
+		echo "RAT=$RAT"
+		echo "MODEM_STATE=$MODEM_STATE"
+		echo "WAN=$WAN"
+		echo "QUALITY=$QUALITY"
+		echo "PING_LOSS=$PING_LOSS"
+		echo "PING_AVG_MS=$PING_AVG_MS"
+		echo "RSRP=$RSRP"
+		echo "WIFI=$WIFI"
+	} >"$STATE"
+	sleep "$poll_seconds"
+done

@@ -1,0 +1,18 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+
+lg6851f_restore_sysupgrade() {
+	local mnt=/tmp/lg6851f-user-data
+	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
+
+	[ -b /dev/mmcblk0p46 ] || return 0
+	mkdir -p "$mnt"
+	mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+	if [ -s "$saved" ]; then
+		cp -f "$saved" /sysupgrade.tgz &&
+			echo "LG6851F: staged preserved configuration for restore"
+	fi
+	umount "$mnt"
+}
+
+boot_hook_add preinit_mount_root lg6851f_restore_sysupgrade

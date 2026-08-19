@@ -1,0 +1,19 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -1331,8 +1331,15 @@ static const struct scp_domain_data scp_
+ 	},
+ };
+ 
++static const struct scp_subdomain scp_subdomain_mt6990[] = {
++	{ MT6990_POWER_DOMAIN_XFI_PHY_0, MT6990_POWER_DOMAIN_XFI_TOP_0 },
++	{ MT6990_POWER_DOMAIN_XFI_PHY_1, MT6990_POWER_DOMAIN_XFI_TOP_1 },
++};
++
+ static const struct scp_soc_data mt6990_data = {
+ 	.domains = scp_domain_data_mt6990,
+ 	.num_domains = MT6990_POWER_DOMAIN_NR,
++	.subdomains = scp_subdomain_mt6990,
++	.num_subdomains = ARRAY_SIZE(scp_subdomain_mt6990),
+ 	.regs = {
+ 		.pwr_sta_offs = MT6990_PWR_STATUS,
+ 		.pwr_sta2nd_offs = MT6990_PWR_STATUS_2ND,

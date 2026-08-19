@@ -1,0 +1,35 @@
+From: OpenWrt MT6990 enablement
+Subject: watchdog: add MT6990 global per-CPU hang detector
+
+Adapt the vendor four-CPU wdtk contract to Linux 6.18.  Every online CPU must
+set its bit in each health round.  An incomplete round gets a second recovery
+window before all-CPU backtraces convert an otherwise opaque hardware-WDT
+reset into a ramoops-captured panic.
+
+---
+--- a/drivers/watchdog/Kconfig
++++ b/drivers/watchdog/Kconfig
+@@ -191,6 +191,16 @@ config WATCHDOG_CORE
+ 
+ if WATCHDOG_CORE
+ 
++config MT6990_GLOBAL_HANGDET
++	bool "MediaTek MT6990 global CPU hang detector"
++	depends on ARM64 && ARCH_MEDIATEK
++	default n
++	help
++	  Run one pinned real-time heartbeat thread on every online CPU.  A
++	  health round completes only after all online CPU bits are present.
++	  Confirm an incomplete round before dumping all CPU stacks and panic
++	  so ramoops preserves the lockup before the hardware watchdog resets.
++
+ config WATCHDOG_HANDLE_BOOT_ENABLED
+ 	bool "Update boot-enabled watchdog until userspace takes over"
+ 	default y
+--- a/drivers/watchdog/Makefile
++++ b/drivers/watchdog/Makefile
+@@ -230,3 +230,4 @@ obj-$(CONFIG_MENZ069_WATCHDOG) += menz0
+ obj-$(CONFIG_RAVE_SP_WATCHDOG) += rave-sp-wdt.o
+ obj-$(CONFIG_STPMIC1_WATCHDOG) += stpmic1_wdt.o
+ obj-$(CONFIG_SL28CPLD_WATCHDOG) += sl28cpld_wdt.o
++obj-$(CONFIG_MT6990_GLOBAL_HANGDET) += mt6990-global-hangdet.o

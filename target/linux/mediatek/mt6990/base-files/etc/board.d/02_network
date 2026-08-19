@@ -1,0 +1,38 @@
+. /lib/functions.sh
+. /lib/functions/system.sh
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+
+case "$(board_name)" in
+fiberhome,lg6851f)
+	# Physical port mapping verified from PHY link state:
+	#   LAN2 fixed LAN port = eth0
+	#   LAN1/WAN combo port = eth1
+	# The stock MT6990 SDK stores GMAC0 as six binary bytes at qraw+0x59.
+	# Stock maps GMAC0 to eth1 and derives GMAC1/eth0 as GMAC0 - 1.
+	mac0="$(mmc_get_mac_binary qraw 0x59)"
+	case "$mac0" in
+		""|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff|[13579bdf]:*) mac0="" ;;
+	esac
+	if [ -z "$mac0" ]; then
+		mac0="$(macaddr_generate_from_mmc_cid mmcblk0)"
+		logger -t lg6851f-mac "invalid qraw MAC at 0x59; using stable eMMC-CID fallback $mac0"
+	fi
+	mac1="$(macaddr_add "$mac0" -1)"
+	ucidef_set_network_device_mac "eth1" "$mac0"
+	ucidef_set_network_device_mac "eth0" "$mac1"
+	ucidef_set_interfaces_lan_wan "eth0" "eth1"
+	# Keep the physical eth1 WAN and expose the integrated 5G modem as its
+	# own native OpenWrt interface.  ql_datacall selects the negotiated
+	# ccmni bearer (the stock main data bearer is commonly ccmni2), so do
+	# not bind this interface to a numbered ccmni netdev here.
+	ucidef_set_interface "modem5g" device "ccmni" protocol "ql_datacall" \
+		apn "cmnet" iptype "3" roamingtype "3" mtu "1400" \
+		plmn "46002" auto_conf "1" auto "1"
+	;;
+esac
+
+board_config_flush
+
+exit 0

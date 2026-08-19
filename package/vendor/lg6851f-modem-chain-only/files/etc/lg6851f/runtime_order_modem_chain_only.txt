@@ -1,0 +1,27 @@
+5G MODEM CHAIN ONLY
+
+Kernel/DTB prerequisite:
+- mddriver
+- CCCI core/fsm/platform
+- CCIF or DPMAIF HIF
+- CCMNI
+- modem reserved-memory / clocks / regulators / SIM EINT nodes
+
+Userspace:
+1. 1nvram_daemon
+2. 2ccci_fsd
+3. 3ccci_mdinit
+4. 3ccci_rpcd_com
+5. ql_powerd.init
+6. ql_ril_service
+7. atcid
+8. ql_netd
+9. mtk_netagent
+10. mipc_wan.init / netifd ql_mipc or mipc
+11. mdlogger
+12. scd
+13. ql_ippt / ql_speed_monitor_mgr optional
+
+WiFi7:
+- OpenWrt mainline only.
+- No vendor WiFi material in this package.

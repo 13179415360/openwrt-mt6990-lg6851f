@@ -1,0 +1,21 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: pcs: mtk-lynxi: do not run fallback poll on MT6990
+
+The fallback delayed worker is independent of phylink_pcs.poll. On MT6990
+the forced PCS status does not expose BMSR_LSTATUS, so this worker resets and
+reconfigures the analog SerDes every second forever. MT6990 has a fixed
+2500base-x link and must not start this recovery worker.
+
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -487,8 +487,9 @@ static int mtk_pcs_lynxi_enable(struct p
+ 	}
+ 
+ 	if (mpcs->xfi_tphy) {
+ 		phy_power_on(mpcs->xfi_tphy);
+-		schedule_delayed_work(&mpcs->link_poll, HZ);
++		if (!(mpcs->flags & MTK_SGMII_FLAG_MT6990))
++			schedule_delayed_work(&mpcs->link_poll, HZ);
+ 	}
+ 
+ 	return 0;

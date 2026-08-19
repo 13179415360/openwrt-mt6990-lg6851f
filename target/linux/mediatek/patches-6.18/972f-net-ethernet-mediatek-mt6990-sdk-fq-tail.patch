@@ -1,0 +1,24 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: terminate MT6990 QDMA FQ tail
+
+The FG370 MT6990 SDK leaves txd2 of the final QDMA free-queue descriptor
+zero.  The generic implementation links the final entry one descriptor past
+the allocated ring.  Preserve the generic behaviour for existing SoCs and
+replicate the SDK's terminated FQ chain for MT6990.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -1488,9 +1488,12 @@ static int mtk_init_fq_dma(struct mtk_eth *eth)
+ 
+ 			txd = eth->scratch_ring + TX_DESC_OFS(eth, j * MTK_FQ_DMA_LENGTH + i);
+ 			txd->txd1 = dma_addr + i * MTK_QDMA_PAGE_SIZE;
+-			if (j * MTK_FQ_DMA_LENGTH + i < cnt)
++			if (j * MTK_FQ_DMA_LENGTH + i < cnt -
++			    (MTK_HAS_CAPS(soc->caps, MTK_SOC_MT6990) ? 1 : 0))
+ 				txd->txd2 = eth->phy_scratch_ring +
+ 					    TX_DESC_OFS(eth, j * MTK_FQ_DMA_LENGTH + i + 1);
++			else
++				txd->txd2 = 0;
+ 
+ 			txd->txd3 = TX_DMA_PLEN0(MTK_QDMA_PAGE_SIZE);
+ 			if (MTK_HAS_CAPS(soc->caps, MTK_36BIT_DMA))

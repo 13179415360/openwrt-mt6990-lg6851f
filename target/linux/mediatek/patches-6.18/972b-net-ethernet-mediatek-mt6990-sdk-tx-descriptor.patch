@@ -1,0 +1,74 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: use MT6990 SDK TX descriptor
+
+MT6990 uses the SDK's 32-byte DMAD TX descriptor even though it must not
+select any MT798x NETSYS-v2 hardware path.  Add an explicit MT6990 encoder
+using the SDK bit positions and keep the SoC version isolated at v1.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -1690,6 +1690,43 @@ static void mtk_tx_set_dma_desc_v2(struct net_device *dev, void *txd,
+ 	WRITE_ONCE(desc->txd8, 0);
+ }
+ 
++/* Exact FG370 SDK MT6990/MT6890 32-byte DMAD TX descriptor contract. */
++static void mtk_tx_set_dma_desc_mt6990(struct net_device *dev, void *txd,
++				       struct mtk_tx_dma_desc_info *info)
++{
++	struct mtk_mac *mac = netdev_priv(dev);
++	struct mtk_eth *eth = mac->hw;
++	struct mtk_tx_dma_v2 *desc = txd;
++	u32 txd3, txd4, txd5 = 0;
++
++	WRITE_ONCE(desc->txd1, info->addr);
++
++	/* SDK TX_DMA_PLEN0: bits 23:8; LS0: bit 30. */
++	txd3 = (info->size & eth->soc->tx.dma_max_len) << 8;
++	if (info->last)
++		txd3 |= BIT(30);
++	WRITE_ONCE(desc->txd3, txd3);
++
++	/* SDK DMAD txd4: SWC bit30, FPORT in bits 11:8, QID 21:16. */
++	txd4 = BIT(30) | ((mac->id + 1) << 8) |
++		((info->qid & 0x3f) << 16);
++	WRITE_ONCE(desc->txd4, txd4);
++
++	/* SDK DMAD txd5: TSO bit31 and checksum bits 30:28. */
++	if (info->first) {
++		if (info->gso)
++			txd5 |= BIT(31);
++		if (info->csum)
++			txd5 |= 0x7 << 28;
++	}
++	WRITE_ONCE(desc->txd5, txd5);
++
++	/* SDK does not use the legacy txd4 VLAN encoding on MT6990. */
++	WRITE_ONCE(desc->txd6, 0);
++	WRITE_ONCE(desc->txd7, 0);
++	WRITE_ONCE(desc->txd8, 0);
++}
++
+ static void mtk_tx_set_dma_desc(struct net_device *dev, void *txd,
+ 				struct mtk_tx_dma_desc_info *info)
+ {
+@@ -1697,7 +1739,9 @@ static void mtk_tx_set_dma_desc(struct net_device *dev, void *txd,
+ 	struct mtk_mac *mac = netdev_priv(dev);
+ 	struct mtk_eth *eth = mac->hw;
+ 
+-	if (mtk_is_netsys_v2_or_greater(eth))
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990))
++		mtk_tx_set_dma_desc_mt6990(dev, txd, info);
++	else if (mtk_is_netsys_v2_or_greater(eth))
+ 		mtk_tx_set_dma_desc_v2(dev, txd, info);
+ 	else
+ 		mtk_tx_set_dma_desc_v1(dev, txd, info);
+@@ -3002,7 +3046,8 @@ static int mtk_tx_alloc(struct mtk_eth *eth)
+ 		txd->txd2 = next_ptr;
+ 		txd->txd3 = TX_DMA_LS0 | TX_DMA_OWNER_CPU;
+ 		txd->txd4 = 0;
+-		if (mtk_is_netsys_v2_or_greater(eth)) {
++		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ||
++		    mtk_is_netsys_v2_or_greater(eth)) {
+ 			txd->txd5 = 0;
+ 			txd->txd6 = 0;
+ 			txd->txd7 = 0;

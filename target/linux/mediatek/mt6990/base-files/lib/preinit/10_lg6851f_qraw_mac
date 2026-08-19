@@ -1,0 +1,22 @@
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+lg6851f_qraw_mac() {
+	[ "$(board_name)" = "fiberhome,lg6851f" ] || return 0
+
+	# Exact stock RAWDATA layout, verified against the device qraw image:
+	# qraw+0x59 = GMAC0 (eth1), GMAC1 (eth0) = GMAC0 - 1.
+	local mac0="$(mmc_get_mac_binary qraw 0x59)"
+	case "$mac0" in
+		""|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff|[13579bdf]:*) mac0="" ;;
+	esac
+	if [ -z "$mac0" ]; then
+		mac0="$(macaddr_generate_from_mmc_cid mmcblk0)"
+		echo "LG6851F: invalid qraw MAC at 0x59, using eMMC-CID fallback $mac0" > /dev/kmsg
+	fi
+
+	ip link set dev eth1 address "$mac0" 2>/dev/null
+	ip link set dev eth0 address "$(macaddr_add "$mac0" -1)" 2>/dev/null
+}
+
+boot_hook_add preinit_main lg6851f_qraw_mac

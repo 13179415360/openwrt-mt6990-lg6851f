@@ -1,0 +1,26 @@
+#!/bin/sh
+
+ATCLI=/usr/bin/modem5g-at
+TAG=lg6851f-sms-init
+attempt=0
+max_attempts=24
+
+# atcid and the modem finish becoming ready asynchronously.  Retry for up to
+# two minutes, including temporary busy/circuit-breaker results from the shared
+# AT channel, but never keep a permanent polling process alive.
+while [ "$attempt" -lt "$max_attempts" ]; do
+	attempt=$((attempt + 1))
+
+	if output=$($ATCLI 'AT+CNMI=2,1,0,0,0' 2>&1) &&
+	   check=$($ATCLI 'AT+CNMI?' 2>&1) &&
+	   printf '%s\n' "$check" | grep -Eq '\+CNMI: *2, *1, *0, *0, *0'; then
+		logger -t "$TAG" "SMS receive mode enabled and verified (attempt $attempt)"
+		exit 0
+	fi
+
+	sleep 5
+done
+
+logger -t "$TAG" -p daemon.err \
+	"unable to enable SMS receive mode after $max_attempts attempts: ${output:-no response}"
+exit 1

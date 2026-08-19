@@ -1,0 +1,59 @@
+From: OpenWrt LG6851F maintainers <openwrt@lg6851f.local>
+Subject: [PATCH] net: sched: cake: do not learn idle time as ingress capacity
+
+CAKE's ingress autorate estimator caps a packet interval at one second and
+then folds the almost empty window into avg_peak_bandwidth.  On an otherwise
+fast cellular link, repeated idle periods therefore decay the shaper to a few
+hundred kbit/s.  The first real download is then trapped behind that stale
+estimate and cannot ramp up promptly.
+
+Treat a gap longer than 250 ms as an idle boundary.  Start a fresh sampling
+window without changing the last valid capacity.  Continuous traffic still
+uses the existing estimator unchanged, so genuine radio-capacity changes are
+learned while idle time can no longer be mistaken for low link speed.
+
+--- a/net/sched/sch_cake.c
++++ b/net/sched/sch_cake.c
+@@ -1883,6 +1883,18 @@ static int cake_enqueue(struct sk_buff *
+ 		u64 packet_interval = \
+ 			ktime_to_ns(ktime_sub(now, q->last_packet_time));
+ 
++		/* An idle gap is not a bandwidth sample.  In particular, folding
++		 * one sparse packet over the idle interval into the autorate EWMA
++		 * can collapse a fast cellular ingress shaper to dial-up rates.
++		 * Preserve the last useful estimate and begin a clean active window.
++		 */
++		if (packet_interval > NSEC_PER_SEC / 4) {
++			q->avg_packet_interval = 0;
++			q->avg_window_bytes = 0;
++			q->avg_window_begin = now;
++			q->last_packet_time = now;
++			goto autorate_done;
++		}
+		if (packet_interval > NSEC_PER_SEC)
+			packet_interval = NSEC_PER_SEC;
+
+@@ -1898,7 +1910,14 @@ static int cake_enqueue(struct sk_buff *
+		if (packet_interval > q->avg_packet_interval) {
+			u64 window_interval = \
+				ktime_to_ns(ktime_sub(now,
+						      q->avg_window_begin));
++			u64 b;
++			/* Sparse keepalives are idle traffic, not a capacity test. */
++			if (q->avg_window_bytes < 64 * 1024) {
++				q->avg_window_bytes = 0;
++				q->avg_window_begin = now;
++				goto autorate_done;
++			}
+-			u64 b = q->avg_window_bytes * (u64)NSEC_PER_SEC;
++			b = q->avg_window_bytes * (u64)NSEC_PER_SEC;
+
+			b = div64_u64(b, window_interval);
+@@ -1914,6 +1933,7 @@ static int cake_enqueue(struct sk_buff *
+ 		q->avg_window_bytes = 0;
+ 		q->last_packet_time = now;
+ 	}
++autorate_done:
+ 
+ 	/* flowchain */
+ 	if (!flow->set || flow->set == CAKE_SET_DECAYING) {

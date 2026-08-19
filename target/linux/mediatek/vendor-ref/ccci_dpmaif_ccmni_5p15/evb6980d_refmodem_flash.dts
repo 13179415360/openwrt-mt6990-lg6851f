@@ -1,0 +1,385 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (c) 2019 MediaTek Inc.
+ */
+
+/dts-v1/;
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "mt6980.dtsi"
+
+
+/ {
+	model = "MediaTek evb6980d_refmodem_flash";
+	compatible = "mediatek,evb6980d_refmodem_flash", "mediatek,mt6980";
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0 0x80000000 0 0x1e800000>;
+	};
+
+	chosen {
+		bootargs = "console=tty0 console=ttyS0,921600n1 \
+		init=/etc/preinit root=/dev/ubiblock0_0 rootfstype=squashfs ubi.mtd=18 \
+		androidboot.selinux=permissive androidboot.hardware=mt6980 \
+		earlycon=mtk8250,mmio32,0x11002000 \
+		mtk_printk_ctrl.disable_uart=0 \
+		clk_ignore_unused \
+		page_owner=on";
+	};
+
+	typec_mux_switch: typec_mux_switch {
+		compatible = "mediatek,typec_mux_switch";
+		status = "okay";
+		orientation-switch;
+		/*port {
+			ssusb_mux: endpoint@0 {
+				remote-endpoint = <&tcpc_typec_usb>;
+			};
+		};*/
+	};
+
+	fusb304: fusb304 {
+		compatible = "mediatek,fusb304";
+		pinctrl-names = "sel_up", "sel_down",
+			"enable", "disable";
+		pinctrl-0 = <&sel_up>;
+		pinctrl-1 = <&sel_down>;
+		pinctrl-2 = <&sw_enable>;
+		pinctrl-3 = <&sw_disable>;
+		status = "okay";
+	};
+
+};
+
+/* GPS GPIO standardization start */
+#if 1
+&pio {
+/*
+	eth_gpio_default: mdio_default {
+		mux {
+			pinmux = <PINMUX_GPIO48__FUNC_GPIO48>;
+		};
+	};
+
+	eth_smi_mdio_pinctl: eth_smi_mdio_pinctl {
+		mux {
+			pinmux = <PINMUX_GPIO48__FUNC_SMI_MDIO>;
+		};
+	};
+
+	eth_smi_mdc_pinctl: eth_smi_mdc_pinctl {
+		mux {
+			pinmux = <PINMUX_GPIO49__FUNC_SMI_MDC>;
+		};
+	};
+*/
+	eth_default: eth_default {
+		txd_pins {
+			pinmux = <PINMUX_GPIO69__FUNC_GPIO69>;
+			drive-strength = <MTK_DRIVE_8mA>;
+		};
+		cc_pins {
+			pinmux = <PINMUX_GPIO69__FUNC_GPIO69>;
+			drive-strength = <MTK_DRIVE_8mA>;
+		};
+		rxd_pins {
+			pinmux = <PINMUX_GPIO69__FUNC_GPIO69>;
+		};
+		mdio_pins {
+			pinmux = <PINMUX_GPIO69__FUNC_GPIO69>;
+			input-enable;
+		};
+	};
+
+	eth_sleep: eth_sleep {
+		txd_pins {
+			pinmux = <PINMUX_GPIO8__FUNC_GPIO8>,
+				 <PINMUX_GPIO9__FUNC_GPIO9>,
+				 <PINMUX_GPIO10__FUNC_GPIO10>,
+				 <PINMUX_GPIO11__FUNC_GPIO11>;
+		};
+		cc_pins {
+			pinmux = <PINMUX_GPIO18__FUNC_GPIO18>,
+				 <PINMUX_GPIO21__FUNC_GPIO21>,
+				 <PINMUX_GPIO20__FUNC_GPIO20>,
+				 <PINMUX_GPIO19__FUNC_GPIO19>;
+		};
+		rxd_pins {
+			pinmux = <PINMUX_GPIO14__FUNC_GPIO14>,
+				 <PINMUX_GPIO15__FUNC_GPIO15>,
+				 <PINMUX_GPIO16__FUNC_GPIO16>,
+				 <PINMUX_GPIO17__FUNC_GPIO17>;
+		};
+		mdio_pins {
+			pinmux = <PINMUX_GPIO12__FUNC_GPIO12>,
+				 <PINMUX_GPIO13__FUNC_GPIO13>;
+			input-disable;
+			bias-disable;
+		};
+	};
+
+	gps_pins_default: gps_default {
+	};
+
+	gps_l1_lna_pins_ol: gps_l1_lna@0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO140__FUNC_GPIO140>;
+			output-low;
+		};
+	};
+	gps_l1_lna_pins_dsp_ctrl: gps_l1_lna@1 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO140__FUNC_GPS_L1_ELNA_EN>;
+		};
+	};
+	gps_l1_lna_pins_oh: gps_l1_lna@2 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO140__FUNC_GPIO140>;
+			output-high;
+		};
+	};
+
+	gps_l5_lna_pins_ol: gps_l5_lna@0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO141__FUNC_GPIO141>;
+			output-low;
+		};
+	};
+	gps_l5_lna_pins_dsp_ctrl: gps_l5_lna@1 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO141__FUNC_GPS_L5_ELNA_EN>;
+		};
+	};
+	gps_l5_lna_pins_oh: gps_l5_lna@2 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO141__FUNC_GPIO141>;
+			output-high;
+		};
+	};
+};
+
+&gps {
+	pinctrl-names = "default",
+		"gps_l1_lna_disable",
+		"gps_l1_lna_dsp_ctrl",
+		"gps_l1_lna_enable",
+		"gps_l5_lna_disable",
+		"gps_l5_lna_dsp_ctrl",
+		"gps_l5_lna_enable";
+	pinctrl-0 = <&gps_pins_default>;
+	pinctrl-1 = <&gps_l1_lna_pins_ol>;
+	pinctrl-2 = <&gps_l1_lna_pins_dsp_ctrl>;
+	pinctrl-3 = <&gps_l1_lna_pins_oh>;
+	pinctrl-4 = <&gps_l5_lna_pins_ol>;
+	pinctrl-5 = <&gps_l5_lna_pins_dsp_ctrl>;
+	pinctrl-6 = <&gps_l5_lna_pins_oh>;
+	status = "okay";
+};
+#endif
+/* GPS GPIO standardization end */
+
+/* usb typec swtich */
+&i2c3 {
+	ps5169: ps5169@28 {
+		compatible = "parade,ps5169";
+		reg = <0x28>;
+
+		pinctrl-names = "enable", "disable";
+		pinctrl-0 = <&ps_enable>;
+		pinctrl-1 = <&ps_disable>;
+		status = "okay";
+	};
+};
+
+&pio {
+	ps_enable: ps_enable {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO103__FUNC_GPIO103>;
+			output-high;
+		};
+	};
+
+	ps_disable: ps_disable {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO103__FUNC_GPIO103>;
+			output-low;
+		};
+	};
+
+	sel_up: sel_high {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO101__FUNC_GPIO101>;
+			output-high;
+		};
+	};
+
+	sel_down: sel_low {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO101__FUNC_GPIO101>;
+			output-low;
+		};
+	};
+
+	sw_enable: sw_enable {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO100__FUNC_GPIO100>;
+			output-low;
+		};
+	};
+
+	sw_disable: sw_disable {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO100__FUNC_GPIO100>;
+			output-low;
+		};
+	};
+
+	kpd_gpios_def_cfg: kpdgpiodefault {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO69__FUNC_GPIO69>;
+			mediatek,pull-down-adv = <MTK_PUPD_SET_R1R0_01>;
+			output-low;
+			input-schmitt-enable;
+		};
+	};
+};
+
+&keypad {
+	mediatek,key-debounce-ms = <1024>;
+	/*HW Keycode [0~71] -> Linux Keycode*/
+	mediatek,hw-map-num = <72>;
+	mediatek,hw-init-map = <0 0 114 0 0 0 0 0 0 0 0 0 0 0 0 115 0 0 0 0 0 0 0
+		0 0 0 0 0 112 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+		0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 >;
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&kpd_gpios_def_cfg>;
+};
+
+&pio {
+	nandc_pins_pnand: nandcpnand {
+		pins0 {
+			pinmux = <PINMUX_GPIO212__FUNC_NLD0>,
+				<PINMUX_GPIO213__FUNC_NLD1>,
+				<PINMUX_GPIO214__FUNC_NLD2>,
+				<PINMUX_GPIO215__FUNC_NLD3>,
+				<PINMUX_GPIO216__FUNC_NLD4>,
+				<PINMUX_GPIO217__FUNC_NLD5>,
+				<PINMUX_GPIO218__FUNC_NLD6>,
+				<PINMUX_GPIO219__FUNC_NLD7>,
+				<PINMUX_GPIO225__FUNC_NALE>,
+				<PINMUX_GPIO226__FUNC_NCLE>;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-down;
+		};
+		pins1 {
+			pinmux = <PINMUX_GPIO220__FUNC_NCEB1>,
+				<PINMUX_GPIO221__FUNC_NCEB0>,
+				<PINMUX_GPIO222__FUNC_NRNB>,
+				<PINMUX_GPIO223__FUNC_NREB>,
+				<PINMUX_GPIO224__FUNC_NWEB>;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-up;
+		};
+	};
+	nandc_pins_snand: nandcsnand {
+		pins0 {
+			pinmux = <PINMUX_GPIO221__FUNC_SNFI_CS>,
+				<PINMUX_GPIO222__FUNC_SNFI_WP>,
+				<PINMUX_GPIO223__FUNC_SNFI_HOLD>;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-up;
+		};
+		pins1 {
+			pinmux = <PINMUX_GPIO220__FUNC_SNFI_MOSI>,
+				<PINMUX_GPIO224__FUNC_SNFI_CLK>,
+				<PINMUX_GPIO225__FUNC_SNFI_MISO>;
+			drive-strength = <MTK_DRIVE_4mA>;
+			bias-pull-down;
+		};
+	};
+};
+
+&mmc1 {
+	index = <0>;
+	status = "okay";
+};
+
+&mhccif {
+	status = "okay";
+};
+
+&pcie_ep {
+	status = "okay";
+	pinctrl-names = "default", "pull_down";
+	pinctrl-0 = <&pcie_ep_pins_default>;
+	pinctrl-1 = <&pcie_ep_pins_pull_down>;
+};
+
+&pciephy0 {
+	status = "okay";
+};
+
+/* PCIe EP mode */
+&pio {
+	pcie_ep_pins_default: pcie_ep-default {
+		mux {
+			pinmux = <PINMUX_GPIO54__FUNC_PCIE_PERESET_N_0P>,
+			         <PINMUX_GPIO55__FUNC_PCIE_WAKE_N_0P>,
+				 <PINMUX_GPIO56__FUNC_PCIE_CLKREQ_N_0P>;
+			bias-pull-up;
+		};
+	};
+
+	pcie_ep_pins_pull_down: pcie_ep-pull-down {
+		mux {
+			pinmux = <PINMUX_GPIO54__FUNC_GPIO54>,
+			         <PINMUX_GPIO55__FUNC_GPIO55>,
+				 <PINMUX_GPIO56__FUNC_GPIO56>;
+			bias-pull-down;
+		};
+	};
+};
+
+&nandc {
+	status = "okay";
+	pinctrl-names = "state_pnand", "state_snand";
+	pinctrl-0 = <&nandc_pins_pnand>;
+	pinctrl-1 = <&nandc_pins_snand>;
+};
+
+/* conninfra GPIO start */
+&consys {
+	pinctrl-names = "default",
+		"conninfra_tcxo_set",
+		"conninfra_tcxo_clr";
+	pinctrl-0 = <&conninfra_pins_default>;
+	pinctrl-1 = <&conninfra_pins_tcxo_set>;
+	pinctrl-2 = <&conninfra_pins_tcxo_clr>;
+	status = "okay";
+};
+
+&pio {
+	conninfra_pins_default: conninfra_pins_default {
+	};
+
+	conninfra_pins_tcxo_set: conninfra_tcxo_set@gpio {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO45__FUNC_CONN_TCXOENA_REQ>;
+		};
+	};
+	conninfra_pins_tcxo_clr: conninfra_tcxo_clr@gpio {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO45__FUNC_GPIO45>;
+		};
+	};
+};
+/* conninfra GPIO end */
+
+&md2ap_timetick_sync {
+	mediatek,timesync_gpio = <&pio 31 0>;
+};
+
+#include <mediatek/evb6980d_refmodem_flash/cust.dtsi>
+/*End of this file, DO NOT ADD ANYTHING HERE*/

@@ -1,0 +1,72 @@
+#!/bin/sh
+
+set -e
+
+. /lib/functions.sh
+
+board="$(cat /tmp/sysinfo/board_name 2>/dev/null)"
+[ "$board" = "fiberhome,lg6851f" ] || exit 0
+
+config_load lg6851f_fair_qos
+config_get_bool enabled main enabled 1
+config_get wan main wan_device ccmni2
+config_get ifb main ifb_device ifb-ccmni2
+config_get max_hosts main max_hosts 36
+config_get overhead main overhead 44
+config_get diffserv main diffserv diffserv4
+config_get ingress_seed main ingress_seed 1gbit
+
+case "$max_hosts:$overhead" in
+	*[!0-9:]*|'') logger -t LG6851F-FAIR-QOS "invalid numeric configuration"; exit 1 ;;
+esac
+[ "$max_hosts" -ge 1 ] && [ "$max_hosts" -le 36 ] || {
+	logger -t LG6851F-FAIR-QOS "max_hosts must be between 1 and 36"
+	exit 1
+}
+
+stop_qos() {
+	tc qdisc del dev "$wan" clsact 2>/dev/null || true
+	tc qdisc del dev "$wan" root 2>/dev/null || true
+	tc qdisc del dev "$ifb" root 2>/dev/null || true
+	ip link set "$ifb" down 2>/dev/null || true
+	ip link del "$ifb" type ifb 2>/dev/null || true
+}
+
+[ "${1:-start}" = stop ] && { stop_qos; exit 0; }
+[ "$enabled" -eq 1 ] || { stop_qos; exit 0; }
+ip link show dev "$wan" >/dev/null 2>&1 || exit 2
+
+if [ "${1:-start}" = start ] &&
+	tc qdisc show dev "$wan" 2>/dev/null | grep -q ' cake ' &&
+	tc qdisc show dev "$wan" 2>/dev/null | grep -q ' clsact ' &&
+	tc qdisc show dev "$ifb" 2>/dev/null | grep -q ' cake '; then
+	exit 0
+fi
+
+modprobe ifb 2>/dev/null || true
+modprobe sch_cake 2>/dev/null || true
+modprobe sch_ingress 2>/dev/null || true
+
+ip link show dev "$ifb" >/dev/null 2>&1 || ip link add "$ifb" type ifb
+ip link set "$ifb" up
+
+# Replacing the qdiscs makes this operation idempotent after modem reconnects.
+# Do not impose a product-wide speed ceiling.  A single host may consume the
+# full cellular service rate, including gigabit service.  CAKE's host
+# isolation redistributes capacity only while hosts actually contend.
+tc qdisc replace dev "$wan" root cake unlimited "$diffserv" \
+	nat dual-srchost ack-filter split-gso rtt 100ms overhead "$overhead"
+# Cellular downlink capacity changes with radio scheduling.  autorate-ingress
+# learns the packet arrival rate without a fixed 300M/1G ceiling; the board
+# kernel preserves the last valid estimate across idle gaps so silence cannot
+# collapse the next download to dial-up speed.  dual-dsthost then separates
+# competing LAN clients and returns every idle share.
+tc qdisc replace dev "$ifb" root cake bandwidth "$ingress_seed" autorate-ingress "$diffserv" \
+	nat dual-dsthost ingress wash split-gso rtt 100ms overhead "$overhead"
+tc qdisc replace dev "$wan" clsact
+tc filter del dev "$wan" ingress protocol all pref 10 2>/dev/null || true
+tc filter add dev "$wan" ingress protocol all pref 10 matchall \
+	action mirred egress redirect dev "$ifb"
+
+logger -t LG6851F-FAIR-QOS \
+	"active wan=$wan ifb=$ifb capacity=automatic seed=$ingress_seed host_fairness=1..${max_hosts} mode=$diffserv"

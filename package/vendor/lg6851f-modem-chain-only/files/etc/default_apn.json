@@ -1,0 +1,5203 @@
+[
+	{
+		"mcc": 1,
+		"mnc": 1,
+		"apn": "apn",
+		"protocol": 3
+	},
+	{
+		"mcc": 202,
+		"mnc": 1,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 202,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 202,
+		"mnc": 5,
+		"apn": "internet.vodafone.gr"
+	},
+	{
+		"mcc": 202,
+		"mnc": 9,
+		"apn": "myq"
+	},
+	{
+		"mcc": 202,
+		"mnc": 10,
+		"apn": "gint.b-online.gr"
+	},
+	{
+		"mcc": 204,
+		"mnc": 2,
+		"apn": "internet.tele2.nl",
+		"protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 204,
+		"mnc": 4,
+		"apn": "live.vodafone.com",
+		"auth_type": 1,
+		"user": "vodafone",
+		"password": "vodafone"
+	},
+	{
+		"mcc": 204,
+		"mnc": 4,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "中国电信"
+	},
+	{
+		"mcc": 204,
+		"mnc": 4,
+		"apn": "8ta.internet",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "8.ta Δ"
+	},
+	{
+		"mcc": 204,
+		"mnc": 8,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 204,
+		"mnc": 9,
+		"apn": "data.lycamobile.nl"
+	},
+	{
+		"mcc": 204,
+		"mnc": 12,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 204,
+		"mnc": 16,
+		"apn": "smartsites.t-mobile",
+		"protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 204,
+		"mnc": 16,
+		"apn": "internet.tele2.nl",
+		"protocol": 3,
+		"auth_type": 1,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Tele2 NL"
+	},
+	{
+		"mcc": 204,
+		"mnc": 20,
+		"apn": "smartsites.t-mobile",
+		"protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 204,
+		"mnc": 69,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 206,
+		"mnc": 1,
+		"apn": "internet.proximus.be",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 206,
+		"mnc": 5,
+		"apn": "telenetwap.be"
+	},
+	{
+		"mcc": 206,
+		"mnc": 8,
+		"apn": "internet"
+	},
+	{
+		"mcc": 206,
+		"mnc": 10,
+		"apn": "mworld.be",
+		"protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 206,
+		"mnc": 20,
+		"apn": "gprs.base.be"
+	},
+	{
+		"mcc": 208,
+		"mnc": 1,
+		"apn": "orange",
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 208,
+		"mnc": 1,
+		"apn": "rakuten.jp",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "iccid",
+		"mvno_match_data": "8981090"
+	},
+	{
+		"mcc": 208,
+		"mnc": 9,
+		"apn": "altice"
+	},
+	{
+		"mcc": 208,
+		"mnc": 15,
+		"apn": "jn",
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "f005"
+	},
+	{
+		"mcc": 208,
+		"mnc": 21,
+		"apn": "ebouygtel.com"
+	},
+	{
+		"mcc": 208,
+		"mnc": 26,
+		"apn": "fnetnrj",
+		"auth_type": 1
+	},
+	{
+		"mcc": 208,
+		"mnc": 88,
+		"apn": "ebouygtel.com"
+	},
+	{
+		"mcc": 214,
+		"mnc": 1,
+		"apn": "airtelwap.es",
+		"user": "wap@wap",
+		"password": "wap125"
+	},
+	{
+		"mcc": 214,
+		"mnc": 3,
+		"apn": "orangeworld",
+		"auth_type": 1,
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 214,
+		"mnc": 3,
+		"apn": "internet",
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 214,
+		"mnc": 3,
+		"apn": "internet.euskaltel.mobi",
+		"auth_type": 1,
+		"user": "CLIENTE",
+		"password": "EUSKALTEL",
+		"mvno_apn_type": "imsi",
+		"mvno_match_data": "2140359"
+	},
+	{
+		"mcc": 214,
+		"mnc": 3,
+		"apn": "CARREFOURINTERNET",
+		"auth_type": 1,
+		"mvno_apn_type": "imsi",
+		"mvno_match_data": "2140352xxxxxxxx"
+	},
+	{
+		"mcc": 214,
+		"mnc": 4,
+		"apn": "internet"
+	},
+	{
+		"mcc": 214,
+		"mnc": 6,
+		"apn": "airtelnet.es",
+		"user": "vodafone",
+		"password": "vodafone"
+	},
+	{
+		"mcc": 214,
+		"mnc": 8,
+		"apn": "internet.euskaltel.mobi",
+		"user": "CLIENTE",
+		"password": "EUSKALTEL"
+	},
+	{
+		"mcc": 214,
+		"mnc": 19,
+		"apn": "gprs-service.com"
+	},
+	{
+		"mcc": 214,
+		"mnc": 21,
+		"apn": "jazzinternet"
+	},
+	{
+		"mcc": 216,
+		"mnc": 1,
+		"apn": "online",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 216,
+		"mnc": 3,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 216,
+		"mnc": 30,
+		"apn": "internet.telekom",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 216,
+		"mnc": 70,
+		"apn": "internet.vodafone.net"
+	},
+	{
+		"mcc": 218,
+		"mnc": 3,
+		"apn": "gprs.eronet.ba"
+	},
+	{
+		"mcc": 218,
+		"mnc": 5,
+		"apn": "3g3"
+	},
+	{
+		"mcc": 219,
+		"mnc": 1,
+		"apn": "internet.ht.hr",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 220,
+		"mnc": 1,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 220,
+		"mnc": 3,
+		"apn": "gprsinternet",
+		"user": "mts",
+		"password": "064"
+	},
+	{
+		"mcc": 220,
+		"mnc": 5,
+		"apn": "vipmobile",
+		"user": "vipmobile",
+		"password": "vipmobile"
+	},
+	{
+		"mcc": 222,
+		"mnc": 1,
+		"apn": "ibox.tim.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 1,
+		"apn": "wap.tim.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 6,
+		"apn": "mobile.vodafone.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 7,
+		"apn": "web.noverca.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 10,
+		"apn": "mobile.vodafone.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 88,
+		"apn": "internet.it"
+	},
+	{
+		"mcc": 222,
+		"mnc": 99,
+		"apn": "internet.it"
+	},
+	{
+		"mcc": 226,
+		"mnc": 1,
+		"apn": "live.vodafone.com"
+	},
+	{
+		"mcc": 226,
+		"mnc": 3,
+		"apn": "broadband"
+	},
+	{
+		"mcc": 226,
+		"mnc": 3,
+		"apn": "wnw",
+		"auth_type": 3,
+		"user": "wnw",
+		"password": "wnw"
+	},
+	{
+		"mcc": 226,
+		"mnc": 5,
+		"apn": "internet"
+	},
+	{
+		"mcc": 226,
+		"mnc": 6,
+		"apn": "broadband"
+	},
+	{
+		"mcc": 226,
+		"mnc": 6,
+		"apn": "wnw",
+		"auth_type": 3,
+		"user": "wnw",
+		"password": "wnw"
+	},
+	{
+		"mcc": 226,
+		"mnc": 10,
+		"apn": "net"
+	},
+	{
+		"mcc": 228,
+		"mnc": 1,
+		"apn": "gprs.swisscom.ch",
+		"protocol": 1
+	},
+	{
+		"mcc": 228,
+		"mnc": 2,
+		"apn": "internet",
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 228,
+		"mnc": 3,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 230,
+		"mnc": 1,
+		"apn": "internet.t-mobile.cz",
+		"protocol": 1,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 230,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 230,
+		"mnc": 3,
+		"apn": "internet"
+	},
+	{
+		"mcc": 231,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 231,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 231,
+		"mnc": 4,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 231,
+		"mnc": 5,
+		"apn": "internet"
+	},
+	{
+		"mcc": 231,
+		"mnc": 6,
+		"apn": "o2internet"
+	},
+	{
+		"mcc": 232,
+		"mnc": 1,
+		"apn": "a1.net",
+		"user": "ppp@a1plus.at",
+		"password": "ppp"
+	},
+	{
+		"mcc": 232,
+		"mnc": 3,
+		"apn": "internet.t-mobile.at",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "T",
+		"password": "tm"
+	},
+	{
+		"mcc": 232,
+		"mnc": 7,
+		"apn": "internet.t-mobile.at",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "T",
+		"password": "tm"
+	},
+	{
+		"mcc": 234,
+		"mnc": 8,
+		"apn": "Internet.btonephone.com",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 234,
+		"mnc": 15,
+		"apn": "internet",
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 234,
+		"mnc": 30,
+		"apn": "everywhere",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 234,
+		"mnc": 31,
+		"apn": "everywhere",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 234,
+		"mnc": 32,
+		"apn": "everywhere",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 234,
+		"mnc": 33,
+		"apn": "everywhere",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 234,
+		"mnc": 34,
+		"apn": "everywhere",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 234,
+		"mnc": 50,
+		"apn": "pepper"
+	},
+	{
+		"mcc": 234,
+		"mnc": 55,
+		"apn": "internet"
+	},
+	{
+		"mcc": 234,
+		"mnc": 57,
+		"apn": "mobile.sky"
+	},
+	{
+		"mcc": 234,
+		"mnc": 58,
+		"apn": "3gpronto"
+	},
+	{
+		"mcc": 234,
+		"mnc": 58,
+		"apn": "web.manxpronto.net",
+		"user": "gprs",
+		"password": "gprs"
+	},
+	{
+		"mcc": 234,
+		"mnc": 86,
+		"apn": "everywhere",
+		"auth_type": 1,
+		"user": "eesecure",
+		"password": "secure"
+	},
+	{
+		"mcc": 235,
+		"mnc": 91,
+		"apn": "internet",
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 238,
+		"mnc": 1,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 238,
+		"mnc": 2,
+		"apn": "Internet"
+	},
+	{
+		"mcc": 238,
+		"mnc": 10,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 238,
+		"mnc": 20,
+		"apn": "websp",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 238,
+		"mnc": 20,
+		"apn": "www.internet.mtelia.dk",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "TELIA DK"
+	},
+	{
+		"mcc": 238,
+		"mnc": 20,
+		"apn": "websp",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Mit Tele"
+	},
+	{
+		"mcc": 238,
+		"mnc": 20,
+		"apn": "websp",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Call me"
+	},
+	{
+		"mcc": 238,
+		"mnc": 30,
+		"apn": "www.internet.mtelia.dk",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 238,
+		"mnc": 77,
+		"apn": "Internet"
+	},
+	{
+		"mcc": 240,
+		"mnc": 1,
+		"apn": "online.telia.se",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 240,
+		"mnc": 1,
+		"apn": "halebop.telia.se",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Halebop"
+	},
+	{
+		"mcc": 240,
+		"mnc": 5,
+		"apn": "online.telia.se",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Telia"
+	},
+	{
+		"mcc": 240,
+		"mnc": 6,
+		"apn": "internet"
+	},
+	{
+		"mcc": 240,
+		"mnc": 8,
+		"apn": "services.telenor.se",
+		"mvno_apn_type": "imsi",
+		"mvno_match_data": "24008"
+	},
+	{
+		"mcc": 240,
+		"mnc": 10,
+		"apn": "data.springmobil.se"
+	},
+	{
+		"mcc": 240,
+		"mnc": 17,
+		"apn": "halebop.telia.se"
+	},
+	{
+		"mcc": 240,
+		"mnc": 680,
+		"apn": "internet",
+		"protocol": 1
+	},
+	{
+		"mcc": 240,
+		"mnc": 681,
+		"apn": "apn01.epg78.ericsson.se",
+		"protocol": 3
+	},
+	{
+		"mcc": 242,
+		"mnc": 1,
+		"apn": "telenor"
+	},
+	{
+		"mcc": 242,
+		"mnc": 2,
+		"apn": "telia",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 242,
+		"mnc": 4,
+		"apn": "internet.tele2.no"
+	},
+	{
+		"mcc": 242,
+		"mnc": 5,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 242,
+		"mnc": 14,
+		"apn": "ice.net",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 244,
+		"mnc": 3,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 4,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 5,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 244,
+		"mnc": 9,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 10,
+		"apn": "internet.song.fi",
+		"user": "song@internet",
+		"password": "songnet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 12,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 13,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 21,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 244,
+		"mnc": 30,
+		"apn": "internet"
+	},
+	{
+		"mcc": 244,
+		"mnc": 91,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 246,
+		"mnc": 1,
+		"apn": "omnitel",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 246,
+		"mnc": 2,
+		"apn": "banga",
+		"protocol": 3
+	},
+	{
+		"mcc": 247,
+		"mnc": 1,
+		"apn": "internet.lmt.lv",
+		"protocol": 3,
+		"user": "lmt",
+		"password": "lmt"
+	},
+	{
+		"mcc": 247,
+		"mnc": 5,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 248,
+		"mnc": 1,
+		"apn": "internet.emt.ee",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 248,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 248,
+		"mnc": 3,
+		"apn": "internet.tele2.ee"
+	},
+	{
+		"mcc": 250,
+		"mnc": 1,
+		"apn": "internet.mts.ru",
+		"protocol": 3,
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 2,
+		"apn": "internet",
+		"user": "gdata",
+		"password": "gdata"
+	},
+	{
+		"mcc": 250,
+		"mnc": 4,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 5,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 7,
+		"apn": "internet.smarts.ru",
+		"user": "any",
+		"password": "any"
+	},
+	{
+		"mcc": 250,
+		"mnc": 10,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 11,
+		"apn": "internet.yota",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 250,
+		"mnc": 12,
+		"apn": "inet.bwc.ru",
+		"user": "bwc",
+		"password": "bwc"
+	},
+	{
+		"mcc": 250,
+		"mnc": 13,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 17,
+		"apn": "internet.usi.ru"
+	},
+	{
+		"mcc": 250,
+		"mnc": 20,
+		"apn": "internet.tele2.ru"
+	},
+	{
+		"mcc": 250,
+		"mnc": 35,
+		"apn": "inet.ycc.ru",
+		"user": "motiv",
+		"password": "motiv"
+	},
+	{
+		"mcc": 250,
+		"mnc": 39,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 44,
+		"apn": "internet.beeline.ru",
+		"user": "beeline",
+		"password": "beeline"
+	},
+	{
+		"mcc": 250,
+		"mnc": 62,
+		"apn": "m.tinkoff"
+	},
+	{
+		"mcc": 250,
+		"mnc": 92,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 93,
+		"apn": "internet.mts.ru",
+		"user": "mts",
+		"password": "mts"
+	},
+	{
+		"mcc": 250,
+		"mnc": 99,
+		"apn": "internet.beeline.ru",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "beeline",
+		"password": "beeline"
+	},
+	{
+		"mcc": 255,
+		"mnc": 1,
+		"apn": "www.mts.com.ua"
+	},
+	{
+		"mcc": 255,
+		"mnc": 2,
+		"apn": "internet.beeline.ua"
+	},
+	{
+		"mcc": 255,
+		"mnc": 3,
+		"apn": "www.kyivstar.net",
+		"user": "igprs",
+		"password": "internet"
+	},
+	{
+		"mcc": 255,
+		"mnc": 6,
+		"apn": "internet"
+	},
+	{
+		"mcc": 257,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 259,
+		"mnc": 1,
+		"apn": "wap.orange.md"
+	},
+	{
+		"mcc": 259,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 259,
+		"mnc": 4,
+		"apn": "internet.md"
+	},
+	{
+		"mcc": 259,
+		"mnc": 15,
+		"apn": "4g.idknet.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 260,
+		"mnc": 1,
+		"apn": "plus"
+	},
+	{
+		"mcc": 260,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"auth_type": 1
+	},
+	{
+		"mcc": 260,
+		"mnc": 3,
+		"apn": "internet",
+		"auth_type": 3,
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 260,
+		"mnc": 6,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 260,
+		"mnc": 34,
+		"apn": "internet"
+	},
+	{
+		"mcc": 260,
+		"mnc": 34,
+		"apn": "heyah.pl"
+	},
+	{
+		"mcc": 260,
+		"mnc": 98,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 262,
+		"mnc": 1,
+		"apn": "internet.v6.telekom",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "telekom",
+		"password": "telekom"
+	},
+	{
+		"mcc": 262,
+		"mnc": 1,
+		"apn": "internet.telekom",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "congstar",
+		"password": "cs",
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "44"
+	},
+	{
+		"mcc": 262,
+		"mnc": 2,
+		"apn": "web.vodafone.de",
+		"protocol": 3,
+		"auth_type": 3
+	},
+	{
+		"mcc": 262,
+		"mnc": 4,
+		"apn": "web.vodafone.de",
+		"protocol": 3,
+		"auth_type": 3
+	},
+	{
+		"mcc": 262,
+		"mnc": 6,
+		"apn": "internet.v6.telekom",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "telekom",
+		"password": "telekom"
+	},
+	{
+		"mcc": 262,
+		"mnc": 9,
+		"apn": "web31.testnetz-vd2.de",
+		"protocol": 3
+	},
+	{
+		"mcc": 262,
+		"mnc": 80,
+		"apn": "apn01.epg78.ericsson.se",
+		"protocol": 3
+	},
+	{
+		"mcc": 268,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 268,
+		"mnc": 6,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 268,
+		"mnc": 89,
+		"apn": "net2.vodafone.pt",
+		"user": "vodafone",
+		"password": "vodafone"
+	},
+	{
+		"mcc": 270,
+		"mnc": 1,
+		"apn": "web.pt.lu",
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 270,
+		"mnc": 77,
+		"apn": "internet"
+	},
+	{
+		"mcc": 272,
+		"mnc": 1,
+		"apn": "hs.vodafone.ie"
+	},
+	{
+		"mcc": 272,
+		"mnc": 3,
+		"apn": "data.myeirmobile.ie"
+	},
+	{
+		"mcc": 274,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 274,
+		"mnc": 2,
+		"apn": "gprs.is"
+	},
+	{
+		"mcc": 274,
+		"mnc": 11,
+		"apn": "net.nova.is"
+	},
+	{
+		"mcc": 276,
+		"mnc": 1,
+		"apn": "internet.t",
+		"auth_type": 1
+	},
+	{
+		"mcc": 276,
+		"mnc": 2,
+		"apn": "vodafoneweb",
+		"auth_type": 1,
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 278,
+		"mnc": 1,
+		"apn": "internet",
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 284,
+		"mnc": 1,
+		"apn": "wap-gprs.mtel.bg"
+	},
+	{
+		"mcc": 284,
+		"mnc": 3,
+		"apn": "Internet.vivacom.bg",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "vivacom",
+		"password": "vivacom"
+	},
+	{
+		"mcc": 284,
+		"mnc": 5,
+		"apn": "telenorbg"
+	},
+	{
+		"mcc": 286,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 286,
+		"mnc": 2,
+		"apn": "internet",
+		"user": "vodafone",
+		"password": "vodafone"
+	},
+	{
+		"mcc": 286,
+		"mnc": 3,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 293,
+		"mnc": 40,
+		"apn": "internet.simobil.si"
+	},
+	{
+		"mcc": 294,
+		"mnc": 1,
+		"apn": "internet",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "internet",
+		"password": "t-mobile"
+	},
+	{
+		"mcc": 294,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 294,
+		"mnc": 3,
+		"apn": "VIPOPERATOR",
+		"user": "VIPOPERATOR",
+		"password": "VIPOPERATOR"
+	},
+	{
+		"mcc": 295,
+		"mnc": 1,
+		"apn": "gprs.swisscom.ch",
+		"protocol": 1
+	},
+	{
+		"mcc": 297,
+		"mnc": 2,
+		"apn": "tmcg-4g",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "38267",
+		"password": "38267"
+	},
+	{
+		"mcc": 302,
+		"mnc": 370,
+		"apn": "ltemobile.apn",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 302,
+		"mnc": 490,
+		"apn": "internet.freedommobile.ca",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 310,
+		"mnc": 30,
+		"apn": "nxtgenphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 90,
+		"apn": "isp",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 100,
+		"apn": "plateauweb"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.ispsn",
+		"protocol": 3
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000001"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "cinet.spcs",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000001"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "evdo",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000001"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "x.boost.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000002"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "x.vmu.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000003"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "x.sprpre.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000004"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "x.vi.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000005"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "x.vmu.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "000006"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.ae.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00022"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.y7.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00305"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.q6.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00209"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.t7.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00250"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.p2.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00207"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.f6.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00105"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.nw.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00181"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.po.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00263"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.t9.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00271"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.n4.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00006"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.l2.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00151"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.c7.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00058"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.w1.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00301"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.k6.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00143"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.nv.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00184"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.st.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00247"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.t8.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00274"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.c4.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00042"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.eg.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00092"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.ik.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00312"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.c5.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00050"
+	},
+	{
+		"mcc": 310,
+		"mnc": 120,
+		"apn": "n.b7.ispsn",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "A00034"
+	},
+	{
+		"mcc": 310,
+		"mnc": 130,
+		"apn": "home.cww.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 310,
+		"mnc": 150,
+		"apn": "mht",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 150,
+		"apn": "mht",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "53FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 160,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 170,
+		"apn": "nxtgenphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 200,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 210,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 220,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 230,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 240,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 250,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 260,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 260,
+		"apn": "fast.metropcs.com",
+		"protocol": 2,
+		"mvno_apn_type": "GID",
+		"mvno_match_data": "6D38"
+	},
+	{
+		"mcc": 310,
+		"mnc": 270,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 280,
+		"apn": "broadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 280,
+		"apn": "nrbroadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "53FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 280,
+		"apn": "5gcbroadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "52FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 310,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 380,
+		"apn": "nxtgenphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 410,
+		"apn": "broadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 410,
+		"apn": "nrbroadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "53FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 410,
+		"apn": "5gcbroadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "52FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 450,
+		"apn": "internet.vedge",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 310,
+		"mnc": 260,
+		"apn": "Fast.t-mobile.com",
+		"iaapn": "Fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 470,
+		"apn": "isp.cingular"
+	},
+	{
+		"mcc": 310,
+		"mnc": 470,
+		"apn": "wap.cingular",
+		"user": "WAP@CINGULARGPRS.COM",
+		"password": "CINGULAR1"
+	},
+	{
+		"mcc": 310,
+		"mnc": 480,
+		"apn": "isp.cingular"
+	},
+	{
+		"mcc": 310,
+		"mnc": 480,
+		"apn": "wap.cingular",
+		"user": "WAP@CINGULARGPRS.COM",
+		"password": "CINGULAR1"
+	},
+	{
+		"mcc": 310,
+		"mnc": 490,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 560,
+		"apn": "nxtgenphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 610,
+		"apn": "internet.epictouch"
+	},
+	{
+		"mcc": 310,
+		"mnc": 660,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 770,
+		"apn": "i2.iwireless.com"
+	},
+	{
+		"mcc": 310,
+		"mnc": 800,
+		"apn": "fast.t-mobile.com",
+		"protocol": 2
+	},
+	{
+		"mcc": 310,
+		"mnc": 840,
+		"apn": "isp"
+	},
+	{
+		"mcc": 310,
+		"mnc": 910,
+		"apn": "wap.firstcellular.com"
+	},
+	{
+		"mcc": 310,
+		"mnc": 950,
+		"apn": "nxtgenphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 950,
+		"apn": "enhancedphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "53FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 310,
+		"mnc": 950,
+		"apn": "nrphone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "52FF",
+		"mtu": 1430
+	},
+	{
+		"mcc": 311,
+		"mnc": 210,
+		"apn": "internet.farmerswireless.com"
+	},
+	{
+		"mcc": 311,
+		"mnc": 270,
+		"apn": "VZWINTERNET",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 311,
+		"mnc": 390,
+		"apn": "VZWINTERNET",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 311,
+		"mnc": 480,
+		"apn": "VZWINTERNET",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"iaapn": "IMS",
+		"iaprotocol": 3,
+		"iaroaming_protocol": 2
+	},
+	{
+		"mcc": 311,
+		"mnc": 480,
+		"apn": "VSBLINTERNET",
+		"protocol": 3,
+		"roaming_protocol": 1,
+		"mvno_apn_type": "GID",
+		"mvno_match_data": "BAE1"
+	},
+	{
+		"mcc": 312,
+		"mnc": 530,
+		"apn": "n.ispsn",
+		"protocol": 3
+	},
+	{
+		"mcc": 312,
+		"mnc": 770,
+		"apn": "VZWINTERNET",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 313,
+		"mnc": 70,
+		"apn": "internet"
+	},
+	{
+		"mcc": 313,
+		"mnc": 100,
+		"apn": "firstnet-broadband",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1342
+	},
+	{
+		"mcc": 313,
+		"mnc": 110,
+		"apn": "firstnet-phone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 313,
+		"mnc": 120,
+		"apn": "firstnet-phone",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1430
+	},
+	{
+		"mcc": 313,
+		"mnc": 390,
+		"apn": "altice"
+	},
+	{
+		"mcc": 313,
+		"mnc": 790,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 330,
+		"mnc": 110,
+		"apn": "lte.claropr.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 334,
+		"mnc": 3,
+		"apn": "internet.movistar.mx",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "movistar",
+		"password": "movistar"
+	},
+	{
+		"mcc": 334,
+		"mnc": 20,
+		"apn": "internet.itelcel.com",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "webgprs",
+		"password": "webgprs2002"
+	},
+	{
+		"mcc": 334,
+		"mnc": 30,
+		"apn": "internet.movistar.mx",
+		"user": "movistar",
+		"password": "movistar"
+	},
+	{
+		"mcc": 334,
+		"mnc": 50,
+		"apn": "web.attmex.mx",
+		"protocol": 3
+	},
+	{
+		"mcc": 334,
+		"mnc": 90,
+		"apn": "wap.attmex.mx",
+		"protocol": 3
+	},
+	{
+		"mcc": 334,
+		"mnc": 130,
+		"apn": "internet.altan",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 334,
+		"mnc": 140,
+		"apn": "internet.altan",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 340,
+		"mnc": 1,
+		"apn": "orangeweb",
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 370,
+		"mnc": 1,
+		"apn": "Altice"
+	},
+	{
+		"mcc": 370,
+		"mnc": 2,
+		"apn": "internet.ideasclaro.com.do",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 401,
+		"mnc": 1,
+		"apn": "internet.beeline.kz",
+		"user": "@internet.beeline",
+		"password": "beeline"
+	},
+	{
+		"mcc": 404,
+		"mnc": 0,
+		"apn": "internet",
+		"user": "wapuser",
+		"password": "wapuser"
+	},
+	{
+		"mcc": 404,
+		"mnc": 0,
+		"apn": "#777",
+		"user": "net",
+		"password": "net"
+	},
+	{
+		"mcc": 404,
+		"mnc": 1,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 2,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 3,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 4,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 5,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 6,
+		"apn": "airtelgprs.com"
+	},
+	{
+		"mcc": 404,
+		"mnc": 7,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 9,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 10,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 11,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 12,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 13,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 14,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 15,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 16,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 17,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 18,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 19,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 20,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 21,
+		"apn": "www"
+	},
+	{
+		"mcc": 404,
+		"mnc": 22,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 24,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 25,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 27,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 28,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 29,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 30,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 31,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 33,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 34,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 35,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 36,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 37,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 38,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 40,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 41,
+		"apn": "aircelgprs.po"
+	},
+	{
+		"mcc": 404,
+		"mnc": 42,
+		"apn": "aircelgprs.po"
+	},
+	{
+		"mcc": 404,
+		"mnc": 43,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 44,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 45,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 46,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 49,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 50,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 51,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 52,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 53,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 54,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 55,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 56,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 57,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 58,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 59,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 60,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 62,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 64,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 66,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 67,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 68,
+		"apn": "mtnl.net",
+		"user": "mtnl",
+		"password": "mtnl123"
+	},
+	{
+		"mcc": 404,
+		"mnc": 68,
+		"apn": "mtnl3g",
+		"user": "mtnl",
+		"password": "mtnl123"
+	},
+	{
+		"mcc": 404,
+		"mnc": 69,
+		"apn": "mtnl.net"
+	},
+	{
+		"mcc": 404,
+		"mnc": 70,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 71,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 72,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 73,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 74,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 75,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 76,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 77,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 78,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 79,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 80,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 81,
+		"apn": "bsnlnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 82,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 83,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 84,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 85,
+		"apn": "SMARTNET"
+	},
+	{
+		"mcc": 404,
+		"mnc": 86,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 87,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 88,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 89,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 90,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 91,
+		"apn": "aircelwebpost"
+	},
+	{
+		"mcc": 404,
+		"mnc": 92,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 93,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 94,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 95,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 96,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 97,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 404,
+		"mnc": 98,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 1,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 3,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 4,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 5,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 6,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 7,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 8,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 9,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 10,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 11,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 12,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 13,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 14,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 15,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 17,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 18,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 19,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 20,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 21,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 22,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 23,
+		"apn": "rcomnet"
+	},
+	{
+		"mcc": 405,
+		"mnc": 51,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 52,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 53,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 54,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 55,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 56,
+		"apn": "airtelgprs.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 66,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 67,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 70,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 89,
+		"apn": "#777",
+		"user": "internet@internet.mtsindia.in",
+		"password": "MTS"
+	},
+	{
+		"mcc": 405,
+		"mnc": 25,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 26,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 27,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 28,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 29,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 30,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 31,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 32,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 33,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 34,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 35,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 36,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 37,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 38,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 39,
+		"apn": "TATA.DOCOMO.INTERNET",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 40,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 41,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 42,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 43,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 44,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 45,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 46,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 47,
+		"apn": "TATA.DOCOMO.INTERNET"
+	},
+	{
+		"mcc": 405,
+		"mnc": 750,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 751,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 752,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 753,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 754,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 755,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 756,
+		"apn": "www",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 799,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 800,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 801,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 802,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 803,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 804,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 806,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 807,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 808,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 809,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 810,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 811,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 812,
+		"apn": "aircelgprs"
+	},
+	{
+		"mcc": 405,
+		"mnc": 820,
+		"apn": "uninor"
+	},
+	{
+		"mcc": 405,
+		"mnc": 823,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 824,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 825,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 826,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 827,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 828,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 829,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 830,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 831,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 832,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 833,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 834,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 835,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 836,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 837,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 838,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 839,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 840,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 841,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 842,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 843,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 405,
+		"mnc": 845,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 846,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 847,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 848,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 849,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 850,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 851,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 852,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 853,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 854,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 855,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 856,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 857,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 858,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 859,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 860,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 861,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 862,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 863,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 864,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 865,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 866,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 867,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 868,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 869,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 870,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 871,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 872,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 873,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 874,
+		"apn": "Jionet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 875,
+		"apn": "uninor",
+		"auth_type": 1
+	},
+	{
+		"mcc": 405,
+		"mnc": 876,
+		"apn": "telenor"
+	},
+	{
+		"mcc": 405,
+		"mnc": 877,
+		"apn": "uninor",
+		"auth_type": 1
+	},
+	{
+		"mcc": 405,
+		"mnc": 878,
+		"apn": "uninor",
+		"auth_type": 1
+	},
+	{
+		"mcc": 405,
+		"mnc": 879,
+		"apn": "uninor",
+		"auth_type": 1
+	},
+	{
+		"mcc": 405,
+		"mnc": 880,
+		"apn": "uninor",
+		"auth_type": 1
+	},
+	{
+		"mcc": 405,
+		"mnc": 881,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 882,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 883,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 884,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 885,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 886,
+		"apn": "gprs.stel.in"
+	},
+	{
+		"mcc": 405,
+		"mnc": 908,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 909,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 910,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 911,
+		"apn": "Internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 405,
+		"mnc": 932,
+		"apn": "vinternet.com"
+	},
+	{
+		"mcc": 410,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 410,
+		"mnc": 4,
+		"apn": "zonginternet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 410,
+		"mnc": 6,
+		"apn": "internet"
+	},
+	{
+		"mcc": 413,
+		"mnc": 1,
+		"apn": "mobitel"
+	},
+	{
+		"mcc": 413,
+		"mnc": 2,
+		"apn": "Dialogbb"
+	},
+	{
+		"mcc": 413,
+		"mnc": 3,
+		"apn": "ebb"
+	},
+	{
+		"mcc": 413,
+		"mnc": 5,
+		"apn": "airtellive",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 413,
+		"mnc": 8,
+		"apn": "hu"
+	},
+	{
+		"mcc": 414,
+		"mnc": 1,
+		"apn": "mptnet"
+	},
+	{
+		"mcc": 414,
+		"mnc": 9,
+		"apn": "mytel",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 415,
+		"mnc": 1,
+		"apn": "internet.mic1.com.lb",
+		"user": "mic1",
+		"password": "mic1"
+	},
+	{
+		"mcc": 415,
+		"mnc": 3,
+		"apn": "gprs.mtctouch.com.lb"
+	},
+	{
+		"mcc": 416,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 416,
+		"mnc": 3,
+		"apn": "net"
+	},
+	{
+		"mcc": 416,
+		"mnc": 77,
+		"apn": "net.orange.jo",
+		"user": "net",
+		"password": "net"
+	},
+	{
+		"mcc": 417,
+		"mnc": 2,
+		"apn": ""
+	},
+	{
+		"mcc": 418,
+		"mnc": 20,
+		"apn": "internet"
+	},
+	{
+		"mcc": 418,
+		"mnc": 30,
+		"apn": "internet"
+	},
+	{
+		"mcc": 418,
+		"mnc": 40,
+		"apn": "internet.korek.com",
+		"user": "korek",
+		"password": "korek"
+	},
+	{
+		"mcc": 418,
+		"mnc": 66,
+		"apn": "fastlink"
+	},
+	{
+		"mcc": 419,
+		"mnc": 2,
+		"apn": "pps",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 419,
+		"mnc": 3,
+		"apn": "action.ooredoo.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 419,
+		"mnc": 4,
+		"apn": "viva",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 420,
+		"mnc": 1,
+		"apn": "jawalnet.com.sa"
+	},
+	{
+		"mcc": 420,
+		"mnc": 3,
+		"apn": "web1"
+	},
+	{
+		"mcc": 420,
+		"mnc": 3,
+		"apn": "web2"
+	},
+	{
+		"mcc": 420,
+		"mnc": 4,
+		"apn": "zain"
+	},
+	{
+		"mcc": 422,
+		"mnc": 2,
+		"apn": "wap",
+		"user": "wap",
+		"password": "wap"
+	},
+	{
+		"mcc": 422,
+		"mnc": 3,
+		"apn": "isp.nawras.com.om",
+		"user": "test",
+		"password": "test"
+	},
+	{
+		"mcc": 424,
+		"mnc": 1,
+		"apn": "ewap",
+		"user": "ewap",
+		"password": "ewap"
+	},
+	{
+		"mcc": 424,
+		"mnc": 2,
+		"apn": "etisalat.ae"
+	},
+	{
+		"mcc": 425,
+		"mnc": 1,
+		"apn": "net.hotm"
+	},
+	{
+		"mcc": 425,
+		"mnc": 2,
+		"apn": "sphone"
+	},
+	{
+		"mcc": 425,
+		"mnc": 3,
+		"apn": "internet.pelephone.net.il",
+		"user": "pcl@3g",
+		"password": "pcl"
+	},
+	{
+		"mcc": 425,
+		"mnc": 7,
+		"apn": "net.hotm"
+	},
+	{
+		"mcc": 425,
+		"mnc": 28,
+		"apn": "net.hotm"
+	},
+	{
+		"mcc": 426,
+		"mnc": 1,
+		"apn": "internet.batelco.com"
+	},
+	{
+		"mcc": 426,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 426,
+		"mnc": 4,
+		"apn": "viva.bh",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 427,
+		"mnc": 2,
+		"apn": "web.vodafone.com.qa"
+	},
+	{
+		"mcc": 429,
+		"mnc": 1,
+		"apn": "ntnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 440,
+		"mnc": 10,
+		"apn": "spmode.ne.jp",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 440,
+		"mnc": 11,
+		"apn": "5g.rakuten.jp",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 440,
+		"mnc": 11,
+		"apn": "rakuten.jp",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 440,
+		"mnc": 51,
+		"apn": "unod.au-net.ne.jp",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 2,
+		"user": "685840734641020@uad5gn.au-net.ne.jp",
+		"password": "KpyrR6BP"
+	},
+	{
+		"mcc": 440,
+		"mnc": 54,
+		"apn": "unod.au-net.ne.jp",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 2,
+		"user": "685840734641020@uno.au-net.ne.jp",
+		"password": "KpyrR6BP"
+	},
+	{
+		"mcc": 450,
+		"mnc": 5,
+		"apn": "5g.sktelecom.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 452,
+		"mnc": 1,
+		"apn": "m-wap",
+		"user": "mms"
+	},
+	{
+		"mcc": 452,
+		"mnc": 2,
+		"apn": "m3-world",
+		"user": "mms"
+	},
+	{
+		"mcc": 452,
+		"mnc": 4,
+		"apn": "v-internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 452,
+		"mnc": 5,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 452,
+		"mnc": 7,
+		"apn": "internet",
+		"user": "mms"
+	},
+	{
+		"mcc": 454,
+		"mnc": 0,
+		"apn": "ctexcel",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "CTExcel"
+	},
+	{
+		"mcc": 454,
+		"mnc": 3,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "中国电信"
+	},
+	{
+		"mcc": 454,
+		"mnc": 4,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "中国电信"
+	},
+	{
+		"mcc": 454,
+		"mnc": 7,
+		"apn": "3gnet",
+		"protocol": 3
+	},
+	{
+		"mcc": 454,
+		"mnc": 7,
+		"apn": "hkw",
+		"protocol": 3,
+		"mvno_apn_type": "imsi",
+		"mvno_match_data": "454078"
+	},
+	{
+		"mcc": 454,
+		"mnc": 7,
+		"apn": "cuhkiot",
+		"protocol": 3,
+		"mvno_apn_type": "imsi",
+		"mvno_match_data": "454079"
+	},
+	{
+		"mcc": 454,
+		"mnc": 31,
+		"apn": "ctexcel",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "CTExcel"
+	},
+	{
+		"mcc": 454,
+		"mnc": 31,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "中国电信"
+	},
+	{
+		"mcc": 455,
+		"mnc": 1,
+		"apn": "ctm-mobile",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 455,
+		"mnc": 2,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi"
+	},
+	{
+		"mcc": 455,
+		"mnc": 4,
+		"apn": "ctm-mobile",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 455,
+		"mnc": 7,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi"
+	},
+	{
+		"mcc": 456,
+		"mnc": 1,
+		"apn": "cellcard"
+	},
+	{
+		"mcc": 456,
+		"mnc": 6,
+		"apn": "smart",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 456,
+		"mnc": 8,
+		"apn": "metfone"
+	},
+	{
+		"mcc": 456,
+		"mnc": 11,
+		"apn": "seatel",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 460,
+		"mnc": 0,
+		"apn": "cmnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 1,
+		"apn": "3gnet",
+		"protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 1,
+		"apn": "3gnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "China Telecom",
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 2,
+		"apn": "cmnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 3,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 4,
+		"apn": "cmnet",
+		"protocol": 1,
+		"roaming_protocol": 1,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 7,
+		"apn": "cmnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 8,
+		"apn": "cmnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 9,
+		"apn": "3gnet",
+		"protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 11,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 12,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 13,
+		"apn": "ctnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "ctnet@mycdma.cn",
+		"password": "vnet.mobi",
+		"mtu": 1400
+	},
+	{
+		"mcc": 460,
+		"mnc": 15,
+		"apn": "cbnet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"mtu": 1400
+	},
+	{
+		"mcc": 466,
+		"mnc": 1,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 466,
+		"mnc": 5,
+		"apn": "gtnet",
+		"protocol": 3
+	},
+	{
+		"mcc": 466,
+		"mnc": 88,
+		"apn": "internet"
+	},
+	{
+		"mcc": 466,
+		"mnc": 89,
+		"apn": "internet",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 466,
+		"mnc": 92,
+		"apn": "internet"
+	},
+	{
+		"mcc": 466,
+		"mnc": 93,
+		"apn": "internet"
+	},
+	{
+		"mcc": 466,
+		"mnc": 93,
+		"apn": "twm"
+	},
+	{
+		"mcc": 466,
+		"mnc": 97,
+		"apn": "internet"
+	},
+	{
+		"mcc": 466,
+		"mnc": 97,
+		"apn": "twm"
+	},
+	{
+		"mcc": 466,
+		"mnc": 99,
+		"apn": "internet"
+	},
+	{
+		"mcc": 466,
+		"mnc": 99,
+		"apn": "twm"
+	},
+	{
+		"mcc": 470,
+		"mnc": 1,
+		"apn": "gpinternet"
+	},
+	{
+		"mcc": 470,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 470,
+		"mnc": 3,
+		"apn": "blweb",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 470,
+		"mnc": 4,
+		"apn": "wap"
+	},
+	{
+		"mcc": 470,
+		"mnc": 7,
+		"apn": "internet"
+	},
+	{
+		"mcc": 502,
+		"mnc": 8,
+		"apn": "internet"
+	},
+	{
+		"mcc": 502,
+		"mnc": 16,
+		"apn": "diginet",
+		"user": "digi",
+		"password": "digi"
+	},
+	{
+		"mcc": 502,
+		"mnc": 152,
+		"apn": "yesnet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 502,
+		"mnc": 153,
+		"apn": "unifi",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 505,
+		"mnc": 1,
+		"apn": "Telstra.wap"
+	},
+	{
+		"mcc": 505,
+		"mnc": 2,
+		"apn": "yesinternet"
+	},
+	{
+		"mcc": 505,
+		"mnc": 3,
+		"apn": "live.vodafone.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 505,
+		"mnc": 6,
+		"apn": "live.vodafone.com",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 505,
+		"mnc": 7,
+		"apn": "vfinternet.au"
+	},
+	{
+		"mcc": 505,
+		"mnc": 11,
+		"apn": "Telstra.wap"
+	},
+	{
+		"mcc": 505,
+		"mnc": 12,
+		"apn": "3netaccess"
+	},
+	{
+		"mcc": 505,
+		"mnc": 19,
+		"apn": "data.lycamobile.com.au"
+	},
+	{
+		"mcc": 505,
+		"mnc": 39,
+		"apn": "Telstra.wap"
+	},
+	{
+		"mcc": 505,
+		"mnc": 71,
+		"apn": "Telstra.wap"
+	},
+	{
+		"mcc": 505,
+		"mnc": 72,
+		"apn": "Telstra.wap"
+	},
+	{
+		"mcc": 505,
+		"mnc": 88,
+		"apn": "vfinternet.au"
+	},
+	{
+		"mcc": 505,
+		"mnc": 90,
+		"apn": "yesinternet"
+	},
+	{
+		"mcc": 510,
+		"mnc": 1,
+		"apn": "indosatgprs"
+	},
+	{
+		"mcc": 510,
+		"mnc": 8,
+		"apn": "AXIS",
+		"user": "axis",
+		"password": "123456"
+	},
+	{
+		"mcc": 510,
+		"mnc": 9,
+		"apn": "Smartfren4G",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 510,
+		"mnc": 10,
+		"apn": "telkomsel",
+		"user": "wap",
+		"password": "wap123"
+	},
+	{
+		"mcc": 510,
+		"mnc": 11,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 510,
+		"mnc": 21,
+		"apn": "indosatgprs"
+	},
+	{
+		"mcc": 510,
+		"mnc": 28,
+		"apn": "Smartfren4G",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "http.globe.com.ph"
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "internet.globe.com.ph"
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "internet.cherry.com.ph",
+		"mvno_apn_type": "pnn",
+		"mvno_match_data": "Cherry Mobile"
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "internet.cherry.com.ph",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "Cherry Prepaid"
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "http.globe.com.ph",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "TM"
+	},
+	{
+		"mcc": 515,
+		"mnc": 2,
+		"apn": "http.globe.com.ph",
+		"mvno_apn_type": "spn",
+		"mvno_match_data": "ABS-CBN"
+	},
+	{
+		"mcc": 515,
+		"mnc": 3,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 515,
+		"mnc": 5,
+		"apn": "minternet"
+	},
+	{
+		"mcc": 515,
+		"mnc": 18,
+		"apn": "redinternet"
+	},
+	{
+		"mcc": 515,
+		"mnc": 66,
+		"apn": "internet.dito.ph",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 520,
+		"mnc": 0,
+		"apn": "internet",
+		"protocol": 3,
+		"user": "true",
+		"password": "true"
+	},
+	{
+		"mcc": 520,
+		"mnc": 1,
+		"apn": "internet",
+		"user": "ais",
+		"password": "ais"
+	},
+	{
+		"mcc": 520,
+		"mnc": 3,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 520,
+		"mnc": 4,
+		"apn": "internet",
+		"protocol": 3,
+		"user": "true",
+		"password": "true"
+	},
+	{
+		"mcc": 520,
+		"mnc": 5,
+		"apn": "www.dtac.co.th",
+		"protocol": 3
+	},
+	{
+		"mcc": 520,
+		"mnc": 15,
+		"apn": "internet"
+	},
+	{
+		"mcc": 520,
+		"mnc": 18,
+		"apn": "www.dtac.co.th",
+		"user": "",
+		"password": ""
+	},
+	{
+		"mcc": 520,
+		"mnc": 99,
+		"apn": "internet",
+		"user": "true",
+		"password": "true"
+	},
+	{
+		"mcc": 525,
+		"mnc": 1,
+		"apn": "e-ideas"
+	},
+	{
+		"mcc": 525,
+		"mnc": 2,
+		"apn": "e-ideas"
+	},
+	{
+		"mcc": 525,
+		"mnc": 3,
+		"apn": "sunsurf",
+		"user": "65",
+		"password": "user123"
+	},
+	{
+		"mcc": 525,
+		"mnc": 5,
+		"apn": "shwap"
+	},
+	{
+		"mcc": 525,
+		"mnc": 5,
+		"apn": "gtnet",
+		"mvno_apn_type": "gid",
+		"mvno_match_data": "0A"
+	},
+	{
+		"mcc": 525,
+		"mnc": 10,
+		"apn": "tpg",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 530,
+		"mnc": 1,
+		"apn": "vodafone"
+	},
+	{
+		"mcc": 530,
+		"mnc": 2,
+		"apn": "www.vodafone.net.nz"
+	},
+	{
+		"mcc": 530,
+		"mnc": 24,
+		"apn": "internet"
+	},
+	{
+		"mcc": 530,
+		"mnc": 1,
+		"apn": "vodafone"
+	},
+	{
+		"mcc": 602,
+		"mnc": 1,
+		"apn": "mobinilweb"
+	},
+	{
+		"mcc": 602,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 602,
+		"mnc": 3,
+		"apn": "etisalat",
+		"protocol": 3,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 603,
+		"mnc": 1,
+		"apn": "internet",
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 603,
+		"mnc": 2,
+		"apn": "djezzy.internet"
+	},
+	{
+		"mcc": 603,
+		"mnc": 3,
+		"apn": "internet",
+		"user": "nedjma",
+		"password": "nedjma"
+	},
+	{
+		"mcc": 604,
+		"mnc": 0,
+		"apn": "internet.orange.ma",
+		"auth_type": 1
+	},
+	{
+		"mcc": 604,
+		"mnc": 1,
+		"apn": "www.iamgprs1.ma"
+	},
+	{
+		"mcc": 605,
+		"mnc": 1,
+		"apn": "weborange"
+	},
+	{
+		"mcc": 608,
+		"mnc": 1,
+		"apn": "internet",
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 610,
+		"mnc": 2,
+		"apn": "internet",
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 611,
+		"mnc": 1,
+		"apn": "internetogn",
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 612,
+		"mnc": 3,
+		"apn": "orangeciweb",
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 613,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 614,
+		"mnc": 4,
+		"apn": "orange.ne"
+	},
+	{
+		"mcc": 617,
+		"mnc": 1,
+		"apn": "orange"
+	},
+	{
+		"mcc": 617,
+		"mnc": 10,
+		"apn": "web",
+		"user": "cell number",
+		"password": "MMSC"
+	},
+	{
+		"mcc": 618,
+		"mnc": 7,
+		"apn": "orange"
+	},
+	{
+		"mcc": 619,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 620,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 620,
+		"mnc": 2,
+		"apn": "browse"
+	},
+	{
+		"mcc": 620,
+		"mnc": 3,
+		"apn": "web.tigo.com.gh"
+	},
+	{
+		"mcc": 620,
+		"mnc": 6,
+		"apn": "web"
+	},
+	{
+		"mcc": 620,
+		"mnc": 7,
+		"apn": "internet"
+	},
+	{
+		"mcc": 621,
+		"mnc": 27,
+		"apn": "internet"
+	},
+	{
+		"mcc": 621,
+		"mnc": 30,
+		"apn": "web.gprs.mtnnigeria.net",
+		"user": "web",
+		"password": "web"
+	},
+	{
+		"mcc": 621,
+		"mnc": 50,
+		"apn": "gloflat",
+		"user": "flat",
+		"password": "flat"
+	},
+	{
+		"mcc": 623,
+		"mnc": 3,
+		"apn": "orangeca3g"
+	},
+	{
+		"mcc": 624,
+		"mnc": 2,
+		"apn": "orange",
+		"user": "orange",
+		"password": "orange"
+	},
+	{
+		"mcc": 630,
+		"mnc": 1,
+		"apn": "vodanet",
+		"user": "vodalive"
+	},
+	{
+		"mcc": 630,
+		"mnc": 86,
+		"apn": "iew.orange.cd"
+	},
+	{
+		"mcc": 631,
+		"mnc": 2,
+		"apn": "internet.unitel.co.ao",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 632,
+		"mnc": 3,
+		"apn": "4Gogb"
+	},
+	{
+		"mcc": 634,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 636,
+		"mnc": 1,
+		"apn": "etc.com"
+	},
+	{
+		"mcc": 639,
+		"mnc": 3,
+		"apn": "internet"
+	},
+	{
+		"mcc": 639,
+		"mnc": 7,
+		"apn": "telkom",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 639,
+		"mnc": 10,
+		"apn": "faiba.co.ke",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 640,
+		"mnc": 4,
+		"apn": "internet",
+		"protocol": 3
+	},
+	{
+		"mcc": 640,
+		"mnc": 9,
+		"apn": "internet.tz.celtel.com",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 640,
+		"mnc": 11,
+		"apn": "internet"
+	},
+	{
+		"mcc": 641,
+		"mnc": 10,
+		"apn": "yellopix.mtn.co.ug",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 643,
+		"mnc": 1,
+		"apn": "isp.mcel.mz",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 645,
+		"mnc": 5,
+		"apn": "internet",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 646,
+		"mnc": 1,
+		"apn": "internet.mg.airtel.com"
+	},
+	{
+		"mcc": 646,
+		"mnc": 2,
+		"apn": "orangenet",
+		"auth_type": 3
+	},
+	{
+		"mcc": 647,
+		"mnc": 2,
+		"apn": "internet"
+	},
+	{
+		"mcc": 649,
+		"mnc": 1,
+		"apn": "ppsinternet",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 651,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 652,
+		"mnc": 1,
+		"apn": "internet.mascom",
+		"user": "guest",
+		"password": "guest"
+	},
+	{
+		"mcc": 652,
+		"mnc": 2,
+		"apn": "internet.orange.co.bw"
+	},
+	{
+		"mcc": 655,
+		"mnc": 1,
+		"apn": "internet"
+	},
+	{
+		"mcc": 655,
+		"mnc": 2,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 655,
+		"mnc": 7,
+		"apn": "Internet"
+	},
+	{
+		"mcc": 655,
+		"mnc": 7,
+		"apn": "vdata"
+	},
+	{
+		"mcc": 655,
+		"mnc": 10,
+		"apn": "myMTN"
+	},
+	{
+		"mcc": 655,
+		"mnc": 38,
+		"apn": "rain",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 655,
+		"mnc": 73,
+		"apn": "rain",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 704,
+		"mnc": 1,
+		"apn": "internet.ideasclaro",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 704,
+		"mnc": 2,
+		"apn": "broadband.tigo.gt",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 704,
+		"mnc": 3,
+		"apn": "internet.movistar.gt",
+		"protocol": 3,
+		"user": "movistargt",
+		"password": "movistargt"
+	},
+	{
+		"mcc": 704,
+		"mnc": 20,
+		"apn": "internet.tigo.gt"
+	},
+	{
+		"mcc": 706,
+		"mnc": 1,
+		"apn": "internet.ideasclaro",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 706,
+		"mnc": 4,
+		"apn": "internet.movistar.sv",
+		"protocol": 3,
+		"user": "movistarsv",
+		"password": "movistarsv"
+	},
+	{
+		"mcc": 708,
+		"mnc": 1,
+		"apn": "internet.ideasclaro",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 710,
+		"mnc": 21,
+		"apn": "internet.ideasclaro",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 710,
+		"mnc": 30,
+		"apn": "internet.movistar.ni",
+		"protocol": 3,
+		"user": "movistarni",
+		"password": "movistarni"
+	},
+	{
+		"mcc": 712,
+		"mnc": 3,
+		"apn": "internet.ideasclaro",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1
+	},
+	{
+		"mcc": 712,
+		"mnc": 4,
+		"apn": "internet.movistar.cr",
+		"protocol": 3,
+		"user": "movistarcr",
+		"password": "movistarcr"
+	},
+	{
+		"mcc": 714,
+		"mnc": 1,
+		"apn": "apn01.cwpanama.com.pa"
+	},
+	{
+		"mcc": 714,
+		"mnc": 3,
+		"apn": "web.claro.com.pa",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1,
+		"user": "CLAROWEB",
+		"password": "CLAROWEB"
+	},
+	{
+		"mcc": 714,
+		"mnc": 4,
+		"apn": "web.digicelpanama.com"
+	},
+	{
+		"mcc": 714,
+		"mnc": 20,
+		"apn": "internet.movistar.pa",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "movistarpa",
+		"password": "movistarpa"
+	},
+	{
+		"mcc": 716,
+		"mnc": 6,
+		"apn": "movistar.pe",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "movistar@datos",
+		"password": "movistar"
+	},
+	{
+		"mcc": 716,
+		"mnc": 7,
+		"apn": "entel.pe"
+	},
+	{
+		"mcc": 716,
+		"mnc": 10,
+		"apn": "claro.pe",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"auth_type": 1,
+		"user": "claro",
+		"password": "claro"
+	},
+	{
+		"mcc": 716,
+		"mnc": 17,
+		"apn": "entel.pe"
+	},
+	{
+		"mcc": 722,
+		"mnc": 7,
+		"apn": "wap.gprs.unifon.com.ar",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "wap",
+		"password": "wap"
+	},
+	{
+		"mcc": 722,
+		"mnc": 34,
+		"apn": "datos.personal.com",
+		"auth_type": 1,
+		"user": "datos",
+		"password": "datos"
+	},
+	{
+		"mcc": 722,
+		"mnc": 10,
+		"apn": "internet.movil",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "internet",
+		"password": "internet"
+	},
+	{
+		"mcc": 722,
+		"mnc": 70,
+		"apn": "wap.gprs.unifon.com.ar",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "wap",
+		"password": "wap"
+	},
+	{
+		"mcc": 724,
+		"mnc": 2,
+		"apn": "timbrasil.br",
+		"user": "tim",
+		"password": "tim"
+	},
+	{
+		"mcc": 724,
+		"mnc": 3,
+		"apn": "timbrasil.br",
+		"user": "tim",
+		"password": "tim"
+	},
+	{
+		"mcc": 724,
+		"mnc": 4,
+		"apn": "timbrasil.br",
+		"user": "tim",
+		"password": "tim"
+	},
+	{
+		"mcc": 724,
+		"mnc": 5,
+		"apn": "java.claro.com.br",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "claro",
+		"password": "claro"
+	},
+	{
+		"mcc": 724,
+		"mnc": 6,
+		"apn": "zap.vivo.com.br",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "vivo",
+		"password": "vivo"
+	},
+	{
+		"mcc": 724,
+		"mnc": 7,
+		"apn": "sercomtel.com.br",
+		"user": "sercomtel",
+		"password": "sercomtel"
+	},
+	{
+		"mcc": 724,
+		"mnc": 10,
+		"apn": "zap.vivo.com.br",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "vivo",
+		"password": "vivo"
+	},
+	{
+		"mcc": 724,
+		"mnc": 11,
+		"apn": "zap.vivo.com.br",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "vivo",
+		"password": "vivo"
+	},
+	{
+		"mcc": 724,
+		"mnc": 19,
+		"apn": "gprs.telemigcelular.com.br",
+		"user": "celular",
+		"password": "celular"
+	},
+	{
+		"mcc": 724,
+		"mnc": 23,
+		"apn": "zap.vivo.com.br",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "vivo",
+		"password": "vivo"
+	},
+	{
+		"mcc": 724,
+		"mnc": 24,
+		"apn": "gprs.amazoniacelular.com.br",
+		"user": "celular",
+		"password": "celular"
+	},
+	{
+		"mcc": 724,
+		"mnc": 31,
+		"apn": "gprs.oi.com.br",
+		"protocol": 3
+	},
+	{
+		"mcc": 724,
+		"mnc": 80,
+		"apn": "apn06.mpg28.ericsson.se",
+		"protocol": 3
+	},
+	{
+		"mcc": 730,
+		"mnc": 1,
+		"apn": "bam.entelpcs.cl",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 730,
+		"mnc": 2,
+		"apn": "wap.tmovil.cl",
+		"protocol": 3,
+		"user": "wap",
+		"password": "wap"
+	},
+	{
+		"mcc": 730,
+		"mnc": 3,
+		"apn": "bam.clarochile.cl",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 730,
+		"mnc": 7,
+		"apn": "wap.tmovil.cl",
+		"protocol": 3,
+		"user": "wap",
+		"password": "wap"
+	},
+	{
+		"mcc": 730,
+		"mnc": 8,
+		"apn": "movil.vtr.com"
+	},
+	{
+		"mcc": 730,
+		"mnc": 9,
+		"apn": "internet",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 730,
+		"mnc": 10,
+		"apn": "imovil.entelpcs.cl",
+		"user": "entelpcs",
+		"password": "entelpcs"
+	},
+	{
+		"mcc": 730,
+		"mnc": 23,
+		"apn": "bam.clarochile.cl",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "clarochile",
+		"password": "clarochile"
+	},
+	{
+		"mcc": 732,
+		"mnc": 101,
+		"apn": "internet.comcel.com.co",
+		"protocol": 3,
+		"roaming_protocol": 3,
+		"user": "COMCELWEB",
+		"password": "COMCELWEB"
+	},
+	{
+		"mcc": 732,
+		"mnc": 103,
+		"apn": "web.colombiamovil.com.co"
+	},
+	{
+		"mcc": 732,
+		"mnc": 111,
+		"apn": "web.colombiamovil.com.co"
+	},
+	{
+		"mcc": 732,
+		"mnc": 123,
+		"apn": "internet.movistar.com.co",
+		"protocol": 3,
+		"auth_type": 1,
+		"user": "movistar",
+		"password": "movistar"
+	},
+	{
+		"mcc": 732,
+		"mnc": 130,
+		"apn": "lte.avantel.com.co",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 732,
+		"mnc": 187,
+		"apn": "internetmovil.etb.net.co",
+		"protocol": 1,
+		"roaming_protocol": 1
+	},
+	{
+		"mcc": 732,
+		"mnc": 360,
+		"apn": "internet.wom.co",
+		"protocol": 3
+	},
+	{
+		"mcc": 734,
+		"mnc": 2,
+		"apn": "gprsweb.digitel.ve"
+	},
+	{
+		"mcc": 734,
+		"mnc": 4,
+		"apn": "internet.movistar.ve",
+		"protocol": 3
+	},
+	{
+		"mcc": 736,
+		"mnc": 2,
+		"apn": "4g.entel",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 736,
+		"mnc": 3,
+		"apn": "internet.tigo.bo",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 740,
+		"mnc": 0,
+		"apn": "internet.movistar.com.ec",
+		"protocol": 3,
+		"user": "movistar",
+		"password": "movistar"
+	},
+	{
+		"mcc": 740,
+		"mnc": 1,
+		"apn": "internet.claro.com.ec",
+		"protocol": 3,
+		"roaming_protocol": 3
+	},
+	{
+		"mcc": 744,
+		"mnc": 1,
+		"apn": "vox.internet",
+		"user": "",
+		"password": ""
+	},
+	{
+		"mcc": 744,
+		"mnc": 4,
+		"apn": "internet.tigo.py",
+		"user": "",
+		"password": ""
+	},
+	{
+		"mcc": 744,
+		"mnc": 5,
+		"apn": "internet",
+		"user": "",
+		"password": ""
+	},
+	{
+		"mcc": 748,
+		"mnc": 1,
+		"apn": "antel.lte"
+	},
+	{
+		"mcc": 748,
+		"mnc": 7,
+		"apn": "webapn.movistar.com.uy",
+		"user": "movistar",
+		"password": "movistar",
+		"protocol": 3
+	}
+]

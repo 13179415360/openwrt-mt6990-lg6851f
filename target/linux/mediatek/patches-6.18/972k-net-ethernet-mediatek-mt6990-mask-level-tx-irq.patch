@@ -1,0 +1,36 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: ethernet: mediatek: mask MT6990 level TX IRQ at GIC
+
+The MT6990 QDMA TX interrupt is level triggered.  Masking only QDMA's delayed
+TX bit leaves the parent GIC line asserted long enough to cause an interrupt
+storm, starving TX NAPI before it can clear status and reclaim descriptors.
+
+Mask the Linux IRQ at entry and unmask it after TX NAPI completes.  Keep the
+workaround scoped to MT6990; other SoCs retain the existing register-only
+masking.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -3004,8 +3004,11 @@ static int mtk_napi_tx(struct napi_struct
+ 	if (mtk_r32(eth, reg_map->tx_irq_status) & tx_done_mask)
+ 		return budget;
+ 
+-	if (napi_complete_done(napi, tx_done))
++	if (napi_complete_done(napi, tx_done)) {
+ 		mtk_tx_irq_enable(eth, tx_done_mask);
++		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990))
++			enable_irq(eth->irq[MTK_MT6990_FE_IRQ_TX]);
++	}
+ 
+ 	return tx_done;
+ }
+@@ -3881,6 +3885,9 @@ static irqreturn_t mtk_handle_irq_tx(int
+ 	struct mtk_eth *eth = _eth;
+ 
+ 	eth->tx_events++;
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990))
++		disable_irq_nosync(irq);
++
+ 	if (likely(napi_schedule_prep(&eth->tx_napi))) {
+ 		mtk_tx_irq_disable(eth, mtk_tx_done_mask(eth));
+ 		__napi_schedule(&eth->tx_napi);

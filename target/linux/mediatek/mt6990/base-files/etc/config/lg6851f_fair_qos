@@ -1,0 +1,10 @@
+config main 'main'
+	option enabled '1'
+	option wan_device 'ccmni2'
+	option ifb_device 'ifb-ccmni2'
+	option max_hosts '36'
+	option overhead '44'
+	option diffserv 'diffserv4'
+	# Autorate startup seed, not a ceiling.  It prevents a cold boot with only
+	# sparse background packets from beginning at dial-up speed.
+	option ingress_seed '1gbit'

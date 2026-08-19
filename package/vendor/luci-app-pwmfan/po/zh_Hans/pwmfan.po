@@ -1,0 +1,119 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-pwmfan\n"
+"PO-Revision-Date: 2026-08-14 20:15+0800\n"
+"Last-Translator: OpenWrt MT6990 LG6851F integration\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "PWM Fan"
+msgstr "PWM 风扇"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "PWM Fan Control"
+msgstr "PWM 风扇控制"
+
+msgid "MT6990 PWM Fan"
+msgstr "MT6990 PWM 风扇"
+
+msgid "Live status"
+msgstr "实时状态"
+
+msgid "Temperature / Fan Overview"
+msgstr "温度 / 风扇概览"
+
+msgid "Current maximum temperature"
+msgstr "当前最高温度"
+
+msgid "Low"
+msgstr "低"
+
+msgid "High"
+msgstr "高"
+
+msgid "PWM / speed"
+msgstr "PWM / 转速"
+
+msgid "Target PWM level"
+msgstr "目标 PWM 档位"
+
+msgid "Thermal state"
+msgstr "散热状态"
+
+msgid "Fan status"
+msgstr "风扇状态"
+
+msgid "Automatic Temperature Curve"
+msgstr "自动温控曲线"
+
+msgid "Controls"
+msgstr "控制"
+
+msgid "Standard"
+msgstr "标准"
+
+msgid "Normal"
+msgstr "正常"
+
+msgid "Medium"
+msgstr "中速"
+
+msgid "Very high"
+msgstr "很高"
+
+msgid "Maximum"
+msgstr "最高"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Unavailable"
+msgstr "不可用"
+
+msgid "Higher PWM values run this board fan faster"
+msgstr "PWM 数值越高，本设备风扇转速越快"
+
+msgid "Lower PWM values run this board fan faster"
+msgstr "本设备为反向 PWM，数值越低转速越快"
+
+msgid "Reverse PWM"
+msgstr "反向 PWM"
+
+msgid "PWM"
+msgstr "PWM"
+
+msgid "Apply temperature profile"
+msgstr "应用温控曲线"
+
+msgid "PWM 100 is the standard speed. Higher values increase cooling; manual selections remain temporary."
+msgstr "PWM 100 为标准转速。更高数值可增强散热；手动选择仅临时生效。"
+
+msgid "PWM 100 is the reliable start and standard speed. Lower values increase cooling after startup; manual selections remain temporary."
+msgstr "PWM 100 用于可靠启动并作为标准转速。风扇启动后数值越低散热越强；手动选择仅临时生效。"
+
+msgid "Temporary fan speed applied; thermal control remains active."
+msgstr "临时风扇转速已应用；自动温控仍保持启用。"
+
+msgid "Fan output matched to the current temperature profile."
+msgstr "风扇输出已匹配当前温控曲线。"
+
+msgid "PWM control failed"
+msgstr "PWM 控制失败"
+
+msgid "Unable to restore automatic control"
+msgstr "无法恢复自动控制"
+
+msgid "No standard pwm-fan hwmon device was found."
+msgstr "未找到标准的 pwm-fan hwmon 设备。"
+
+msgid "View and control the PWM fan"
+msgstr "查看并控制 PWM 风扇"

@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: local <local@localhost>
+Date: Sun, 05 Jul 2026 21:13:46 +0800
+Subject: [PATCH] clk: mediatek: add MT6990 basic clock provider build
+
+Build MT6990 topckgen/apmixedsys/infracfg_ao and pericfg_ao providers.
+
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -426,6 +426,21 @@ config COMMON_CLK_MT7629_HIFSYS
+ 	  This driver supports MediaTek MT7629 HIFSYS clocks providing
+ 	  to PCI-E and USB.
+ 
++
++config COMMON_CLK_MT6990
++	bool "Clock driver for MediaTek MT6990"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	select COMMON_CLK_MEDIATEK
++	help
++	  This enables MT6990 topckgen, apmixedsys and infracfg_ao clock providers.
++
++config COMMON_CLK_MT6990_PERI
++	bool "Clock driver for MediaTek MT6990 peripheral clocks"
++	depends on COMMON_CLK_MT6990
++	select COMMON_CLK_MEDIATEK
++	help
++	  This enables MT6990 pericfg_ao clock providers.
++
+ config COMMON_CLK_MT7981
+ 	bool "Clock driver for MediaTek MT7981"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -177,3 +177,5 @@ obj-$(CONFIG_COMMON_CLK_MT8365_VDEC) +=
+ obj-$(CONFIG_COMMON_CLK_MT8365_VENC) += clk-mt8365-venc.o
+ obj-$(CONFIG_COMMON_CLK_MT8516) += clk-mt8516-apmixedsys.o clk-mt8516.o
+ obj-$(CONFIG_COMMON_CLK_MT8516_AUDSYS) += clk-mt8516-aud.o
++obj-$(CONFIG_COMMON_CLK_MT6990) += clk-mt6990.o clk-mt6990-ifrao.o clk-mt6990-vlpcfg.o
++obj-$(CONFIG_COMMON_CLK_MT6990_PERI) += clk-mt6990-peri.o

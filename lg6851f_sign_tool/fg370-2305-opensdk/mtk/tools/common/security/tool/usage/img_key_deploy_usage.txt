@@ -1,0 +1,11 @@
+==========================
+#generate cert-1 and cert-2 key
+==========================
+python img_key_deploy.py mt6880 cerrt1_key_path=./hsm_test_keys/root_prvk.pem cert2_key_path=./hsm_test_keys/img_prvk.pem root_key_padding=pss | tee gen_cert1_cert2_key.log
+
+==========================
+#generate cert-1, MD cert-1 and cert-2 key
+==========================
+Creat ./out Folder
+Pub modem.img Under ./out Folder And Rename It To md1img.img
+python img_key_deploy.py mt6880 cerrt1_key_path=./hsm_test_keys/root_prvk.pem cert2_key_path=./hsm_test_keys/img_prvk.pem root_key_padding=pss | tee gen_cert1_cert2_key.log

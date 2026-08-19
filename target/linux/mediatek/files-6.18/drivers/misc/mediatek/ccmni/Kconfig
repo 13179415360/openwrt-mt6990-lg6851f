@@ -1,0 +1,30 @@
+config MTK_NET_CCMNI
+	tristate "MediaTek CCMNI driver"
+	depends on MTK_CCCI_DEVICES
+	help
+	  Cross Core Multi Network Interface:
+	  This option enables CCMNI driver, if yes,
+	  then CCMNI driver is used
+	  to communicate with CCCI
+	  driver by Kernel network, if no,
+	  Kernel network uses ccci port_net
+	  to send and recevie data.
+	  The option default depends on MTK_CCCI_DEVICES.
+config MTK_ETHERNET_PDU
+	tristate "Specify CCMNI support Ethernet PDU"
+	default n
+	help
+	  Whether CCMNI MTU is enlarged to fit
+	  Ethernet PDU requirement
+	  driver by Kernel network, if no,
+	  Set Y to enable this feature.
+	  If unsure,
+	  Set N to stay with legacy feature.
+config MTK_WAN_MTU_SIZE
+	int "configure WAN MTU size"
+	default 1500
+	help
+	  1500 => default
+	  1522 => Ethernet PDU
+	  1570 => EoGRE,
+	  2000 => Vzw

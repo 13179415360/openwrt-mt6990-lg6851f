@@ -1,0 +1,56 @@
+From: OpenWrt MT6990 port
+Subject: [PATCH] nl80211: do not log a successfully reused interface as error
+
+Multi-radio PHY setup asks nl80211_if_add() to reuse an interface which
+netifd may already have created. nl80211_create_iface() deliberately maps
+the create failure to -ENFILE when the named interface exists, and its caller
+then continues with that ifindex. Avoid logging that expected path as an
+error. Return values and recovery behavior are unchanged.
+
+--- a/src/drivers/driver_nl80211.c
++++ b/src/drivers/driver_nl80211.c
+@@ -6553,7 +6553,7 @@
+ 				     enum nl80211_iftype iftype,
+ 				     const u8 *addr, int wds, u32 radio_mask,
+ 				     int (*handler)(struct nl_msg *, void *),
+-				     void *arg)
++				     void *arg, int use_existing)
+ {
+ 	struct nl_msg *msg;
+ 	int ifidx;
+@@ -6628,8 +6628,14 @@
+ 	if (ret) {
+ fail:
+ 		nlmsg_free(msg);
+-		wpa_printf(MSG_ERROR, "Failed to create interface %s: %d (%s)",
+-			   ifname, ret, strerror(-ret));
++		if (use_existing && if_nametoindex(ifname))
++			wpa_printf(MSG_DEBUG,
++				   "nl80211: Interface %s already exists; reusing it after create returned %d (%s)",
++				   ifname, ret, strerror(-ret));
++		else
++			wpa_printf(MSG_ERROR,
++				   "Failed to create interface %s: %d (%s)",
++				   ifname, ret, strerror(-ret));
+ 		return ret;
+ 	}
+ 
+@@ -6674,7 +6680,7 @@
+ 	int ret;
+ 
+ 	ret = nl80211_create_iface_once(drv, ifname, iftype, addr, wds, radio_mask,
+-					handler, arg);
++					handler, arg, use_existing);
+ 
+ 	/* if error occurred and interface exists already */
+ 	if (ret < 0 && if_nametoindex(ifname)) {
+@@ -6700,7 +6706,8 @@
+ 
+ 		/* Try to create the interface again */
+ 		ret = nl80211_create_iface_once(drv, ifname, iftype, addr,
+-						wds, radio_mask, handler, arg);
++						wds, radio_mask, handler, arg,
++						use_existing);
+ 	}
+ 
+ 	if (ret >= 0 && is_p2p_net_interface(iftype)) {

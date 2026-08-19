@@ -1,0 +1,255 @@
+#!/bin/sh
+
+# Auto-detect the fitted LG6851F fan PWM route and polarity using the stock
+# GPIO121 tachometer.  One physical fan exists; PWM0 and PWM5 are alternate
+# production-routing candidates.
+
+STATE=/tmp/lg6851f-fan-control.state
+STOP=/tmp/lg6851f-fan-control.stop
+RECALIBRATE=/tmp/lg6851f-fan-control.recalibrate
+MANUAL=/tmp/lg6851f-fan-control.manual
+P0=
+P5=
+TACH=
+ACTIVE=
+DIRECTION=
+TACH_VALID=0
+
+log() { logger -t lg6851f-fan-control -- "$*"; }
+
+discover() {
+	for f in /sys/devices/platform/pwm-fan/hwmon/hwmon*/pwm1; do
+		[ -e "$f" ] && P0="$f" && TACH="${f%/pwm1}/fan1_input"
+	done
+	for f in /sys/devices/platform/pwm-fan-aux/hwmon/hwmon*/pwm1; do
+		[ -e "$f" ] && P5="$f"
+	done
+	[ -n "$P0" ] && [ -n "$P5" ] && [ -r "$TACH" ]
+}
+
+set_both() {
+	echo "$1" > "$P0"
+	echo "$1" > "$P5"
+}
+
+rpm() {
+	local value
+	value=$(cat "$TACH" 2>/dev/null)
+	case "$value" in ''|*[!0-9]*) echo 0;; *) echo "$value";; esac
+}
+
+sample_rpm() {
+	local a b c
+	sleep 1
+	a=$(rpm); sleep 1; b=$(rpm); sleep 1; c=$(rpm)
+	echo $(((a + b + c) / 3))
+}
+
+absolute() {
+	[ "$1" -lt 0 ] && echo $((-1 * $1)) || echo "$1"
+}
+
+hottest() {
+	local f value max=0
+	for f in /sys/class/thermal/thermal_zone*/temp /sys/class/hwmon/hwmon*/temp1_input; do
+		[ -r "$f" ] || continue
+		value=$(cat "$f" 2>/dev/null)
+		case "$value" in ''|*[!0-9]*) continue;; esac
+		[ "$value" -gt "$max" ] && [ "$value" -lt 200000 ] && max="$value"
+	done
+	echo "$max"
+}
+
+write_state() {
+	local status="$1" temp="$2" speed="$3" p0 p5
+	p0=$(cat "$P0" 2>/dev/null); p5=$(cat "$P5" 2>/dev/null)
+	{
+		echo "status=$status"
+		echo "active=${ACTIVE:-unknown}"
+		echo "direction=${DIRECTION:-unknown}"
+		echo "temperature=$temp"
+		echo "rpm=$speed"
+		echo "pwm0=$p0"
+		echo "pwm5=$p5"
+	} > "$STATE"
+}
+
+calibrate() {
+	local base r0 r5 d0 d5 a0 a5 temp
+	temp=$(hottest)
+	if [ "$temp" -ge 80000 ]; then
+		log "temperature=$temp too high for route calibration; keeping PWM100"
+		return 1
+	fi
+	set_both 100
+	base=$(sample_rpm)
+	[ "$base" -gt 0 ] || return 1
+
+	echo 170 > "$P0"
+	r0=$(sample_rpm)
+	echo 100 > "$P0"
+	sleep 2
+
+	echo 170 > "$P5"
+	r5=$(sample_rpm)
+	echo 100 > "$P5"
+	sleep 2
+
+	d0=$((r0 - base)); d5=$((r5 - base))
+	a0=$(absolute "$d0"); a5=$(absolute "$d5")
+
+	# Require a meaningful RPM response; otherwise remain in safe fallback.
+	if [ "$a0" -lt 120 ] && [ "$a5" -lt 120 ]; then
+		log "calibration inconclusive: base=$base pwm0=$r0 pwm5=$r5"
+		return 1
+	fi
+
+	if [ "$a0" -ge "$a5" ]; then
+		ACTIVE=pwm0
+		[ "$d0" -gt 0 ] && DIRECTION=direct || DIRECTION=inverse
+	else
+		ACTIVE=pwm5
+		[ "$d5" -gt 0 ] && DIRECTION=direct || DIRECTION=inverse
+	fi
+	log "calibrated active=$ACTIVE direction=$DIRECTION base=$base pwm0_test=$r0 pwm5_test=$r5"
+	return 0
+}
+
+tachless_compatible() {
+	# Some LG6851F production revisions route the fitted fan through PWM5
+	# while GPIO121 is not wired as a tachometer (the exported input remains
+	# permanently zero).  Driving both production candidates together is safe:
+	# only the physically routed output reaches the single fitted fan.
+	ACTIVE=both
+	DIRECTION=direct
+	TACH_VALID=0
+	log "tachometer unavailable; using synchronized PWM0+PWM5 direct control"
+}
+
+safe_fallback() {
+	local reason="$1" temp speed count=0
+	set_both 100
+	while [ ! -e "$STOP" ]; do
+		temp=$(hottest); speed=$(rpm)
+		write_state "$reason" "$temp" "$speed"
+		[ -e "$RECALIBRATE" ] && { rm -f "$RECALIBRATE"; return 0; }
+		# Retry an inconclusive boot calibration after one minute, but a real
+		# stall requires an explicit request from LuCI before any more probing.
+		if [ "$reason" = fallback ]; then
+			count=$((count + 1))
+			[ "$count" -ge 6 ] && [ "$temp" -lt 80000 ] && return 0
+		fi
+		sleep 10
+	done
+	return 1
+}
+
+target_pwm() {
+	local temp="$1"
+	if [ "$DIRECTION" = direct ]; then
+		[ "$temp" -lt 60000 ] && { echo 125; return; }
+		[ "$temp" -lt 65000 ] && { echo 125; return; }
+		[ "$temp" -lt 70000 ] && { echo 170; return; }
+		[ "$temp" -lt 75000 ] && { echo 200; return; }
+		[ "$temp" -lt 80000 ] && { echo 220; return; }
+		[ "$temp" -lt 85000 ] && { echo 240; return; }
+		echo 255
+	else
+		[ "$temp" -lt 55000 ] && { echo 200; return; }
+		[ "$temp" -lt 60000 ] && { echo 170; return; }
+		[ "$temp" -lt 65000 ] && { echo 125; return; }
+		echo 100
+	fi
+}
+
+rm -f "$STOP"
+for attempt in 1 2 3 4 5 6; do
+	discover && break
+	sleep 5
+done
+
+if ! discover; then
+	log "PWM or GPIO121 tachometer interface unavailable"
+	exit 1
+fi
+
+trap 'set_both 100; exit 0' TERM INT
+
+if calibrate; then
+	TACH_VALID=1
+else
+	tachless_compatible
+fi
+
+stall_count=0
+last_target=
+manual_count=0
+while [ ! -e "$STOP" ]; do
+	manual=$(cat "$MANUAL" 2>/dev/null)
+	case "$manual" in
+		125|170|200|220|240|255)
+			set_both "$manual"
+			write_state manual "$(hottest)" "$(rpm)"
+			manual_count=$((manual_count + 1))
+			if [ "$manual_count" -ge 12 ]; then
+				rm -f "$MANUAL"
+				manual_count=0
+			fi
+			sleep 5
+			continue
+			;;
+		*) manual_count=0;;
+	esac
+	if [ -e "$RECALIBRATE" ]; then
+		rm -f "$RECALIBRATE"
+		ACTIVE= DIRECTION=
+		if calibrate; then
+			TACH_VALID=1
+		else
+			tachless_compatible
+		fi
+	fi
+	temp=$(hottest)
+	target=$(target_pwm "$temp")
+
+	# Keep the unused production-route candidate at the proven safe value when
+	# tachometer calibration identified it.  Tachless revisions need both
+	# production candidates synchronized.
+	if [ "$ACTIVE" = pwm0 ]; then
+		echo "$target" > "$P0"; echo 100 > "$P5"
+	elif [ "$ACTIVE" = pwm5 ]; then
+		echo 100 > "$P0"; echo "$target" > "$P5"
+	else
+		set_both "$target"
+	fi
+
+	[ "$target" = "$last_target" ] || log "temperature=$temp target=$target active=$ACTIVE direction=$DIRECTION"
+	last_target="$target"
+	sleep 5
+	speed=$(rpm)
+	if [ "$TACH_VALID" -eq 1 ] && [ "$speed" -eq 0 ]; then
+		stall_count=$((stall_count + 1))
+	else
+		stall_count=0
+	fi
+
+	if [ "$stall_count" -ge 2 ]; then
+		set_both 100
+		write_state stalled "$temp" "$speed"
+		log "tachometer stalled; restored both routes to PWM100"
+		safe_fallback stalled || exit 0
+		ACTIVE= DIRECTION=
+		if calibrate; then
+			TACH_VALID=1
+		else
+			tachless_compatible
+		fi
+		stall_count=0
+		continue
+	fi
+
+	write_state automatic "$temp" "$speed"
+done
+
+set_both 100
+exit 0

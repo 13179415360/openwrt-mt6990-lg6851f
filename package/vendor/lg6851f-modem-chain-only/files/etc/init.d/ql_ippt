@@ -1,0 +1,47 @@
+#!/bin/sh /etc/rc.common
+
+. /usr/share/libubox/jshn.sh
+
+START=85
+
+STOP=15
+
+USE_PROCD=1
+PROCD_DEBUG=1
+NAME=ql_ippt
+
+service_triggers() {
+    procd_add_reload_trigger system
+}
+
+start_service() 
+{
+	local auto_adapt mode
+
+	auto_adapt="$(uci -q get system.@system[0].ql_ippt_auto_adapt)"
+	mode="$(uci -q get network.modem5g.mode)"
+	[ "$auto_adapt" = "1" ] || [ "$mode" = "2" ] || [ "$mode" = "3" ] || {
+		echo "skip ql_ippt: routing mode without IP passthrough auto-adapt"
+		return 0
+	}
+
+    echo "start ql_ippt daemon process"
+    procd_open_instance ql_ippt
+    procd_set_param command /usr/bin/ql_ippt
+    procd_set_param respawn
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_close_instance
+}
+
+stop_service() 
+{
+    echo "stop ql_ippt daemon process"
+}
+
+reload_service() 
+{
+    echo "reload ql_ippt daemon process"
+
+    procd_send_signal ql_ippt
+}

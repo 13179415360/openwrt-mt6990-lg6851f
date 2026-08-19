@@ -1,0 +1,198 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: pcs: mtk-lynxi: add MT6990 variant
+
+MT6990 uses the LynxI PCS control registers but does not implement the LynxI
+identification registers. Do not accept zero identification values blindly:
+program the MT6990-required reserved register and require an exact readback
+before creating the PCS. This distinguishes this hardware variant from an
+unpowered, clock-gated or incorrectly mapped register bank.
+
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -42,6 +42,9 @@
+ #define SGMSYS_PCS_SCRATCH		0x14
+ #define SGMII_DEV_VERSION		GENMASK(31, 16)
+ 
++#define MT6990_SGMSYS_RESERVED		0x24
++#define MT6990_SGMSYS_RESERVED_VAL	0x001000fa
++
+ /* Register to programmable link timer, the unit in 2 * 8ns */
+ #define SGMSYS_PCS_LINK_TIMER		0x18
+ #define SGMII_LINK_TIMER_DEFAULT	(0x186a0 & GENMASK(19, 0))
+@@ -85,6 +88,7 @@
+ #define SGMII_PN_SWAP_TX		BIT(0)
+ 
+ #define MTK_SGMII_FLAG_PHYA_TRX_CK	BIT(2)
++#define MTK_SGMII_FLAG_MT6990		BIT(3)
+ 
+ #define MTK_NETSYS_V3_AMA_RGC3		0x128
+ 
+@@ -205,6 +209,52 @@ static void mtk_sgmii_reset(struct mtk_pcs_lynxi *mpcs)
+ 	mdelay(1);
+ }
+ 
++static int mtk_pcs_mt6990_config(struct mtk_pcs_lynxi *mpcs,
++				 phy_interface_t interface)
++{
++	bool changed = mpcs->interface != interface;
++	int ret;
++
++	if (interface != PHY_INTERFACE_MODE_2500BASEX)
++		return -EINVAL;
++
++	if (mpcs->xfi_tphy) {
++		/* SDK: PLL on, then cycle only the per-port SGMII TOP domain. */
++		ret = phy_reset(mpcs->xfi_tphy);
++		if (ret)
++			return ret;
++	}
++
++	/* Exact MT6990 SDK force-2.5G PCS sequence. Do not run the generic
++	 * LynxI reset, advertisement or link-timer sequence here.
++	 */
++	regmap_update_bits(mpcs->regmap, mpcs->ana_rgc3,
++			   SGMII_PHY_SPEED_MASK, SGMII_PHY_SPEED_3_125G);
++	regmap_clear_bits(mpcs->regmap, SGMSYS_PCS_CONTROL_1, BMCR_ANENABLE);
++	regmap_write(mpcs->regmap, SGMSYS_SGMII_MODE, 0x31120009);
++	regmap_clear_bits(mpcs->regmap, SGMSYS_QPHY_PWR_STATE_CTRL,
++			  SGMII_PHYA_PWD);
++
++	/* mtk_sgmii_phy_gen2() starts with this reserved PCS write. */
++	regmap_write(mpcs->regmap, MT6990_SGMSYS_RESERVED,
++		     MT6990_SGMSYS_RESERVED_VAL);
++	/* The SDK Gen2 routine releases PHYA again immediately after the
++	 * reserved write. Preserve that write ordering exactly.
++	 */
++	regmap_clear_bits(mpcs->regmap, SGMSYS_QPHY_PWR_STATE_CTRL,
++			  SGMII_PHYA_PWD);
++
++	if (mpcs->xfi_tphy) {
++		ret = phy_set_mode_ext(mpcs->xfi_tphy, PHY_MODE_ETHERNET,
++				       interface);
++		if (ret)
++			return ret;
++	}
++
++	mpcs->interface = interface;
++	return changed;
++}
++
+ static int mtk_pcs_lynxi_config(struct phylink_pcs *pcs, unsigned int neg_mode,
+ 				phy_interface_t interface,
+ 				const unsigned long *advertising,
+@@ -219,5 +260,10 @@ static int mtk_pcs_lynxi_config(struct phylink_pcs *pcs,
+ 	 * other words, 1000Mbps or 2500Mbps).
+ 	 */
++	if (mpcs->flags & MTK_SGMII_FLAG_MT6990) {
++		mpcs->neg_mode = neg_mode;
++		return mtk_pcs_mt6990_config(mpcs, interface);
++	}
++
+ 	if (interface == PHY_INTERFACE_MODE_SGMII)
+		sgm_mode = SGMII_IF_MODE_SGMII;
+ 	else
+		sgm_mode = 0;
+ 
+@@ -464,27 +510,47 @@ static struct phylink_pcs *mtk_pcs_lynxi_init(struct device *dev,
+ 					      struct mtk_pcs_lynxi *prealloc)
+ {
+ 	struct mtk_pcs_lynxi *mpcs;
++	struct phy *serdes_phy = NULL;
++	bool is_mt6990;
+ 	u32 id, ver, flags = 0;
+ 	int ret;
+ 
++	is_mt6990 = fwnode_device_is_compatible(fwnode,
++						"mediatek,mt6990-sgmiisys");
+ 	ret = regmap_read(regmap, SGMSYS_PCS_DEVICE_ID, &id);
+ 	if (ret < 0)
+ 		return ERR_PTR(ret);
+ 
+-	if (id != SGMII_LYNXI_DEV_ID) {
++	if (!is_mt6990 && id != SGMII_LYNXI_DEV_ID) {
+ 		dev_err(dev, "unknown PCS device id %08x\n", id);
+ 		return ERR_PTR(-ENODEV);
+ 	}
+ 
+ 	ret = regmap_read(regmap, SGMSYS_PCS_SCRATCH, &ver);
+ 	if (ret < 0)
+ 		return ERR_PTR(ret);
+ 
+ 	ver = FIELD_GET(SGMII_DEV_VERSION, ver);
+-	if (ver != 0x1) {
++	if (!is_mt6990 && ver != 0x1) {
+ 		dev_err(dev, "unknown PCS device version %04x\n", ver);
+ 		return ERR_PTR(-ENODEV);
+ 	}
+ 
+	if (fwnode_device_is_compatible(fwnode, "mediatek,mt7987-sgmii"))
+		flags |= MTK_SGMII_FLAG_PHYA_TRX_CK;
+
++	if (is_mt6990) {
++		flags |= MTK_SGMII_FLAG_MT6990;
++
++		serdes_phy = devm_of_phy_optional_get(dev, to_of_node(fwnode), NULL);
++		if (IS_ERR(serdes_phy))
++			return ERR_CAST(serdes_phy);
++		if (serdes_phy) {
++			ret = phy_init(serdes_phy);
++			if (ret)
++				return ERR_PTR(ret);
++		}
++
++		dev_info(dev, "MT6990 PCS detected (id %08x, version %04x)\n",
++			 id, ver);
++	}
++
+ 	dev_dbg(dev, "MediaTek LynxI SGMII PCS (id 0x%08x, ver 0x%04x)\n", id,
+ 		ver);
+@@ -503,7 +569,9 @@ static struct phylink_pcs *mtk_pcs_lynxi_init(struct device *dev,
+ 	};
+ 
+ 	mpcs->ana_rgc3 = ana_rgc3;
++	mpcs->dev = dev;
++	mpcs->xfi_tphy = serdes_phy;
+ 	mpcs->regmap = regmap;
+ 	mpcs->pcs.ops = &mtk_pcs_lynxi_ops;
+ 	mpcs->pcs.poll = true;
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -5514,6 +5514,12 @@ static int mtk_sgmii_init(struct mtk_eth *eth)
+ 							 regmap,
+ 							 eth->soc->ana_rgc3);
+ 		of_node_put(np);
++		if (IS_ERR(eth->sgmii_pcs[i])) {
++			int err = PTR_ERR(eth->sgmii_pcs[i]);
++
++			eth->sgmii_pcs[i] = NULL;
++			return dev_err_probe(eth->dev, err, "failed to create SGMII PCS %d\n", i);
++		}
+ 	}
+ 
+ 	return 0;
+@@ -5618,7 +5624,8 @@ static int mtk_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SGMII) &&
+-	    !mtk_is_netsys_v3_or_greater(eth)) {
++	    !mtk_is_netsys_v3_or_greater(eth) &&
++	    !MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
+ 		err = mtk_sgmii_init(eth);
+ 
+ 		if (err)
+@@ -5712,6 +5719,15 @@ static int mtk_probe(struct platform_device *pdev)
+ 	if (err)
+ 		goto err_wed_exit;
+ 
++	/* MT6990 SGMIISYS is clock and power gated. Create its PCS only after
++	 * mtk_hw_init() has enabled all acquired SGMII clocks.
++	 */
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		err = mtk_sgmii_init(eth);
++		if (err)
++			goto err_deinit_hw;
++	}
++
+ 	eth->hwlro = MTK_HAS_CAPS(eth->soc->caps, MTK_HWLRO);
+ 
+ 	for_each_child_of_node(pdev->dev.of_node, mac_np) {

@@ -1,0 +1,133 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -31,6 +31,7 @@
+ #define MTK_SCPD_MT6990_NETSYS		BIT(3)
+ #define MTK_SCPD_MT6990_SGMII		BIT(4)
+ #define MTK_SCPD_MT6990_SGMII_TOP	BIT(5)
++#define MTK_SCPD_MT6990_MD		BIT(6)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -62,6 +63,17 @@
+ #define MT6990_NETSYS_PWR_SRAM_BIT	BIT(8)
+ #define MT6990_NETSYS_CLK_NUM		5
+ 
++#define MT6990_MD_PWR_CON		0x0e00
++#define MT6990_MD_EXTB_ISO_CON		0x0f30
++#define MT6990_MD_EXTB_ISO_MASK		GENMASK(1, 0)
++#define MT6990_MD_STA_MASK		BIT(0)
++#define MT6990_MD_PROT1_SET		0x02a8
++#define MT6990_MD_PROT1_CLR		0x02ac
++#define MT6990_MD_PROT1_MASK		(BIT(22) | BIT(2))
++#define MT6990_MD_PROT2_SET		0x0714
++#define MT6990_MD_PROT2_CLR		0x0718
++#define MT6990_MD_PROT2_MASK		BIT(25)
++
+ #define MT6990_XFI_PHY_0_PWR_CON	0x0e80
+ #define MT6990_XFI_PHY_1_PWR_CON	0x0e88
+ #define MT6990_XFI_PHY_0_STA_MASK	BIT(23)
+@@ -396,6 +408,78 @@
+ 	return 0;
+ }
+ 
++static int mt6990_md_is_on(struct scp_domain *scpd)
++{
++	return !!(readl(scpd->scp->base + MT6990_PWR_STATUS) & MT6990_MD_STA_MASK);
++}
++
++static int mt6990_md_bus_protect(struct scp *scp, bool enable)
++{
++	int ret;
++
++	ret = regmap_write(scp->infracfg,
++			enable ? MT6990_MD_PROT1_SET : MT6990_MD_PROT1_CLR,
++			MT6990_MD_PROT1_MASK);
++	if (ret)
++		return ret;
++	return regmap_write(scp->infracfg,
++			enable ? MT6990_MD_PROT2_SET : MT6990_MD_PROT2_CLR,
++			MT6990_MD_PROT2_MASK);
++}
++
++static int mt6990_md_power_on(struct generic_pm_domain *genpd)
++{
++	struct scp_domain *scpd = container_of(genpd, struct scp_domain, genpd);
++	struct scp *scp = scpd->scp;
++	void __iomem *ctl = scp->base + MT6990_MD_PWR_CON;
++	void __iomem *extb = scp->base + MT6990_MD_EXTB_ISO_CON;
++	u32 val;
++	int ret, state;
++
++	writel(readl(extb) & ~MT6990_MD_EXTB_ISO_MASK, extb);
++	val = readl(ctl) | PWR_RST_B_BIT;
++	writel(val, ctl);
++	writel(val | PWR_ON_BIT, ctl);
++	ret = readx_poll_timeout(mt6990_md_is_on, scpd, state, state,
++				 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
++	if (!ret)
++		ret = mt6990_md_bus_protect(scp, false);
++	if (ret) {
++		writel(readl(extb) | MT6990_MD_EXTB_ISO_MASK, extb);
++		dev_err(scp->dev, "MT6990 MD power-on failed: %d E00=%08x F30=%08x F38=%08x\n",
++			ret, readl(ctl), readl(extb), readl(scp->base + MT6990_PWR_STATUS));
++		return ret;
++	}
++	dev_info(scp->dev, "MT6990 MD on: E00=%08x F30=%08x F38=%08x F3C=%08x\n",
++		 readl(ctl), readl(extb), readl(scp->base + MT6990_PWR_STATUS),
++		 readl(scp->base + MT6990_PWR_STATUS_2ND));
++	return 0;
++}
++
++static int mt6990_md_power_off(struct generic_pm_domain *genpd)
++{
++	struct scp_domain *scpd = container_of(genpd, struct scp_domain, genpd);
++	struct scp *scp = scpd->scp;
++	void __iomem *ctl = scp->base + MT6990_MD_PWR_CON;
++	void __iomem *extb = scp->base + MT6990_MD_EXTB_ISO_CON;
++	int ret, state;
++
++	ret = mt6990_md_bus_protect(scp, true);
++	if (ret)
++		return ret;
++	writel(readl(ctl) & ~PWR_ON_BIT, ctl);
++	ret = readx_poll_timeout(mt6990_md_is_on, scpd, state, !state,
++				 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
++	if (ret)
++		return ret;
++	writel(readl(extb) | MT6990_MD_EXTB_ISO_MASK, extb);
++	writel(readl(ctl) & ~PWR_RST_B_BIT, ctl);
++	dev_info(scp->dev, "MT6990 MD off: E00=%08x F30=%08x F38=%08x F3C=%08x\n",
++		 readl(ctl), readl(extb), readl(scp->base + MT6990_PWR_STATUS),
++		 readl(scp->base + MT6990_PWR_STATUS_2ND));
++	return 0;
++}
++
+ 
+ struct mt6990_netsys_bus_prot {
+ 	u32 clr_ofs;
+@@ -691,7 +775,10 @@
+ 		}
+ 
+ 		genpd->name = data->name;
+-		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_SGMII_TOP)) {
++		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_MD)) {
++			genpd->power_off = mt6990_md_power_off;
++			genpd->power_on = mt6990_md_power_on;
++		} else if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_SGMII_TOP)) {
+ 			genpd->power_off = scpsys_power_off;
+ 			genpd->power_on = scpsys_power_on;
+ 		} else if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_SGMII)) {
+@@ -1263,7 +1350,12 @@
+  * without Linux toggling modem, MED, MSDC or interconnect power controls.
+  */
+ static const struct scp_domain_data scp_domain_data_mt6990[] = {
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MD, "md"),
++	[MT6990_POWER_DOMAIN_MD] = {
++		.name = "md",
++		.sta_mask = MT6990_MD_STA_MASK,
++		.ctl_offs = MT6990_MD_PWR_CON,
++		.caps = MTK_SCPD_MT6990_MD,
++	},
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_CONN_ON, "conn_on"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_AUDIO, "audio"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_DISP, "disp"),

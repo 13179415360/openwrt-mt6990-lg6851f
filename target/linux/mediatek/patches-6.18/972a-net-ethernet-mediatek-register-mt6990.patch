@@ -1,0 +1,58 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: register MT6990 frame engine
+
+Keep the MT6990 SoC data and OF match in an independent patch so the
+compiled driver is guaranteed to bind mediatek,mt6990-eth.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -6237,6 +6237,41 @@ static const struct mtk_soc_data mt7988_data = {
+ 	},
+ };
+ 
++static const struct mtk_soc_data mt6990_data = {
++	.reg_map = &mt6990_reg_map,
++	.ana_rgc3 = 0x128,
++	.caps = MT6990_CAPS,
++	.hw_features = MTK_HW_FEATURES,
++	.required_clks = MT6990_CLKS_BITMAP,
++	.required_pctl = false,
++	/* The SDK uses a 32-byte TX descriptor and a 16-byte RX descriptor
++	 * when CONFIG_MTK_ADMAV2 is disabled. The mainline descriptor-size
++	 * metadata below expresses those SDK layouts without enabling SRAM.
++	 */
++	.version = 1,
++	.offload_version = 0,
++	.ppe_num = 0,
++	.hash_offset = 0,
++	.has_accounting = false,
++	.num_tx_queues = 16,
++	.foe_entry_size = MTK_FOE_ENTRY_V2_SIZE,
++	.tx = {
++		DESC_SIZE(struct mtk_tx_dma_v2),
++		.dma_max_len = MTK_TX_DMA_BUF_LEN_V2,
++		.dma_len_offset = 8,
++		.dma_size = MTK_DMA_SIZE(2K),
++		.fq_dma_size = MTK_DMA_SIZE(2K),
++	},
++	.rx = {
++		DESC_SIZE(struct mtk_rx_dma),
++		.irq_done_mask = MTK_RX_DONE_INT,
++		.dma_l4_valid = RX_DMA_L4_VALID_PDMA,
++		.dma_max_len = MTK_TX_DMA_BUF_LEN,
++		.dma_len_offset = 16,
++		.dma_size = MTK_DMA_SIZE(2K),
++	},
++};
++
+ static const struct mtk_soc_data rt5350_data = {
+ 	.reg_map = &mt7628_reg_map,
+ 	.caps = MT7628_CAPS,
+@@ -6270,6 +6305,7 @@ const struct of_device_id of_mtk_match[] = {
+ 	{ .compatible = "mediatek,mt7986-eth", .data = &mt7986_data },
+ 	{ .compatible = "mediatek,mt7987-eth", .data = &mt7987_data },
+ 	{ .compatible = "mediatek,mt7988-eth", .data = &mt7988_data },
++	{ .compatible = "mediatek,mt6990-eth", .data = &mt6990_data },
+ 	{ .compatible = "ralink,rt5350-eth", .data = &rt5350_data },
+ 	{},
+ };

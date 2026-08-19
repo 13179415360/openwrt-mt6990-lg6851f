@@ -1,0 +1,96 @@
+From: OpenWrt MT6990 enablement
+Subject: PCI: mediatek-gen3: add MT6990 host support
+
+Port the MT6990 vendor pre-link initialization to the Linux 6.18
+MediaTek Gen3 PCIe driver. Use the standard linux,pci-domain property
+instead of the removed vendor port_num field, retain the existing common
+power-up path, and add the MT6990 OF match.
+
+---
+--- a/drivers/pci/controller/pcie-mediatek-gen3.c
++++ b/drivers/pci/controller/pcie-mediatek-gen3.c
+@@ -137,6 +137,18 @@
+ /* Time in ms needed to complete PCIe reset on EN7581 SoC */
+ #define PCIE_EN7581_RESET_TIME_MS	100
+ 
++/* MT6990-specific register definitions from vendor Gen3 PCIe */
++#define PCIE_DIS_PIPE_RST_PHY		BIT(12)
++#define PCIE_LMR0_REG			0x350
++#define PCIE_VOL_MARGIN_SUPP		BIT(0)
++#define PCIE_INDP_VOL_MARGIN_SUPP	BIT(1)
++#define PCIE_VOL_STEP_NUM		GENMASK(14, 8)
++#define PCIE_LMR1_REG			0x354
++#define PCIE_MAX_VOL_OFFSET		GENMASK(5, 0)
++#define PCIE_DVFS_FORCE_ON		BIT(1)
++#define PCIE_LOCAL_CTRL_REG		0x1AC
++#define PCIE_INTX_HWCLR			BIT(3)
++
+ struct mtk_gen3_pcie;
+ 
+ #define PCIE_CONF_LINK2_CTL_STS		(PCIE_CFG_OFFSET_ADDR + 0xb0)
+@@ -1358,6 +1370,57 @@ static const struct dev_pm_ops mtk_pcie_
+ 				  mtk_pcie_resume_noirq)
+ };
+ 
++static int mtk_pcie_mt6990_power_up(struct mtk_gen3_pcie *pcie)
++{
++	int domain;
++	u32 val;
++	int err;
++
++	err = mtk_pcie_power_up(pcie);
++	if (err)
++		return err;
++
++	/*
++	 * The vendor driver identifies port 0 through port_num. Linux 6.18
++	 * does not retain that field, so use the standard PCI domain value
++	 * supplied by the active device-tree node.
++	 */
++	domain = of_get_pci_domain_nr(pcie->dev->of_node);
++	if (domain < 0)
++		return dev_err_probe(pcie->dev, domain,
++				     "failed to read PCI domain\n");
++
++	if (domain == 0) {
++		val = readl_relaxed(pcie->base + PCIE_RST_CTRL_REG);
++		val |= PCIE_DIS_PIPE_RST_PHY;
++		writel_relaxed(val, pcie->base + PCIE_RST_CTRL_REG);
++
++		val = readl_relaxed(pcie->base + PCIE_LMR0_REG);
++		val &= ~(PCIE_VOL_MARGIN_SUPP |
++			 PCIE_INDP_VOL_MARGIN_SUPP |
++			 PCIE_VOL_STEP_NUM);
++		writel_relaxed(val, pcie->base + PCIE_LMR0_REG);
++
++		val = readl_relaxed(pcie->base + PCIE_LMR1_REG);
++		val &= ~PCIE_MAX_VOL_OFFSET;
++		writel_relaxed(val, pcie->base + PCIE_LMR1_REG);
++	}
++
++	val = readl_relaxed(pcie->base + PCIE_MISC_CTRL_REG);
++	val &= ~PCIE_DVFS_FORCE_ON;
++	writel_relaxed(val, pcie->base + PCIE_MISC_CTRL_REG);
++
++	val = readl_relaxed(pcie->base + PCIE_LOCAL_CTRL_REG);
++	val |= PCIE_INTX_HWCLR;
++	writel_relaxed(val, pcie->base + PCIE_LOCAL_CTRL_REG);
++
++	return 0;
++}
++
++static const struct mtk_gen3_pcie_pdata mtk_pcie_soc_mt6990 = {
++	.power_up = mtk_pcie_mt6990_power_up,
++};
++
+ static const struct mtk_gen3_pcie_pdata mtk_pcie_soc_mt8192 = {
+ 	.power_up = mtk_pcie_power_up,
+ 	.phy_resets = {
+@@ -1390,6 +1453,7 @@ static const struct of_device_id mtk_pci
+ 	{ .compatible = "airoha,en7581-pcie", .data = &mtk_pcie_soc_en7581 },
+ 	{ .compatible = "mediatek,mt8192-pcie", .data = &mtk_pcie_soc_mt8192 },
+ 	{ .compatible = "mediatek,mt8196-pcie", .data = &mtk_pcie_soc_mt8196 },
++	{ .compatible = "mediatek,mt6990-pcie", .data = &mtk_pcie_soc_mt6990 },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, mtk_pcie_of_match);

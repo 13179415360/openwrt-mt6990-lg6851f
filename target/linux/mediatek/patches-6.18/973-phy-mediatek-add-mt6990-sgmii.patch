@@ -1,0 +1,34 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] phy: mediatek: add MT6990 SGMII analog PHY
+
+Model each MT6990 SGMII analog register bank as a Generic PHY. This lets the
+PCS own its SerDes power sequencing without adding PHY programming to the
+frame-engine driver.
+
+--- a/drivers/phy/mediatek/Kconfig
++++ b/drivers/phy/mediatek/Kconfig
+@@ -12,5 +12,14 @@ config PHY_MTK_PCIE
+ 	  initialization.
+ 
++config PHY_MTK_MT6990_SGMII
++	tristate "MediaTek MT6990 SGMII PHY driver"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on OF && HAS_IOMEM
++	select GENERIC_PHY
++	help
++	  Say Y here to enable the analog SerDes PHY used by the two
++	  2500BASE-X SGMII ports in MT6990.
++
+ config PHY_MTK_XFI_TPHY
+ 	tristate "MediaTek 10GE SerDes XFI T-PHY driver"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+--- a/drivers/phy/mediatek/Makefile
++++ b/drivers/phy/mediatek/Makefile
+@@ -5,6 +5,7 @@
+ 
+ obj-$(CONFIG_PHY_MTK_DP)		+= phy-mtk-dp.o
+ obj-$(CONFIG_PHY_MTK_PCIE)		+= phy-mtk-pcie.o
++obj-$(CONFIG_PHY_MTK_MT6990_SGMII)	+= phy-mtk-mt6990-sgmii.o
+ obj-$(CONFIG_PHY_MTK_TPHY)		+= phy-mtk-tphy.o
+ obj-$(CONFIG_PHY_MTK_UFS)		+= phy-mtk-ufs.o
+ obj-$(CONFIG_PHY_MTK_XSPHY)		+= phy-mtk-xsphy.o

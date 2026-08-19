@@ -1,0 +1,27 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] arm64: dts: mediatek: add MT6990 four-instance AP EINT
+
+--- a/arch/arm64/boot/dts/mediatek/mt6990.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6990.dtsi
+@@ -184,8 +184,21 @@
+ 		gpio-ranges = <&pio 0 0 226>;
+ 		interrupt-controller;
+ 		#interrupt-cells = <2>;
++		mediatek,eint = <&eint>;
+ 	};
+ 
++	eint: apirq@11e70000 {
++		compatible = "mediatek,mt6983-eint";
++		reg = <0x00 0x11e70000 0x00 0x1000>,
++		      <0x00 0x11c30000 0x00 0x1000>,
++		      <0x00 0x11d70000 0x00 0x1000>,
++		      <0x00 0x1201e000 0x00 0x1000>;
++		reg-name = "eint-w", "eint-e", "eint-s", "eint-c";
++		interrupts = <GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>;
++		mediatek,total-pin-number = <237>;
++		mediatek,instance-num = <4>;
++	};
++
+ 	apmixedsys: apmixedsys@10010000 {
+ 		compatible = "mediatek,mt6990-apmixedsys", "syscon";
+ 		reg = <0x00 0x10010000 0x00 0x1000>;

@@ -1,0 +1,72 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: pcs: mtk-lynxi: bind MT6990 PCS to analog SerDes
+
+Keep the MT6990 detection and PHY-consumer portion in a standalone patch.
+The original combined patch had malformed hunk accounting after its fourth
+hunk, so OpenWrt's plaintext patch helper silently ignored this tail while
+applying the earlier MT6990 PCS callbacks.  Without this part xfi_tphy stays
+NULL and the SDK Gen2 analog register sequence is never executed.
+
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -528,14 +528,18 @@ static struct phylink_pcs *mtk_pcs_lynxi
+ 					      struct mtk_pcs_lynxi *prealloc)
+ {
+ 	struct mtk_pcs_lynxi *mpcs;
++	struct phy *serdes_phy = NULL;
++	bool is_mt6990;
+ 	u32 id, ver, flags = 0;
+ 	int ret;
+ 
++	is_mt6990 = fwnode_device_is_compatible(fwnode,
++						"mediatek,mt6990-sgmiisys");
+ 	ret = regmap_read(regmap, SGMSYS_PCS_DEVICE_ID, &id);
+ 	if (ret < 0)
+ 		return ERR_PTR(ret);
+ 
+-	if (id != SGMII_LYNXI_DEV_ID) {
++	if (!is_mt6990 && id != SGMII_LYNXI_DEV_ID) {
+ 		dev_err(dev, "unknown PCS device id %08x\n", id);
+ 		return ERR_PTR(-ENODEV);
+ 	}
+@@ -545,7 +549,7 @@ static struct phylink_pcs *mtk_pcs_lynxi
+ 		return ERR_PTR(ret);
+ 
+ 	ver = FIELD_GET(SGMII_DEV_VERSION, ver);
+-	if (ver != 0x1) {
++	if (!is_mt6990 && ver != 0x1) {
+ 		dev_err(dev, "unknown PCS device version %04x\n", ver);
+ 		return ERR_PTR(-ENODEV);
+ 	}
+@@ -553,6 +557,22 @@ static struct phylink_pcs *mtk_pcs_lynxi
+ 	if (fwnode_device_is_compatible(fwnode, "mediatek,mt7987-sgmii"))
+ 		flags |= MTK_SGMII_FLAG_PHYA_TRX_CK;
+ 
++	if (is_mt6990) {
++		flags |= MTK_SGMII_FLAG_MT6990;
++
++		serdes_phy = devm_of_phy_optional_get(dev, to_of_node(fwnode), NULL);
++		if (IS_ERR(serdes_phy))
++			return ERR_CAST(serdes_phy);
++		if (serdes_phy) {
++			ret = phy_init(serdes_phy);
++			if (ret)
++				return ERR_PTR(ret);
++		}
++
++		dev_info(dev, "MT6990 PCS detected (id %08x, version %04x)\n",
++			 id, ver);
++	}
++
+ 	dev_dbg(dev, "MediaTek LynxI SGMII PCS (id 0x%08x, ver 0x%04x)\n", id,
+ 		ver);
+ 
+@@ -565,6 +585,8 @@ static struct phylink_pcs *mtk_pcs_lynxi
+ 	};
+ 
+ 	mpcs->ana_rgc3 = ana_rgc3;
++	mpcs->dev = dev;
++	mpcs->xfi_tphy = serdes_phy;
+	mpcs->regmap = regmap;
+	mpcs->pcs.ops = &mtk_pcs_lynxi_ops;
+	mpcs->pcs.poll = !is_mt6990;

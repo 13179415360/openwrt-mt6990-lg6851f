@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# MT6990 is maintained locally and therefore has no repository below the
+# official OpenWrt snapshots target tree. Its Cortex-A55 CPUs can execute the
+# official Cortex-A53 user-space packages, but target/kernel packages must
+# continue to come from this firmware build.
+
+arch_file=/etc/apk/arch
+dist_file=/etc/apk/repositories.d/distfeeds.list
+compat_file=/etc/apk/repositories.d/lg6851f-userland.list
+
+grep -qxF 'aarch64_cortex-a53' "$arch_file" 2>/dev/null || \
+	echo 'aarch64_cortex-a53' >> "$arch_file"
+
+# LuCI treats any failed index as an apk update failure. Keep the generated
+# unavailable URLs as comments so that the reason remains diagnosable.
+if [ -f "$dist_file" ]; then
+	sed -i 's|^https://downloads\.openwrt\.org/snapshots/|# disabled: no official MT6990/A55 build feed: https://downloads.openwrt.org/snapshots/|' "$dist_file"
+fi
+
+cat > "$compat_file" <<'EOF'
+# Official architecture-compatible user-space feeds for LG6851F/MT6990.
+# Never add another target's packages/kmods feed here: kernel ABI is MT6990-specific.
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/base/packages.adb
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/luci/packages.adb
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/packages/packages.adb
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/routing/packages.adb
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/telephony/packages.adb
+https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/video/packages.adb
+EOF
+
+exit 0

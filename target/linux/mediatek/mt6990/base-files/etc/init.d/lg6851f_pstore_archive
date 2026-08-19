@@ -1,0 +1,116 @@
+#!/bin/sh /etc/rc.common
+# SPDX-License-Identifier: GPL-2.0-only
+# Preserve ramoops records on the stock, non-A/B user_data partition.
+
+START=98
+
+PS_DEV=/dev/mmcblk0p46
+PS_SYS=/sys/class/block/mmcblk0p46
+PS_MNT=/tmp/lg6851f-pstore-user-data
+# Intentionally obvious and grep/find friendly on the shared user_data partition.
+PS_ROOT=MT6990_CRASH_LOGS
+
+is_lg6851f_user_data() {
+	[ -b "$PS_DEV" ] || return 1
+	[ "$(cat "$PS_SYS/partition" 2>/dev/null)" = 46 ] || return 1
+	[ "$(cat "$PS_SYS/size" 2>/dev/null)" = 5187456 ] || return 1
+	grep -qx 'PARTNAME=user_data' "$PS_SYS/uevent" 2>/dev/null || return 1
+	# Do not depend on blkid: it is intentionally absent from the compact
+	# MT6990 rootfs and caused both preinit and S98 archival to return early.
+	# The explicit ext4 mount below is the filesystem-type validation; a
+	# non-ext4 or damaged partition cannot pass it and is never written.
+}
+
+have_pstore_records() {
+	local record
+
+	[ -d /sys/fs/pstore ] || mkdir -p /sys/fs/pstore
+	grep -q ' /sys/fs/pstore ' /proc/mounts 2>/dev/null ||
+		mount -t pstore pstore /sys/fs/pstore 2>/dev/null || return 1
+	for record in /sys/fs/pstore/*; do
+		[ -s "$record" ] && return 0
+	done
+	return 1
+}
+
+archive_pstore() {
+	local record fingerprint boot_id short_boot_id stamp final tmp
+
+	is_lg6851f_user_data || {
+		logger -t MT6990-CRASH "skip: p46 identity mismatch; user_data not touched"
+		return 0
+	}
+	have_pstore_records || return 0
+
+	mkdir -p "$PS_MNT"
+	mount -t ext4 -o rw,noatime,nosuid,nodev "$PS_DEV" "$PS_MNT" 2>/dev/null || {
+		logger -t MT6990-CRASH "skip: unable to mount verified user_data"
+		return 0
+	}
+
+	mkdir -p "$PS_MNT/$PS_ROOT" || {
+		umount "$PS_MNT"
+		return 0
+	}
+
+	# Fingerprint record contents so the same ramoops payload is archived once.
+	fingerprint="$({ for record in /sys/fs/pstore/*; do
+		[ -s "$record" ] && sha256sum "$record"
+	done; } | sha256sum | cut -d ' ' -f 1)"
+	[ -n "$fingerprint" ] || {
+		umount "$PS_MNT"
+		return 0
+	}
+	if grep -Rqx "$fingerprint" "$PS_MNT/$PS_ROOT"/*/fingerprint.sha256 2>/dev/null; then
+		umount "$PS_MNT"
+		return 0
+	fi
+
+	stamp="$(date -u '+%Y%m%dT%H%M%SZ')"
+	boot_id="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
+	[ -n "$boot_id" ] || boot_id=unknown
+	short_boot_id="$(printf '%s' "$boot_id" | cut -c 1-8)"
+	final="$PS_MNT/$PS_ROOT/KERNEL_CRASH_${stamp}_${short_boot_id}"
+	tmp="$PS_MNT/$PS_ROOT/.incoming-${boot_id}"
+	rm -rf "$tmp"
+	mkdir -m 0700 "$tmp" || {
+		umount "$PS_MNT"
+		return 0
+	}
+
+	for record in /sys/fs/pstore/*; do
+		[ -s "$record" ] || continue
+		cp -p "$record" "$tmp/" || {
+			rm -rf "$tmp"
+			umount "$PS_MNT"
+			return 0
+		}
+	done
+	printf '%s\n' "$fingerprint" > "$tmp/fingerprint.sha256"
+	{
+		printf 'archived_utc=%s\n' "$stamp"
+		printf 'boot_id=%s\n' "$boot_id"
+		printf 'kernel=%s\n' "$(uname -a)"
+		printf 'cmdline=%s\n' "$(cat /proc/cmdline 2>/dev/null)"
+		printf 'partition=/dev/mmcblk0p46\npartname=user_data\nsectors=5187456\nfilesystem=ext4\n'
+	} > "$tmp/metadata.txt"
+	(cd "$tmp" && sha256sum ./* > SHA256SUMS) || {
+		rm -rf "$tmp"
+		umount "$PS_MNT"
+		return 0
+	}
+
+	sync
+	mv "$tmp" "$final" || {
+		rm -rf "$tmp"
+		umount "$PS_MNT"
+		return 0
+	}
+	sync
+	umount "$PS_MNT"
+	logger -t MT6990-CRASH "saved: user_data/$PS_ROOT/KERNEL_CRASH_${stamp}_${short_boot_id} fingerprint=$fingerprint"
+}
+
+start() {
+	archive_pstore
+}

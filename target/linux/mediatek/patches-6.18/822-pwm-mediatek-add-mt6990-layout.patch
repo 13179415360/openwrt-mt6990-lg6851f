@@ -1,0 +1,30 @@
+From: OpenWrt MT6990 board bring-up <noreply@openwrt.local>
+Subject: [PATCH] pwm: mediatek: add MT6990 register layout
+
+The MT6990 PWM block has seven channels.  Live register capture from the
+vendor kernel shows channel registers starting at 0x80 with a 0x40 stride.
+
+--- a/drivers/pwm/pwm-mediatek.c
++++ b/drivers/pwm/pwm-mediatek.c
+@@ -525,6 +525,13 @@ static const struct pwm_mediatek_of_data
+ 	.chanreg_width = 0x40,
+ };
+ 
++static const struct pwm_mediatek_of_data mt6990_pwm_data = {
++	.num_pwms = 7,
++	.pwm45_fixup = false,
++	.chanreg_base = 0x80,
++	.chanreg_width = 0x40,
++};
++
+ static const struct pwm_mediatek_of_data mt6991_pwm_data = {
+ 	.num_pwms = 4,
+ 	.pwm45_fixup = false,
+@@ -535,6 +542,7 @@ static const struct of_device_id pwm_med
+ static const struct of_device_id pwm_mediatek_of_match[] = {
+ 	{ .compatible = "mediatek,mt2712-pwm", .data = &mt2712_pwm_data },
+ 	{ .compatible = "mediatek,mt6795-pwm", .data = &mt6795_pwm_data },
++	{ .compatible = "mediatek,mt6990-pwm", .data = &mt6990_pwm_data },
+ 	{ .compatible = "mediatek,mt6991-pwm", .data = &mt6991_pwm_data },
+ 	{ .compatible = "mediatek,mt7622-pwm", .data = &mt7622_pwm_data },
+ 	{ .compatible = "mediatek,mt7623-pwm", .data = &mt7623_pwm_data },

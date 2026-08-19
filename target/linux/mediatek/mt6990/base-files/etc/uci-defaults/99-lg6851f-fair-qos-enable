@@ -1,0 +1,6 @@
+#!/bin/sh
+
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ] || exit 0
+/etc/init.d/lg6851f_fair_qos enable
+exit 0
+

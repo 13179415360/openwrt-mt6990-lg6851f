@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<mtk_agps_profiles maj_ver="1" min_ver="2">
+  <!-- Refer to agps_profiles_conf2.xml for values not provided in this file.
+       cur_supl_profile is supported but other supl_profile are ignored.
+       auto_profile_enable is not supported.
+  -->
+
+  <!-- OK to use Google SUPL Server on Internet by ATnT's 2021 LBS spec.
+       They plan to shutdown ATnT SUPL server in 2023 -->
+  <cur_supl_profile name="ATnT_US"
+      addr="supl.google.com"
+      port="7275"
+      tls="true"
+  />
+
+  <cdma_profile name="CDMA1"
+  />
+
+  <agps_setting
+    ignore_si_for_e911="true"
+  />
+
+  <gnss_setting
+  />
+
+  <cp_setting
+  />
+
+  <up_setting
+    imsi_enable="true"
+  />
+
+</mtk_agps_profiles>

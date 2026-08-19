@@ -1,0 +1,138 @@
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -2945,15 +2945,25 @@ static void mtk_handle_status_irq(struct
+ 	}
+ }
+ 
++static u32 mtk_tx_done_mask(struct mtk_eth *eth)
++{
++	/* MT6990 routes the SDK delayed TX completion bit to the FE IRQ. */
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990))
++		return MTK_TX_DONE_INT;
++
++	return MTK_TX_DONE_INT;
++}
++
+ static int mtk_napi_tx(struct napi_struct *napi, int budget)
+ {
+ 	struct mtk_eth *eth = container_of(napi, struct mtk_eth, tx_napi);
+ 	const struct mtk_reg_map *reg_map = eth->soc->reg_map;
++	u32 tx_done_mask = mtk_tx_done_mask(eth);
+ 	int tx_done = 0;
+ 
+ 	if (MTK_HAS_CAPS(eth->soc->caps, MTK_QDMA))
+ 		mtk_handle_status_irq(eth);
+-	mtk_w32(eth, MTK_TX_DONE_INT, reg_map->tx_irq_status);
++	mtk_w32(eth, tx_done_mask | (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ? MTK_TX_DONE_INT0 : 0), reg_map->tx_irq_status);
+ 	tx_done = mtk_poll_tx(eth, budget);
+ 
+ 	if (unlikely(netif_msg_intr(eth))) {
+@@ -2966,11 +2976,11 @@ static int mtk_napi_tx(struct napi_struct
+ 	if (tx_done == budget)
+ 		return budget;
+ 
+-	if (mtk_r32(eth, reg_map->tx_irq_status) & MTK_TX_DONE_INT)
++	if (mtk_r32(eth, reg_map->tx_irq_status) & tx_done_mask)
+ 		return budget;
+ 
+ 	if (napi_complete_done(napi, tx_done))
+-		mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
++		mtk_tx_irq_enable(eth, tx_done_mask);
+ 
+ 	return tx_done;
+ }
+@@ -3798,7 +3808,7 @@ static irqreturn_t mtk_handle_irq_tx(int
+ 
+ 	eth->tx_events++;
+ 	if (likely(napi_schedule_prep(&eth->tx_napi))) {
+-		mtk_tx_irq_disable(eth, MTK_TX_DONE_INT);
++		mtk_tx_irq_disable(eth, mtk_tx_done_mask(eth));
+ 		__napi_schedule(&eth->tx_napi);
+ 	}
+ 
+@@ -3809,6 +3819,7 @@ static irqreturn_t mtk_handle_irq(int irq
+ {
+ 	struct mtk_eth *eth = _eth;
+ 	const struct mtk_reg_map *reg_map = eth->soc->reg_map;
++	u32 tx_done_mask = mtk_tx_done_mask(eth);
+ 
+ 	if (mtk_r32(eth, reg_map->pdma.irq_mask) &
+ 	    eth->soc->rx.irq_done_mask) {
+@@ -3816,8 +3827,8 @@ static irqreturn_t mtk_handle_irq(int irq
+ 		    eth->soc->rx.irq_done_mask)
+ 			mtk_handle_irq_rx(irq, _eth);
+ 	}
+-	if (mtk_r32(eth, reg_map->tx_irq_mask) & MTK_TX_DONE_INT) {
+-		if (mtk_r32(eth, reg_map->tx_irq_status) & MTK_TX_DONE_INT)
++	if (mtk_r32(eth, reg_map->tx_irq_mask) & tx_done_mask) {
++		if (mtk_r32(eth, reg_map->tx_irq_status) & tx_done_mask)
+ 			mtk_handle_irq_tx(irq, _eth);
+ 	}
+ 
+@@ -3830,10 +3841,10 @@ static void mtk_poll_controller(struct ne
+ 	struct mtk_mac *mac = netdev_priv(dev);
+ 	struct mtk_eth *eth = mac->hw;
+ 
+-	mtk_tx_irq_disable(eth, MTK_TX_DONE_INT);
++	mtk_tx_irq_disable(eth, mtk_tx_done_mask(eth));
+ 	mtk_rx_irq_disable(eth, eth->soc->rx.irq_done_mask);
+ 	mtk_handle_irq_rx(eth->irq[MTK_FE_IRQ_RX], dev);
+-	mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
++	mtk_tx_irq_enable(eth, mtk_tx_done_mask(eth));
+ 	mtk_rx_irq_enable(eth, eth->soc->rx.irq_done_mask);
+ }
+ #endif
+@@ -4087,7 +4098,7 @@ static int mtk_open(struct net_device *de
+ 
+ 		napi_enable(&eth->tx_napi);
+ 		napi_enable(&eth->rx_napi);
+-		mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
++		mtk_tx_irq_enable(eth, mtk_tx_done_mask(eth));
+ 		mtk_rx_irq_enable(eth, soc->rx.irq_done_mask);
+ 		refcount_set(&eth->dma_refcnt, 1);
+ 	} else {
+@@ -4172,7 +4183,7 @@ static int mtk_stop(struct net_device *de
+ 	for (i = 0; i < MTK_MAX_DEVS; i++)
+ 		mtk_gdm_config(eth, i, MTK_GDMA_DROP_ALL);
+ 
+-	mtk_tx_irq_disable(eth, MTK_TX_DONE_INT);
++	mtk_tx_irq_disable(eth, mtk_tx_done_mask(eth));
+ 	mtk_rx_irq_disable(eth, eth->soc->rx.irq_done_mask);
+ 	napi_disable(&eth->tx_napi);
+ 	napi_disable(&eth->rx_napi);
+@@ -4705,15 +4716,30 @@ static int mtk_hw_init(struct mtk_eth *et
+ 	/* set interrupt delays based on current Net DIM sample */
+ 	mtk_dim_rx(&eth->rx_dim.work);
+ 	mtk_dim_tx(&eth->tx_dim.work);
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		mtk_w32(eth, 0x8f0f8f0f, reg_map->pdma.delay_irq);
++		mtk_w32(eth, 0x8f0f8f0f, reg_map->qdma.delay_irq);
++	}
+ 
+ 	/* disable delay and normal interrupt */
+ 	mtk_tx_irq_disable(eth, ~0);
+ 	mtk_rx_irq_disable(eth, ~0);
+ 
+ 	/* FE int grouping */
+-	mtk_w32(eth, MTK_TX_DONE_INT, reg_map->pdma.int_grp);
+-	mtk_w32(eth, eth->soc->rx.irq_done_mask, reg_map->pdma.int_grp + 4);
+-	mtk_w32(eth, MTK_TX_DONE_INT, reg_map->qdma.int_grp);
+-	mtk_w32(eth, eth->soc->rx.irq_done_mask, reg_map->qdma.int_grp + 4);
+-	mtk_w32(eth, 0x21021000, MTK_FE_INT_GRP);
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		/* Exact non-HWRSS MT6890-family grouping used by the MT6990 SDK. */
++		mtk_w32(eth, 0, reg_map->pdma.int_grp);
++		mtk_w32(eth, 0, reg_map->pdma.int_grp + 4);
++		mtk_w32(eth, 0, reg_map->pdma.int_grp + 8);
++		mtk_w32(eth, mtk_tx_done_mask(eth), reg_map->qdma.int_grp);
++		mtk_w32(eth, 0x01000000, MTK_FE_INT_GRP);
++	} else {
++		mtk_w32(eth, mtk_tx_done_mask(eth), reg_map->pdma.int_grp);
++		mtk_w32(eth, eth->soc->rx.irq_done_mask,
++			reg_map->pdma.int_grp + 4);
++		mtk_w32(eth, mtk_tx_done_mask(eth), reg_map->qdma.int_grp);
++		mtk_w32(eth, eth->soc->rx.irq_done_mask,
++			reg_map->qdma.int_grp + 4);
++		mtk_w32(eth, 0x21021000, MTK_FE_INT_GRP);
++	}
+ 

@@ -1,0 +1,16 @@
+{
+  "cmdline": "bootopt=64S3,32N2,64N2 ",
+  "dtb_addr": 32505856,
+  "header_size": 1660,
+  "header_version": 2,
+  "kernel_addr": 0,
+  "name": "mt6990",
+  "os_version": 131072,
+  "page_size": 2048,
+  "ramdisk_addr": 16777216,
+  "reference_dtb_size": 142919,
+  "reference_header_size": 1660,
+  "second_addr": 15728640,
+  "source": "/home/zjl-pc/backup_emmc_20260515_192454/boot_b.img",
+  "tags_addr": 0
+}

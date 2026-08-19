@@ -1,0 +1,26 @@
+config MTK_HSAPIF_DRIVER
+	bool "Enable Evolved CLDMA Driver as interface for PCIE"
+	default y
+	help
+	  This option enables CLDMA device driver support,
+	  if yes, then PC is using cldma driver,
+	  if no, cldma driver is disabled.
+	  The option default enable.
+
+config MTK_HSAPIF_DUMP
+	bool "CLDMA DUMP support"
+	default y
+	help
+	  This option enables CLDMA device driver dump buffer support,
+	  if yes, then cldma driver dump beffer is enabled,
+	  if no, cldma driver dump beffer is disabled.
+	  The option default enable.
+
+config MTK_HSAPIF_PRI_PORT
+	bool "CLDMA Private Port support"
+	default y
+	help
+	  This option enables CLDMA device driver private port support,
+	  if yes, then cldma driver private port is enabled,
+	  if no, cldma driver private port is disabled.
+	  The option default enable.

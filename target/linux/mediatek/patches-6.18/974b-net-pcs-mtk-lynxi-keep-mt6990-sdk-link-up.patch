@@ -1,0 +1,24 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: pcs: mtk-lynxi: keep MT6990 SDK force mode at link up
+
+MT6990 config uses the SDK force-2.5G sequence, but the generic LynxI
+pcs_link_up callback still runs afterwards.  Keep MT6990 isolated from that
+generic force-mode tail and reproduce the SDK's final 0x31120009 mode write.
+
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -411,6 +411,14 @@ static void mtk_pcs_lynxi_link_up(struct
+ 	struct mtk_pcs_lynxi *mpcs = pcs_to_mtk_pcs_lynxi(pcs);
+ 	unsigned int sgm_mode;
+ 
++	if (mpcs->flags & MTK_SGMII_FLAG_MT6990) {
++		/* SDK mtk_sgmii_setup_mode_force() leaves the 2.5G Gen2 PCS
++		 * in this exact force-mode contract at MAC link-up.
++		 */
++		regmap_write(mpcs->regmap, SGMSYS_SGMII_MODE, 0x31120009);
++		return;
++	}
++
+ 	/* In force mode the PCS provides no link status feedback,
+ 	 * so re-init the T-PHY here as the only chance to recover
+ 	 * from a bad analog calibration. In-band modes are handled

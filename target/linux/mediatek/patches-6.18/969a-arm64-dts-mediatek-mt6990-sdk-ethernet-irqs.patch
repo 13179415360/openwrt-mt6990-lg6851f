@@ -1,0 +1,32 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] arm64: dts: mediatek: restore MT6990 SDK ethernet IRQ table
+
+The MT6990 SDK ethernet driver declares irq_num=8.  Its final two resources
+are GPIO controller interrupts, not invented PHY child nodes.  Restore the
+vendor interrupts-extended table verbatim so the raw-index SDK IRQ model can
+probe and retain indices 6 and 7.
+
+--- a/arch/arm64/boot/dts/mediatek/mt6990.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6990.dtsi
+@@ -374,12 +374,15 @@
+ 			compatible = "mediatek,mt6990-eth";
+ 			reg = <0x00 0x15100000 0x00 0x30000>;
+ 			mediatek,sgmiisys = <&sgmiisys0>, <&sgmiisys1>;
+-			interrupts = <GIC_SPI 407 IRQ_TYPE_LEVEL_HIGH>,
+-				     <GIC_SPI 408 IRQ_TYPE_LEVEL_HIGH>,
+-				     <GIC_SPI 400 IRQ_TYPE_LEVEL_HIGH>,
+-				     <GIC_SPI 401 IRQ_TYPE_LEVEL_HIGH>,
+-				     <GIC_SPI 402 IRQ_TYPE_LEVEL_HIGH>,
+-				     <GIC_SPI 403 IRQ_TYPE_LEVEL_HIGH>;
++			interrupts-extended =
++				<&gic GIC_SPI 407 IRQ_TYPE_LEVEL_HIGH>,
++				<&gic GIC_SPI 408 IRQ_TYPE_LEVEL_HIGH>,
++				<&gic GIC_SPI 400 IRQ_TYPE_LEVEL_HIGH>,
++				<&gic GIC_SPI 401 IRQ_TYPE_LEVEL_HIGH>,
++				<&gic GIC_SPI 402 IRQ_TYPE_LEVEL_HIGH>,
++				<&gic GIC_SPI 403 IRQ_TYPE_LEVEL_HIGH>,
++				<&pio 50 IRQ_TYPE_LEVEL_LOW>,
++				<&pio 52 IRQ_TYPE_LEVEL_HIGH>;
+ 			status = "disabled";
+ 		};
+ 	};

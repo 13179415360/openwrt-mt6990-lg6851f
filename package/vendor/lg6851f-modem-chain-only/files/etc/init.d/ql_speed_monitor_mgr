@@ -1,0 +1,40 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+STOP=01
+
+USE_PROCD=1
+NAME=ql_speed_monitor_mgr
+
+
+start_service()
+{
+	# This proprietary manager reads the vendor HWNAT pseudo device.  Mainline
+	# nft flow offload has no /dev/hwnat0, so starting it would only create a
+	# permanent error loop and cannot provide valid counters.
+	[ -e /dev/hwnat0 ] || {
+		echo "skip ql_speed_monitor_mgr: vendor HWNAT device is absent"
+		return 0
+	}
+
+	echo "start ql_speed_monitor_mgr"
+	procd_open_instance ql_speed_monitor_mgr
+	procd_set_param command /usr/bin/ql_speed_monitor_mgr
+	procd_set_param respawn
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
+
+stop_service()
+{
+    echo "stop ql_speed_monitor_mgr"
+}
+
+reload_service()
+{
+    echo "reload ql_speed_monitor_mgr"
+    stop
+    start
+}

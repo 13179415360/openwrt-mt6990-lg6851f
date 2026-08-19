@@ -1,0 +1,29 @@
+#!/bin/sh /etc/rc.common
+START=19
+STOP=90
+USE_PROCD=1
+
+bootlog() {
+    logger -t lg6851f_modem_stack "$*"
+    echo "lg6851f_modem_stack: $*"
+}
+
+run_if_exists() {
+    local s="$1"
+    if [ -x "$s" ]; then
+        bootlog "start $s"
+        "$s" start || bootlog "WARN: $s start returned $?"
+    else
+        bootlog "skip $s"
+    fi
+}
+
+start_service() {
+	bootlog "5G modem application services start"
+	[ -e /sys/kernel/ccci/boot ] && bootlog "/sys/kernel/ccci/boot=$(cat /sys/kernel/ccci/boot 2>/dev/null)"
+
+	# Storage, NVRAM and CCCI each have an ordered rc.d service.  Starting
+	# them again here caused two modem boot attempts and an MD reset race.
+	# The remaining modem applications also carry their own vendor START
+	# priorities.  Do not invoke them here a second time.
+}

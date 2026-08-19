@@ -1,0 +1,32 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: reproduce MT6990 SDK SGMII mux
+
+The MT6990 SDK set_mux_gmac12_to_gephy_sgmii() atomically selects both
+GMAC1 and GMAC2 SGMII paths when either SGMII path is requested.  Do not
+reuse the per-MAC mainline mux sequencing for MT6990: reproduce the SDK
+write and restrict its mask to the two bits defined by that SDK.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_path.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_path.c
+@@ -245,6 +245,21 @@ static int set_mux_gmac123_to_gephy_sgmii
+ 	bool updated = true;
+ 
+ 	regmap_read(eth->ethsys, ETHSYS_SYSCFG0, &val);
++
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		if (path != MTK_ETH_PATH_GMAC1_SGMII &&
++		    path != MTK_ETH_PATH_GMAC2_SGMII)
++			return 0;
++
++		/* Exact SDK set_mux_gmac12_to_gephy_sgmii(): selecting either
++		 * SGMII path selects both ports in one masked transaction.
++		 */
++		return regmap_update_bits(eth->ethsys, ETHSYS_SYSCFG0,
++					  SYSCFG0_SGMII_GMAC1_V2 |
++					  SYSCFG0_SGMII_GMAC2_V2,
++					  SYSCFG0_SGMII_GMAC1_V2 |
++					  SYSCFG0_SGMII_GMAC2_V2);
++	}
+ 
+ 	switch (path) {
+ 	case MTK_ETH_PATH_GMAC1_SGMII:

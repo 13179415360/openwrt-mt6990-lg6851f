@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# A preserved overlay may contain the rc.d whiteout created by an earlier
+# `packet_steering disable`.  Restore netifd's single S25 owner on every newly
+# installed rootfs; uci-defaults removes this one-shot guard after success.
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ] || exit 0
+
+/etc/init.d/packet_steering enable
+
+# The vendor 5.4 image uses its private PPE/HNAT FQOS path.  fw4 software
+# flow offload is not an equivalent replacement on this board: its ingress
+# fast path runs before the verified Ethernet RPS distribution and recreates
+# a single-CPU softnet backlog.  Reset both preserved options on each firmware
+# upgrade so an old overlay cannot silently bypass the board policy.
+uci -q set firewall.@defaults[0].flow_offloading='0'
+uci -q set firewall.@defaults[0].flow_offloading_hw='0'
+uci -q commit firewall

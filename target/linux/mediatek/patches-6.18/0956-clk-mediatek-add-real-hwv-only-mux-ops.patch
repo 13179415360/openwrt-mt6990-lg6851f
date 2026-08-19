@@ -1,0 +1,128 @@
+From: local <local@openwrt>
+Subject: clk: mediatek: add HWV-only mux gate clr/set/upd ops
+
+MT6990 vendor clock tables use a 14-argument MUX_HWV() form with
+hardware voter set/clr/status registers, but without FENC status
+monitor arguments.
+
+Do not map these clocks to MUX_GATE_HWV_FENC_CLR_SET_UPD(), because
+that macro requires FENC monitor offsets/shifts that the MT6990 vendor
+table does not provide. Add a HWV-only clk_ops variant and macro family
+instead.
+
+--- a/drivers/clk/mediatek/clk-mux.h
++++ b/drivers/clk/mediatek/clk-mux.h
+@@ -85,6 +85,7 @@ extern const struct clk_ops mtk_mux_clr_
+ extern const struct clk_ops mtk_mux_gate_clr_set_upd_ops;
+ extern const struct clk_ops mtk_mux_gate_fenc_clr_set_upd_ops;
+ extern const struct clk_ops mtk_mux_gate_hwv_fenc_clr_set_upd_ops;
++extern const struct clk_ops mtk_mux_gate_hwv_clr_set_upd_ops;
+ 
+ #define MUX_GATE_CLR_SET_UPD_FLAGS(_id, _name, _parents, _mux_ofs,	\
+ 			_mux_set_ofs, _mux_clr_ofs, _shift, _width,	\
+@@ -131,6 +132,40 @@ extern const struct clk_ops mtk_mux_gate
+ 		    MUX_CLR_SET_UPD(_id, _name, _parents, _mux_ofs,	\
+ 		    _mux_set_ofs, _mux_clr_ofs, _shift, _width, 0, -1)
+ 
++
++#define MUX_GATE_HWV_CLR_SET_UPD_FLAGS(_id, _name, _parents,			\
++				_mux_ofs, _mux_set_ofs, _mux_clr_ofs,			\
++				_hwv_sta_ofs, _hwv_set_ofs, _hwv_clr_ofs,		\
++				_shift, _width, _gate, _upd_ofs, _upd,			\
++				_flags) {						\
++			.id = _id,						\
++			.name = _name,						\
++			.mux_ofs = _mux_ofs,					\
++			.set_ofs = _mux_set_ofs,				\
++			.clr_ofs = _mux_clr_ofs,				\
++			.hwv_sta_ofs = _hwv_sta_ofs,				\
++			.hwv_set_ofs = _hwv_set_ofs,				\
++			.hwv_clr_ofs = _hwv_clr_ofs,				\
++			.upd_ofs = _upd_ofs,					\
++			.mux_shift = _shift,					\
++			.mux_width = _width,					\
++			.gate_shift = _gate,					\
++			.upd_shift = _upd,					\
++			.parent_names = _parents,				\
++			.num_parents = ARRAY_SIZE(_parents),			\
++			.flags = _flags,					\
++			.ops = &mtk_mux_gate_hwv_clr_set_upd_ops,		\
++		}
++
++#define MUX_GATE_HWV_CLR_SET_UPD(_id, _name, _parents,			\
++				_mux_ofs, _mux_set_ofs, _mux_clr_ofs,			\
++				_hwv_sta_ofs, _hwv_set_ofs, _hwv_clr_ofs,		\
++				_shift, _width, _gate, _upd_ofs, _upd)		\
++			MUX_GATE_HWV_CLR_SET_UPD_FLAGS(_id, _name, _parents,	\
++				_mux_ofs, _mux_set_ofs, _mux_clr_ofs,			\
++				_hwv_sta_ofs, _hwv_set_ofs, _hwv_clr_ofs,		\
++				_shift, _width, _gate, _upd_ofs, _upd, 0)
++
+ #define MUX_GATE_HWV_FENC_CLR_SET_UPD_FLAGS(_id, _name, _parents,			\
+ 				_mux_ofs, _mux_set_ofs, _mux_clr_ofs,			\
+ 				_hwv_sta_ofs, _hwv_set_ofs, _hwv_clr_ofs,		\
+--- a/drivers/clk/mediatek/clk-mux.c
++++ b/drivers/clk/mediatek/clk-mux.c
+@@ -122,6 +122,34 @@ static int mtk_clk_mux_is_enabled(struct
+ 	return (val & BIT(mux->data->gate_shift)) == 0;
+ }
+ 
++
++static int mtk_clk_mux_hwv_enable(struct clk_hw *hw)
++{
++	struct mtk_clk_mux *mux = to_mtk_clk_mux(hw);
++	u32 val;
++
++	regmap_write(mux->regmap_hwv, mux->data->hwv_set_ofs,
++		     BIT(mux->data->gate_shift));
++
++	return regmap_read_poll_timeout_atomic(mux->regmap_hwv,
++					       mux->data->hwv_sta_ofs, val,
++					       val & BIT(mux->data->gate_shift),
++					       0, MTK_WAIT_HWV_DONE_US);
++}
++
++static int mtk_clk_mux_hwv_is_enabled(struct clk_hw *hw)
++{
++	struct mtk_clk_mux *mux = to_mtk_clk_mux(hw);
++	u32 val;
++	int ret;
++
++	ret = regmap_read(mux->regmap_hwv, mux->data->hwv_sta_ofs, &val);
++	if (ret)
++		return ret;
++
++	return !!(val & BIT(mux->data->gate_shift));
++}
++
+ static int mtk_clk_mux_hwv_fenc_enable(struct clk_hw *hw)
+ {
+ 	struct mtk_clk_mux *mux = to_mtk_clk_mux(hw);
+@@ -228,7 +256,8 @@ static int mtk_clk_mux_determine_rate(st
+ 
+ static bool mtk_clk_mux_uses_hwv(const struct clk_ops *ops)
+ {
+-	if (ops == &mtk_mux_gate_hwv_fenc_clr_set_upd_ops)
++	if (ops == &mtk_mux_gate_hwv_clr_set_upd_ops ||
++	    ops == &mtk_mux_gate_hwv_fenc_clr_set_upd_ops)
+ 		return true;
+ 
+ 	return false;
+@@ -261,6 +290,17 @@ const struct clk_ops mtk_mux_gate_fenc_c
+ };
+ EXPORT_SYMBOL_GPL(mtk_mux_gate_fenc_clr_set_upd_ops);
+ 
++
++const struct clk_ops mtk_mux_gate_hwv_clr_set_upd_ops = {
++	.enable = mtk_clk_mux_hwv_enable,
++	.disable = mtk_clk_mux_hwv_disable,
++	.is_enabled = mtk_clk_mux_hwv_is_enabled,
++	.get_parent = mtk_clk_mux_get_parent,
++	.set_parent = mtk_clk_mux_set_parent_setclr_lock,
++	.determine_rate = mtk_clk_mux_determine_rate,
++};
++EXPORT_SYMBOL_GPL(mtk_mux_gate_hwv_clr_set_upd_ops);
++
+ const struct clk_ops mtk_mux_gate_hwv_fenc_clr_set_upd_ops = {
+ 	.enable = mtk_clk_mux_hwv_fenc_enable,
+ 	.disable = mtk_clk_mux_hwv_disable,

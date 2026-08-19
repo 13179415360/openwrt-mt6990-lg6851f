@@ -1,0 +1,261 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: add MT6990 frame-engine data
+
+MT6990 uses its vendor-defined frame engine with two SGMII MACs and QDMA.
+Describe it with MT6990-specific data and paths. The mainline NETSYS version
+must not be used as a proxy for MT798x-compatible hardware behaviour.
+
+Keep the new capability MT6990-specific.  This leaves all existing MediaTek
+networking platforms unchanged.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.h
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.h
+@@ -817,6 +817,12 @@ enum mtk_clks_map {
+ 	MTK_CLK_TOP_NETSYS_SYNC_250M_SEL,
+ 	MTK_CLK_TOP_NETSYS_PPEFB_250M_SEL,
+ 	MTK_CLK_TOP_NETSYS_WARP_SEL,
++	MTK_CLK_SGMII_0_SEL,
++	MTK_CLK_SGMII_SBUS_0_SEL,
++	MTK_CLK_SGMII_1_SEL,
++	MTK_CLK_SGMII_SBUS_1_SEL,
++	MTK_CLK_USXGMII_SBUS_0_SEL,
++	MTK_CLK_USXGMII_SBUS_1_SEL,
+ 	MTK_CLK_MAX
+ };
+ 
+@@ -1040,5 +1040,6 @@ enum mkt_eth_capabilities {
+ 	MTK_XGMAC_V2_BIT,
+ 	MTK_36BIT_DMA_BIT,
++	MTK_SOC_MT6990_BIT,
+ 
+ 	/* MUX BITS*/
+ 	MTK_ETH_MUX_GDM1_TO_GMAC1_ESW_BIT,
+@@ -1089,5 +1090,6 @@ enum mkt_eth_capabilities {
+ #define MTK_XGMAC_V2		BIT_ULL(MTK_XGMAC_V2_BIT)
+ #define MTK_36BIT_DMA	BIT_ULL(MTK_36BIT_DMA_BIT)
++#define MTK_SOC_MT6990		BIT_ULL(MTK_SOC_MT6990_BIT)
+ 
+ #define MTK_ETH_MUX_GDM1_TO_GMAC1_ESW		\
+ 	BIT_ULL(MTK_ETH_MUX_GDM1_TO_GMAC1_ESW_BIT)
+@@ -1226,6 +1228,18 @@ enum mkt_eth_capabilities {
+ 		      MTK_MUX_GMAC123_TO_USXGMII | MTK_MUX_GMAC2_TO_2P5GPHY | \
+ 		      MTK_QDMA | MTK_RSTCTRL_PPE1 | MTK_RSTCTRL_PPE2 | MTK_SRAM)
+ 
++#define MT6990_CAPS	(MTK_GMAC1_SGMII | \
++			 MTK_GMAC2_SGMII | \
++			 MTK_MUX_GMAC12_TO_GEPHY_SGMII | \
++			 MTK_QDMA | MTK_SOC_MT6990)
++
++#define MT6990_CLKS_BITMAP	(BIT_ULL(MTK_CLK_SGMII_0_SEL) | \
++				 BIT_ULL(MTK_CLK_SGMII_SBUS_0_SEL) | \
++				 BIT_ULL(MTK_CLK_SGMII_1_SEL) | \
++				 BIT_ULL(MTK_CLK_SGMII_SBUS_1_SEL) | \
++				 BIT_ULL(MTK_CLK_USXGMII_SBUS_0_SEL) | \
++				 BIT_ULL(MTK_CLK_USXGMII_SBUS_1_SEL))
++
+ struct mtk_tx_dma_desc_info {
+ 	dma_addr_t	addr;
+ 	u32		size;
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -173,6 +173,61 @@ static const struct mtk_reg_map mt7986_reg_map = {
+ 	.pse_oq_sta		= 0x01a0,
+ };
+ 
++/* MT6990 SDK register map. QDMA uses the 0x4400 window and the actual
++ * non-CONFIG_MTK_ADMAV2 RX engine uses the 0x4000 window.
++ */
++static const struct mtk_reg_map mt6990_reg_map = {
++	.tx_irq_mask		= 0x461c,
++	.tx_irq_status		= 0x4618,
++	.pdma = {
++		.rx_ptr		= 0x4100,
++		.rx_cnt_cfg	= 0x4104,
++		.pcrx_ptr	= 0x4108,
++		.glo_cfg	= 0x4204,
++		.rst_idx	= 0x4208,
++		.delay_irq	= 0x420c,
++		.irq_status	= 0x4220,
++		.irq_mask	= 0x4228,
++		.adma_rx_dbg0	= 0x4238,
++		.int_grp	= 0x4250,
++	},
++	.qdma = {
++		.qtx_cfg	= 0x4400,
++		.qtx_sch	= 0x4404,
++		.rx_ptr		= 0x4500,
++		.rx_cnt_cfg	= 0x4504,
++		.qcrx_ptr	= 0x4508,
++		.page		= 0x45f0,
++		.glo_cfg	= 0x4604,
++		.rst_idx	= 0x4608,
++		.delay_irq	= 0x460c,
++		.fc_th		= 0x4610,
++		.int_grp	= 0x4620,
++		.hred		= 0x4644,
++		.ctx_ptr	= 0x4700,
++		.dtx_ptr	= 0x4704,
++		.crx_ptr	= 0x4710,
++		.drx_ptr	= 0x4714,
++		.fq_head	= 0x4720,
++		.fq_tail	= 0x4724,
++		.fq_count	= 0x4728,
++		.fq_blen	= 0x472c,
++		.tx_sch_rate	= 0x4798,
++	},
++	.gdm1_cnt		= 0x1c00,
++	.gdma_to_ppe = {
++		[0]		= 0x3333,
++		[1]		= 0x4444,
++	},
++	.ppe_base		= 0x2000,
++	.wdma_base = {
++		[0]		= 0x4800,
++		[1]		= 0x4c00,
++	},
++	.pse_iq_sta		= 0x0180,
++	.pse_oq_sta		= 0x01a0,
++};
++
+ static const struct mtk_reg_map mt7988_reg_map = {
+ 	.tx_irq_mask		= 0x461c,
+ 	.tx_irq_status		= 0x4618,
+@@ -353,6 +410,12 @@ static const char * const mtk_clks_source_name[] = {
+ 	"top_netsys_sync_250m_sel",
+ 	"top_netsys_ppefb_250m_sel",
+ 	"top_netsys_warp_sel",
++	"sgmii_0_sel",
++	"sgmii_sbus_0_sel",
++	"sgmii_1_sel",
++	"sgmii_sbus_1_sel",
++	"usxgmii_sbus_0_sel",
++	"usxgmii_sbus_1_sel",
+ };
+ 
+ void mtk_w32(struct mtk_eth *eth, u32 val, unsigned reg)
+@@ -758,14 +815,30 @@ static int mtk_mac_finish(struct phylink_config *config, unsigned int mode,
+ 	mcr_new = mcr_cur;
+ 	mcr_new |= MAC_MCR_IPG_CFG | MAC_MCR_FORCE_MODE |
+ 		   MAC_MCR_BACKOFF_EN | MAC_MCR_BACKPR_EN | MAC_MCR_RX_FIFO_CLR_DIS;
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		mcr_new &= ~(GENMASK(31, 28) | MAC_MCR_MAX_RX_MASK);
++		mcr_new |= MAC_MCR_MAX_RX(MAC_MCR_MAX_RX_1536);
++		mcr_new &= ~BIT(16); /* MAC_MCR_DIFF_RXFIFO_WCLR */
++	}
+ 
+ 	/* Only update control register when needed! */
+ 	if (mcr_new != mcr_cur)
+ 		mtk_w32(mac->hw, mcr_new, MTK_MAC_MCR(mac->id));
+ 
+ 	return 0;
+ }
+ 
++static void mtk_mt6990_pse_port_link_set(struct mtk_mac *mac, bool up)
++{
++	u32 mask, val;
++
++	mask = MTK_FE_LINK_DOWN_P(mac->id == MTK_GMAC1_ID ?
++				      PSE_GDM1_PORT : PSE_GDM2_PORT);
++	val = mtk_r32(mac->hw, MTK_FE_GLO_CFG(0));
++	val = up ? val & ~mask : val | mask;
++	mtk_w32(mac->hw, val, MTK_FE_GLO_CFG(0));
++}
++
+ static void mtk_mac_link_down(struct phylink_config *config, unsigned int mode,
+ 			      phy_interface_t interface)
+ {
+@@ -772,6 +845,9 @@ static void mtk_mac_link_down(struct phylink_config *config, unsigned int mode,
+ 	struct mtk_mac *mac = container_of(config, struct mtk_mac,
+ 					   phylink_config);
+ 
++	if (MTK_HAS_CAPS(mac->hw->soc->caps, MTK_SOC_MT6990))
++		mtk_mt6990_pse_port_link_set(mac, false);
++
+ 	if (!mtk_interface_mode_is_xgmii(mac->hw, interface)) {
+ 		/* GMAC modes */
+ 		mtk_m32(mac->hw,
+@@ -973,6 +1049,9 @@ static void mtk_mac_link_up(struct phylink_config *config,
+ 	else
+ 		mtk_gdm_mac_link_up(mac, phy, mode, interface, speed, duplex,
+ 				    tx_pause, rx_pause);
++
++	if (MTK_HAS_CAPS(mac->hw->soc->caps, MTK_SOC_MT6990))
++		mtk_mt6990_pse_port_link_set(mac, true);
+ }
+ 
+ static void mtk_mac_disable_tx_lpi(struct phylink_config *config)
+@@ -3797,6 +3892,20 @@ static int mtk_start_dma(struct mtk_eth *eth)
+ 		return err;
+ 	}
+ 
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		/* Exact SDK MT6990/MT6890 start values. MT6990 RX is PDMA only;
++		 * do not enter the mainline MT798x NETSYS-v2 bit composition.
++		 */
++		mtk_w32(eth, 0x95804535, reg_map->qdma.glo_cfg);
++
++		val = mtk_r32(eth, reg_map->pdma.glo_cfg);
++		val |= MTK_RX_DMA_EN | rx_2b_offset |
++		       MTK_RX_BT_32DWORDS | MTK_MULTI_EN;
++		mtk_w32(eth, val, reg_map->pdma.glo_cfg);
++
++		return 0;
++	}
++
+ 	if (MTK_HAS_CAPS(eth->soc->caps, MTK_QDMA)) {
+ 		val = mtk_r32(eth, reg_map->qdma.glo_cfg);
+ 		val |= MTK_TX_DMA_EN | MTK_RX_DMA_EN |
+
+@@ -6137,6 +6248,45 @@ static const struct mtk_soc_data mt7988_data = {
+ 	},
+ };
+ 
++static const struct mtk_soc_data mt6990_data = {
++	.reg_map = &mt6990_reg_map,
++	.ana_rgc3 = 0x128,
++	.caps = MT6990_CAPS,
++	.hw_features = MTK_HW_FEATURES,
++	.required_clks = MT6990_CLKS_BITMAP,
++	.required_pctl = false,
++	/* RX descriptor semantics are the SDK's legacy 16-byte format. Never
++	 * select a MT798x NETSYS-v2 hardware path through this field.
++	 */
++	.version = 1,
++	/* Stock starts Ethernet with the special path disabled.  Its hw_nat
++	 * module may later redirect GDM to PPE (0x3333), so do not make PPE a
++	 * mandatory part of the base Ethernet receive path until that runtime
++	 * transition has been isolated independently.
++	 */
++	.offload_version = 0,
++	.ppe_num = 0,
++	.hash_offset = 0,
++	.has_accounting = false,
++	.num_tx_queues = 16,
++	.foe_entry_size = MTK_FOE_ENTRY_V2_SIZE,
++	.tx = {
++		DESC_SIZE(struct mtk_tx_dma_v2),
++		.dma_max_len = MTK_TX_DMA_BUF_LEN_V2,
++		.dma_len_offset = 8,
++		.dma_size = MTK_DMA_SIZE(2K),
++		.fq_dma_size = MTK_DMA_SIZE(2K),
++	},
++	.rx = {
++		DESC_SIZE(struct mtk_rx_dma),
++		.irq_done_mask = MTK_RX_DONE_INT,
++		.dma_l4_valid = RX_DMA_L4_VALID_PDMA,
++		.dma_max_len = MTK_TX_DMA_BUF_LEN,
++		.dma_len_offset = 16,
++		.dma_size = MTK_DMA_SIZE(2K),
++	},
++};
++
+ static const struct mtk_soc_data rt5350_data = {
+ 	.reg_map = &mt7628_reg_map,
+ 	.caps = MT7628_CAPS,
+@@ -6197,5 +6312,6 @@ const struct of_device_id of_mtk_match[] = {
+ 	{ .compatible = "mediatek,mt7987-eth", .data = &mt7987_data },
+ 	{ .compatible = "mediatek,mt7988-eth", .data = &mt7988_data },
++	{ .compatible = "mediatek,mt6990-eth", .data = &mt6990_data },
+ 	{ .compatible = "ralink,rt5350-eth", .data = &rt5350_data },
+ 	{},
+ };

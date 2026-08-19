@@ -1,0 +1,155 @@
+#!/bin/sh /etc/rc.common
+
+. /usr/share/libubox/jshn.sh
+
+START=99
+USE_PROCD=1
+
+get_device_idx() {
+	local i=0
+	while true; do
+		result=$(uci -q get network.@device[$i].name)
+		[ -z "$result" ] && return
+
+		if [ "$result" == "br-lan" ]; then
+			let device_id=$i
+			logger -t device_id "device_id is $device_id"
+			break
+		fi
+
+		let i++
+	done
+}
+
+check_sim() {
+
+	
+
+	# modify by Chris.Wu 2023.12.20 : replace mipc_wan_cli with ql_datacall
+	apn_data="$(ql_datacall --apn_provision_by_sim)"
+    [ -z "$apn_data" ] && return
+    json_load "$apn_data"
+    json_get_var db_apn apn
+    echo "apn is $db_apn"
+
+    json_get_var db_auth_type auth_type
+    json_get_var db_user user
+    json_get_var db_password password
+    json_get_var db_protocol protocol
+    json_get_var db_roaming_protocol roaming_protocol
+    json_get_var db_iaapn iaapn
+    json_get_var db_iaprotocol iaprotocol
+    json_get_var db_iaroaming_protocol iaroaming_protocol
+    json_get_var db_mtu mtu
+    json_get_var db_plmn plmn
+    json_get_var db_gid1 mvno_match_data
+
+	logger -t apn "$1 & $db_plmn $db_gid1"
+	[ "$db_plmn" = $1 -a "$db_gid1" = "$2" ] && return
+
+	ifdown wan
+
+	uci batch <<-EOF
+		set network.wan.proto='ql_mipc'
+		set network.wan.device="ccmni"
+		set network.wan6.device="ccmni"
+		set network.wan.apn="$db_apn"
+		set network.wan.auth="$db_auth_type"
+		set network.wan.username="$db_user"
+		set network.wan.password="$db_password"
+		set network.wan.iptype="$db_protocol"
+		set network.wan.iaapn="$db_iaapn"
+		set network.wan.iaiptype="$db_iaprotocol"
+		set network.wan.iaroamingtype="$db_iaroaming_protocol"
+		set network.wan.roamingtype="$db_roaming_protocol"
+		set network.wan.mtu="$db_mtu"
+		set network.wan.plmn="$db_plmn"
+		set network.wan.gid1="$db_gid1"
+		commit network
+	EOF
+	logger -t apn "APN provision done"
+
+	# add by Chris.Wu 2022.10.10 : get device index to set bridge members
+	get_device_idx
+	logger -t device_id "device_id is $device_id"
+
+	enable_vlan=0
+	enable_vlan="$(uci -q get network.eth0.enable_vlan)"
+	logger -t enable_vlan "$enable_vlan"
+	if [ "$enable_vlan" = "1" ]; then
+		uci delete network.@device[$device_id].ports
+		uci add_list network.@device[$device_id].ports="eth0.1"
+		uci add_list network.@device[$device_id].ports="eth0.2"
+		uci add_list network.@device[$device_id].ports="eth0.3"
+		uci add_list network.@device[$device_id].ports="eth0.4"
+		uci add_list network.@device[$device_id].ports="eth0.5"
+		uci add_list network.@device[$device_id].ports="eth1"
+	else
+		uci delete network.@device[$device_id].ports
+		uci add_list network.@device[$device_id].ports="eth0"
+		uci add_list network.@device[$device_id].ports="eth1"
+	fi
+
+	uci commit
+	ifup wan
+	ifup lan
+
+	# Test SIM is MCC: 1 MNC:01
+	if [[ "$plmn" == "1001" ]] ; then
+		logger -t apn "Run test SIM configuration"
+
+		uci set system.ntp.enabled='0'
+		uci set dhcp.@dnsmasq[0].rebind_protection='0'
+		uci set firewall.@zone[1].input='ACCEPT'
+		uci set firewall.@zone[1].forward='ACCEPT'
+		uci set network.wan.retry='1000'
+		uci commit
+		reload_config
+	fi
+}
+
+boot() {
+	echo "start mtk apn provision service"
+
+	# Meta mode handling
+	bootmode=$(hexdump -v /proc/device-tree/chosen/atag,boot | awk '{print $6}')
+	if [ "${bootmode:-}" = "0001" ] ;
+	then
+		exit 1
+	fi
+
+	CFG="/etc/config/network"
+	[ -s "${CFG}" ] || exit 1
+
+	# add by Chris.Wu 2022.03.25 : Add an adaptive switch
+	auto="$(uci -q get system.@system[0].ql_wan_lan_auto_adapt)"
+	[ "${auto:-}" = "1" ] && exit 1
+
+	# The netifd modem protocol owns ttyCMIPC6 and performs radio-on itself.
+	# Test the protocol before opening the exclusive MIPC port; otherwise this
+	# helper races ql_datacall's SIM/APN query and both operations time out.
+	# The native MT6990 modem interface is independent from physical WAN.
+	proto="$(uci -q get network.modem5g.proto)"
+	case "$proto" in ql_mipc|ql_datacall|mipc) exit 1;; esac
+
+	proto="$(uci -q get network.wan.proto)"
+	[ "${proto:-}" = "mipc" ] && exit 1
+	case "$proto" in ql_mipc|ql_datacall) exit 1;; esac
+
+	# Legacy non-netifd configurations still require this helper to enable RF.
+	mipc_wan_cli --nw_radio_state_set 1
+
+	plmn="$(uci -q get network.wan.plmn)"
+	gid1="$(uci -q get network.wan.gid1)"
+	auto_conf="$(uci -q get network.wan.auto_conf)"
+	[ -z "$plmn" ] && plmn=""
+	[ -z "$auto_conf" ] && auto_conf="1"
+
+	if [ "$auto_conf" = "1" ] ; then
+		echo "Initalize APN parameters"
+		check_sim "${plmn}" "${gid1}" &
+		exit 1
+	else
+		echo "No auto SIM conf."
+	fi
+}

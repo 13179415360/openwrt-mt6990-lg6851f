@@ -1,0 +1,197 @@
+From: OpenWrt MT6990 enablement
+Subject: phy: mediatek: pcie: add MT6980 PHY used by MT6990
+
+--- a/drivers/phy/mediatek/phy-mtk-pcie.c
++++ b/drivers/phy/mediatek/phy-mtk-pcie.c
+@@ -5,11 +5,14 @@
+  */
+ 
+ #include <linux/bitfield.h>
++#include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+ #include <linux/nvmem-consumer.h>
+ #include <linux/of.h>
+ #include <linux/phy/phy.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
+ #include <linux/slab.h>
+ 
+ #include "phy-mtk-io.h"
+@@ -32,4 +35,29 @@
+ 
+ #define PEXTP_ANA_LANE_OFFSET		0x100
+ 
++#define PCIE_DUAL_2LX1_MAC_CON		0x8d8
++#define PCIE_MODE_CON			BIT(7)
++#define PEXTP_ANA_LN_TRX_30		0x30
++#define RG_XTP_LN_RX_CDR_SEL		GENMASK(1, 0)
++#define PEXTP_SIFSLV_DIG_LN_RX		0x5000
++#define PEXTP_DIG_LN_RX_8C		0x8c
++#define LEQ_GEN4_BWSEL			GENMASK(19, 15)
++#define PEXTP_SIFSLV_DIG_LN_RX2	0x6000
++#define PEXTP_DIG_LN_RX2_60		0x60
++#define CDR_GEN4_FASTP_GAIN		GENMASK(15, 12)
++#define PEXTP_DIG_LN_RX2_78		0x78
++#define CDR_GEN3_IRR_GAIN		GENMASK(8, 6)
++#define CDR_GEN3_IRR_CORNER		GENMASK(23, 21)
++#define PEXTP_DIG_LN_RX2_D4		0xd4
++#define RX_AEQ_GEN3_CYC_EN		BIT(18)
++#define RX_AEQ_GEN4_CYC_EN		BIT(19)
++#define PEXTP_SIFSLV_ANA_LN_TRX	0xa000
++#define PEXTP_ANA_LN_TRX8		0x20
++#define RG_XTP_LN_RX_EYES_OPTION2	GENMASK(29, 28)
++#define PEXTP_ANA_LN_TRX9		0x24
++#define RG_XTP_LN_RX_EYES_PAT		GENMASK(15, 0)
++#define PCIE_PHY0_ID			0
++#define PCIE_PHY1_ID			1
++#define PCIE_PHY2_ID			2
++
+ /**
+@@ -54,4 +82,5 @@ struct mtk_pcie_lane_efuse {
+ struct mtk_pcie_phy_data {
+ 	int num_lanes;
+ 	bool sw_efuse_supported;
++	int (*phy_init)(struct phy *phy);
+ };
+@@ -70,4 +99,5 @@ struct mtk_pcie_phy {
+ 	struct device *dev;
+ 	struct phy *phy;
+ 	void __iomem *sif_base;
++	int id;
+ 	const struct mtk_pcie_phy_data *data;
+@@ -110,3 +140,9 @@ static int mtk_pcie_phy_init(struct phy *phy)
+ {
+ 	struct mtk_pcie_phy *pcie_phy = phy_get_drvdata(phy);
+-	int i;
++	int i, ret;
++
++	if (pcie_phy->data->phy_init) {
++		ret = pcie_phy->data->phy_init(phy);
++		if (ret)
++			return ret;
++	}
+@@ -125,9 +161,98 @@ static int mtk_pcie_phy_init(struct phy *phy)
+ 	return 0;
+ }
+ 
++static int mtk_pcie_phy_power_on(struct phy *phy)
++{
++	struct mtk_pcie_phy *pcie_phy = phy_get_drvdata(phy);
++	int ret = pm_runtime_resume_and_get(pcie_phy->dev);
++
++	return ret < 0 ? ret : 0;
++}
++
++static int mtk_pcie_phy_power_off(struct phy *phy)
++{
++	struct mtk_pcie_phy *pcie_phy = phy_get_drvdata(phy);
++
++	return pm_runtime_put_sync(pcie_phy->dev);
++}
++
+ static const struct phy_ops mtk_pcie_phy_ops = {
+ 	.init	= mtk_pcie_phy_init,
++	.power_on = mtk_pcie_phy_power_on,
++	.power_off = mtk_pcie_phy_power_off,
+ 	.owner	= THIS_MODULE,
+ };
+ 
++struct mt6990_chipid {
++	u32 size, hw_code, hw_subcode, hw_ver, sw_ver;
++};
++
++static int mtk_mt6990_sw_ver(void)
++{
++	struct device_node *node;
++	const struct mt6990_chipid *id;
++	int len, ver = -ENODEV;
++
++	node = of_find_node_by_path("/chosen");
++	if (!node)
++		node = of_find_node_by_path("/chosen@0");
++	if (!node)
++		return ver;
++	id = of_get_property(node, "atag,chipid", &len);
++	if (id && len >= sizeof(*id))
++		ver = id->sw_ver;
++	of_node_put(node);
++	return ver;
++}
++
++static void mtk_6980_e2_init(struct mtk_pcie_phy *pcie_phy)
++{
++	void __iomem *addr;
++	int lane;
++
++	for (lane = 0; lane < pcie_phy->data->num_lanes; lane++) {
++		addr = pcie_phy->sif_base + PEXTP_SIFSLV_ANA_LN_TRX +
++		       lane * PEXTP_ANA_LANE_OFFSET;
++		if (pcie_phy->id == PCIE_PHY0_ID) {
++			mtk_phy_update_field(addr + PEXTP_ANA_LN_TRX8,
++					     RG_XTP_LN_RX_EYES_OPTION2, 3);
++			mtk_phy_update_field(addr + PEXTP_ANA_LN_TRX9,
++					     RG_XTP_LN_RX_EYES_PAT, 0xa800);
++		}
++		if (pcie_phy->id == PCIE_PHY1_ID || pcie_phy->id == PCIE_PHY2_ID)
++			mtk_phy_update_field(addr + PEXTP_ANA_LN_TRX_30,
++					     RG_XTP_LN_RX_CDR_SEL, 0);
++	}
++}
++
++static int mtk_6980_phy_init(struct phy *phy)
++{
++	struct mtk_pcie_phy *pcie_phy = phy_get_drvdata(phy);
++	struct regmap *cfg;
++	void __iomem *addr;
++	int lane;
++
++	if (mtk_mt6990_sw_ver() == 1)
++		mtk_6980_e2_init(pcie_phy);
++	if (pcie_phy->id != PCIE_PHY0_ID)
++		return 0;
++	cfg = syscon_regmap_lookup_by_compatible("mediatek,mt6990-scpsys");
++	if (!IS_ERR(cfg))
++		regmap_update_bits(cfg, PCIE_DUAL_2LX1_MAC_CON,
++				   PCIE_MODE_CON, PCIE_MODE_CON);
++	for (lane = 0; lane < pcie_phy->data->num_lanes; lane++) {
++		addr = pcie_phy->sif_base + PEXTP_SIFSLV_DIG_LN_RX +
++		       lane * PEXTP_ANA_LANE_OFFSET;
++		mtk_phy_update_field(addr + PEXTP_DIG_LN_RX_8C, LEQ_GEN4_BWSEL, 0x17);
++		addr = pcie_phy->sif_base + PEXTP_SIFSLV_DIG_LN_RX2 +
++		       lane * PEXTP_ANA_LANE_OFFSET;
++		mtk_phy_update_field(addr + PEXTP_DIG_LN_RX2_78, CDR_GEN3_IRR_GAIN, 1);
++		mtk_phy_update_field(addr + PEXTP_DIG_LN_RX2_78, CDR_GEN3_IRR_CORNER, 4);
++		mtk_phy_update_field(addr + PEXTP_DIG_LN_RX2_60, CDR_GEN4_FASTP_GAIN, 7);
++		mtk_phy_clear_bits(addr + PEXTP_DIG_LN_RX2_D4,
++				   RX_AEQ_GEN3_CYC_EN | RX_AEQ_GEN4_CYC_EN);
++	}
++	return 0;
++}
++
+ static int mtk_pcie_efuse_read_for_lane(struct mtk_pcie_phy *pcie_phy,
+@@ -220,4 +345,7 @@ static int mtk_pcie_phy_probe(struct platform_device *pdev)
+ 	pcie_phy->data = of_device_get_match_data(dev);
+ 	if (!pcie_phy->data)
+ 		return dev_err_probe(dev, -EINVAL, "Failed to get phy data\n");
++	if (of_property_read_u32(dev->of_node, "phy-id", &pcie_phy->id))
++		pcie_phy->id = -1;
++	pm_runtime_enable(dev);
+ 
+@@ -245,9 +371,16 @@ static const struct mtk_pcie_phy_data mt8195_data = {
+ 	.num_lanes = 2,
+ 	.sw_efuse_supported = true,
+ };
+ 
++static const struct mtk_pcie_phy_data mt6980_data = {
++	.num_lanes = 2,
++	.sw_efuse_supported = false,
++	.phy_init = mtk_6980_phy_init,
++};
++
+ static const struct of_device_id mtk_pcie_phy_of_match[] = {
+ 	{ .compatible = "mediatek,mt8195-pcie-phy", .data = &mt8195_data },
++	{ .compatible = "mediatek,mt6980-pcie-phy", .data = &mt6980_data },
+ 	{ },
+ };
+ MODULE_DEVICE_TABLE(of, mtk_pcie_phy_of_match);

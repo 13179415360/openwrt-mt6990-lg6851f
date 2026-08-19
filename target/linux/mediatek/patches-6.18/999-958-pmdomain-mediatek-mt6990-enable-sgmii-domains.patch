@@ -1,0 +1,107 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -28,6 +28,8 @@
+ #define MTK_SCPD_FWAIT_SRAM		BIT(1)
+ #define MTK_SCPD_ALWAYS_ON		BIT(2)
+ #define MTK_SCPD_MT6990_NETSYS		BIT(3)
++#define MTK_SCPD_MT6990_SGMII		BIT(4)
++#define MTK_SCPD_MT6990_SGMII_TOP	BIT(5)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -58,6 +60,24 @@
+ #define MT6990_NETSYS_PWR_SRAM_BIT	BIT(8)
+ #define MT6990_NETSYS_CLK_NUM		5
+ 
++#define MT6990_XFI_PHY_0_PWR_CON	0x0e80
++#define MT6990_XFI_PHY_1_PWR_CON	0x0e88
++#define MT6990_XFI_PHY_0_STA_MASK	BIT(23)
++#define MT6990_XFI_PHY_1_STA_MASK	BIT(24)
++#define MT6990_XFI_PHY_PWR_SRAM_BIT	BIT(8)
++
++#define MT6990_XFI_TOP_0_PWR_CON	0x0e7c
++#define MT6990_XFI_TOP_1_PWR_CON	0x0e84
++#define MT6990_XFI_TOP_0_STA_MASK	BIT(25)
++#define MT6990_XFI_TOP_1_STA_MASK	BIT(26)
++#define MT6990_XFI_TOP_PWR_SRAM_BIT	BIT(8)
++
++#define MT6990_SGMII_TOP_0_PWR_CON	0x0e8c
++#define MT6990_SGMII_TOP_1_PWR_CON	0x0e90
++#define MT6990_SGMII_TOP_0_STA_MASK	BIT(27)
++#define MT6990_SGMII_TOP_1_STA_MASK	BIT(28)
++#define MT6990_SGMII_PWR_SRAM_BIT	BIT(8)
++
+ #define SPM_PWR_STATUS			0x060c
+ #define SPM_PWR_STATUS_2ND		0x0610
+ 
+@@ -670,7 +684,15 @@ static struct scp *init_scp(struct platf
+ 		}
+ 
+ 		genpd->name = data->name;
+-		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_NETSYS)) {
++		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_SGMII_TOP)) {
++			genpd->power_off = scpsys_power_off;
++			genpd->power_on = scpsys_power_on;
++		} else if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_SGMII)) {
++			genpd->power_off = scpsys_power_noop;
++			genpd->power_on = scpsys_power_on;
++			genpd->flags |= GENPD_FLAG_ALWAYS_ON;
++		} else if (MTK_SCPD_CAPS(scpd,
++					 MTK_SCPD_MT6990_NETSYS)) {
+ 			genpd->power_off = scpsys_power_noop;
+ 			genpd->power_on = mt6990_netsys_power_on;
+ 			genpd->flags |= GENPD_FLAG_ALWAYS_ON;
+@@ -1261,8 +1289,44 @@ static const struct scp_domain_data scp_
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_TOP_0, "xfi_top_0"),
++	[MT6990_POWER_DOMAIN_XFI_TOP_0] = {
++		.name = "xfi_top_0",
++		.sta_mask = MT6990_XFI_TOP_0_STA_MASK,
++		.ctl_offs = MT6990_XFI_TOP_0_PWR_CON,
++		.sram_pdn_bits = MT6990_XFI_TOP_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_ALWAYS_ON | MTK_SCPD_MT6990_SGMII,
++	},
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_PHY_0, "xfi_phy_0"),
++	[MT6990_POWER_DOMAIN_XFI_PHY_0] = {
++		.name = "xfi_phy_0",
++		.sta_mask = MT6990_XFI_PHY_0_STA_MASK,
++		.ctl_offs = MT6990_XFI_PHY_0_PWR_CON,
++		.sram_pdn_bits = MT6990_XFI_PHY_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_ALWAYS_ON | MTK_SCPD_MT6990_SGMII,
++	},
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_TOP_1, "xfi_top_1"),
++	[MT6990_POWER_DOMAIN_XFI_TOP_1] = {
++		.name = "xfi_top_1",
++		.sta_mask = MT6990_XFI_TOP_1_STA_MASK,
++		.ctl_offs = MT6990_XFI_TOP_1_PWR_CON,
++		.sram_pdn_bits = MT6990_XFI_TOP_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_ALWAYS_ON | MTK_SCPD_MT6990_SGMII,
++	},
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_PHY_1, "xfi_phy_1"),
++	[MT6990_POWER_DOMAIN_XFI_PHY_1] = {
++		.name = "xfi_phy_1",
++		.sta_mask = MT6990_XFI_PHY_1_STA_MASK,
++		.ctl_offs = MT6990_XFI_PHY_1_PWR_CON,
++		.sram_pdn_bits = MT6990_XFI_PHY_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_ALWAYS_ON | MTK_SCPD_MT6990_SGMII,
++	},
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SGMII_TOP_0, "sgmii_top_0"),
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SGMII_TOP_1, "sgmii_top_1"),
++	[MT6990_POWER_DOMAIN_SGMII_TOP_0] = {
++		.name = "sgmii_top_0",
++		.sta_mask = MT6990_SGMII_TOP_0_STA_MASK,
++		.ctl_offs = MT6990_SGMII_TOP_0_PWR_CON,
++		.sram_pdn_bits = MT6990_SGMII_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_MT6990_SGMII | MTK_SCPD_MT6990_SGMII_TOP,
++	},
++	[MT6990_POWER_DOMAIN_SGMII_TOP_1] = {
++		.name = "sgmii_top_1",
++		.sta_mask = MT6990_SGMII_TOP_1_STA_MASK,
++		.ctl_offs = MT6990_SGMII_TOP_1_PWR_CON,
++		.sram_pdn_bits = MT6990_SGMII_PWR_SRAM_BIT,
++		.caps = MTK_SCPD_MT6990_SGMII | MTK_SCPD_MT6990_SGMII_TOP,
++	},
+ };
+ 
+ static const struct scp_soc_data mt6990_data = {
+	.domains = scp_domain_data_mt6990,
+	.num_domains = MT6990_POWER_DOMAIN_NR,

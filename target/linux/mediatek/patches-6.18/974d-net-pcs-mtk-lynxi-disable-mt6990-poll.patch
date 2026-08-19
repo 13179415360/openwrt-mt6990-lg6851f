@@ -1,0 +1,19 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: pcs: mtk-lynxi: stop polling MT6990 fixed links
+
+MT6990 uses fixed 2500base-x links. Polling an in-band status bit that this
+PCS variant does not expose causes phylink to reconfigure and reset the
+analog SerDes every second. Keep polling for all existing variants and turn
+it off only for MT6990.
+
+--- a/drivers/net/pcs/pcs-mtk-lynxi.c
++++ b/drivers/net/pcs/pcs-mtk-lynxi.c
+@@ -589,7 +589,7 @@ static struct phylink_pcs *mtk_pcs_lynxi
+ 	mpcs->xfi_tphy = serdes_phy;
+ 	mpcs->regmap = regmap;
+ 	mpcs->pcs.ops = &mtk_pcs_lynxi_ops;
+-	mpcs->pcs.poll = true;
++	mpcs->pcs.poll = !is_mt6990;
+ 	mpcs->interface = PHY_INTERFACE_MODE_NA;
+ 	mpcs->flags = flags;
+ 	mpcs->fwnode = fwnode_handle_get(fwnode);

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+[ "$ACTION" = "ifup" ] || exit 0
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ] || exit 0
+
+/usr/bin/lg6851f-memtool yt8821-ext-write 5 0xa00c 0x1800 I_UNDERSTAND
+/usr/bin/lg6851f-memtool yt8821-ext-write 7 0xa00c 0x1800 I_UNDERSTAND
+logger -t mt6990-phy-led "restored WAN/LAN white link LEDs; orange activity straps preserved"

@@ -1,0 +1,99 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] net: ethernet: mtk: port the MT6990 SDK IRQ layout
+
+MT6990's vendor driver consumes all eight FE interrupt resources by raw DT
+index.  Resource zero is reserved; the non-HWRSS data path requests resource
+one for TX and resource two for RX.  Preserve that layout instead of routing
+MT6990 through the upstream fe1/fe2 name lookup.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.h
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.h
+@@ -689,6 +689,11 @@
+ #define MTK_FE_IRQ_TX		0
+ #define MTK_FE_IRQ_RX		1
+ #define MTK_FE_IRQ_NUM		(MTK_FE_IRQ_RX + 1)
++
++/* MT6990 SDK DT order: reserved, TX, RX0..RX3, PHY0, PHY1. */
++#define MTK_MT6990_FE_IRQ_NUM	8
++#define MTK_MT6990_FE_IRQ_TX	1
++#define MTK_MT6990_FE_IRQ_RX	2
+ 
+ struct mtk_rx_dma {
+ 	unsigned int rxd1;
+@@ -1405,7 +1410,7 @@ struct mtk_eth {
+ 	struct net_device		*dummy_dev;
+ 	struct net_device		*netdev[MTK_MAX_DEVS];
+ 	struct mtk_mac			*mac[MTK_MAX_DEVS];
+-	int				irq[MTK_FE_IRQ_NUM];
++	int				irq[MTK_MT6990_FE_IRQ_NUM];
+ 	u32				msg_enable;
+ 	unsigned long			sysclk;
+ 	struct regmap			*ethsys;
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -3776,10 +3776,37 @@ static void mtk_tx_timeout(struct net_dev
+ 	schedule_work(&eth->pending_work);
+ }
+ 
++static unsigned int mtk_tx_irq_index(struct mtk_eth *eth)
++{
++	return MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ?
++		MTK_MT6990_FE_IRQ_TX : MTK_FE_IRQ_TX;
++}
++
++static unsigned int mtk_rx_irq_index(struct mtk_eth *eth)
++{
++	return MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990) ?
++		MTK_MT6990_FE_IRQ_RX : MTK_FE_IRQ_RX;
++}
++
+ static int mtk_get_irqs(struct platform_device *pdev, struct mtk_eth *eth)
+ {
+ 	int i;
+ 
++	/* Follow the vendor MT6990 irq_num=8/raw-index contract exactly.
++	 * Index zero is deliberately retained as the SDK reserved resource;
++	 * the non-HWRSS handlers later use raw indices one and two.
++	 */
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		for (i = 0; i < MTK_MT6990_FE_IRQ_NUM; i++) {
++			eth->irq[i] = platform_get_irq(pdev, i);
++			if (eth->irq[i] < 0)
++				return dev_err_probe(&pdev->dev, eth->irq[i],
++						     "no MT6990 IRQ%d resource found\n", i);
++		}
++
++		return 0;
++	}
++
+ 	/* future SoCs beginning with MT7988 should use named IRQs in dts */
+ 	eth->irq[MTK_FE_IRQ_TX] = platform_get_irq_byname_optional(pdev, "fe1");
+ 	eth->irq[MTK_FE_IRQ_RX] = platform_get_irq_byname_optional(pdev, "fe2");
+@@ -3899,9 +3926,9 @@ static void mtk_poll_controller(struct ne
+ 	struct mtk_mac *mac = netdev_priv(dev);
+ 	struct mtk_eth *eth = mac->hw;
+ 
+ 	mtk_tx_irq_disable(eth, mtk_tx_done_mask(eth));
+ 	mtk_rx_irq_disable(eth, eth->soc->rx.irq_done_mask);
+-	mtk_handle_irq_rx(eth->irq[MTK_FE_IRQ_RX], dev);
++	mtk_handle_irq_rx(eth->irq[mtk_rx_irq_index(eth)], dev);
+ 	mtk_tx_irq_enable(eth, mtk_tx_done_mask(eth));
+ 	mtk_rx_irq_enable(eth, eth->soc->rx.irq_done_mask);
+ }
+@@ -5970,14 +5997,14 @@ static int mtk_probe(struct platform_devi
+ 				       dev_name(eth->dev), eth);
+ 	} else {
+-		err = devm_request_irq(eth->dev, eth->irq[MTK_FE_IRQ_TX],
++		err = devm_request_irq(eth->dev, eth->irq[mtk_tx_irq_index(eth)],
+ 				       mtk_handle_irq_tx, 0,
+ 				       dev_name(eth->dev), eth);
+ 		if (err)
+ 			goto err_free_dev;
+ 
+-		err = devm_request_irq(eth->dev, eth->irq[MTK_FE_IRQ_RX],
++		err = devm_request_irq(eth->dev, eth->irq[mtk_rx_irq_index(eth)],
+ 				       mtk_handle_irq_rx, 0,
+ 				       dev_name(eth->dev), eth);
+ 	}
+ 	if (err)
+ 		goto err_free_dev;

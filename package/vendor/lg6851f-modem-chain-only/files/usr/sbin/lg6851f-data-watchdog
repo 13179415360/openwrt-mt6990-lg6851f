@@ -1,0 +1,185 @@
+#!/bin/sh
+
+# Data-session recovery follows the vendor ql_data_monitor escalation order,
+# then its stock auto_recovery.sh path as the final fallback:
+# PDP restart -> PS re-attach -> radio restart -> rebuild the MIPC/CCMNI chain.
+
+TAG="lg6851f-data-watchdog"
+CHECK_INTERVAL=20
+SETTLE_TIME=60
+FAIL_LIMIT=3
+RECOVERY_LOCK=/var/lock/lg6851f-modem-recovery.lock
+CONTROL_ACTIVE=/tmp/lg6851f-modem-control.active
+
+log() {
+	logger -t "$TAG" "$*"
+	echo "$TAG: $*"
+}
+
+interface_state() {
+	ubus call network.interface.modem5g status 2>/dev/null
+}
+
+link_value() {
+	printf '%s' "$1" | jsonfilter -e "$2" 2>/dev/null
+}
+
+probe_data_path() {
+	local device="$1" before after
+
+	[ -r "/sys/class/net/$device/statistics/rx_packets" ] || return 1
+	before="$(cat "/sys/class/net/$device/statistics/rx_packets")"
+	ping -I "$device" -c 1 -W 3 223.5.5.5 >/dev/null 2>&1 && return 0
+	ping -I "$device" -c 1 -W 3 1.1.1.1 >/dev/null 2>&1 && return 0
+	after="$(cat "/sys/class/net/$device/statistics/rx_packets")"
+	[ "${after:-0}" -gt "${before:-0}" ]
+}
+
+wait_cli_idle() {
+	local quiet=0 waited=0
+
+	# ttyCMIPC6 is exclusive.  A netifd data-call worker can remain alive after
+	# ifup returns, so require five consecutive idle seconds before issuing AT.
+	while [ "$waited" -lt 60 ]; do
+		if pidof mipc_wan_cli >/dev/null 2>&1; then
+			quiet=0
+		else
+			quiet=$((quiet + 1))
+			[ "$quiet" -ge 5 ] && return 0
+		fi
+		sleep 1
+		waited=$((waited + 1))
+	done
+
+	log "MIPC CLI did not become idle; postpone recovery"
+	return 1
+}
+
+recovery_lock() {
+	local waited=0
+	while ! mkdir "$RECOVERY_LOCK" 2>/dev/null; do
+		[ "$waited" -ge 60 ] && return 1
+		sleep 1
+		waited=$((waited + 1))
+	done
+	trap 'rmdir "$RECOVERY_LOCK" 2>/dev/null' EXIT INT TERM
+}
+
+recovery_unlock() {
+	rmdir "$RECOVERY_LOCK" 2>/dev/null
+	trap - EXIT INT TERM
+}
+
+cycle_pdn() {
+	log "vendor recovery stage 1/4: restart PDP"
+	ifdown modem5g
+	sleep 5
+	ifup modem5g
+}
+
+ps_reattach() {
+	log "vendor recovery stage 2/4: PS re-attach"
+	wait_cli_idle || return 1
+	mipc_wan_cli --at_cmd 'AT+EGREA=1' >/dev/null 2>&1
+	mipc_wan_cli --at_cmd 'AT+EGTYPE=0,1' >/dev/null 2>&1
+	mipc_wan_cli --at_cmd 'AT+EGREA=0' >/dev/null 2>&1
+	mipc_wan_cli --at_cmd 'AT+EGTYPE=4' >/dev/null 2>&1
+	sleep 5
+	ifdown modem5g
+	sleep 5
+	ifup modem5g
+}
+
+restart_radio() {
+	log "vendor recovery stage 3/4: restart radio"
+	wait_cli_idle || return 1
+	mipc_wan_cli --at_cmd 'AT+EFUN=0' >/dev/null 2>&1
+	sleep 3
+	mipc_wan_cli --at_cmd 'AT+EFUN=1' >/dev/null 2>&1
+	sleep 8
+	ifdown modem5g
+	sleep 5
+	ifup modem5g
+}
+
+rebuild_modem_chain() {
+	local i
+
+	log "vendor recovery stage 4/4: rebuild official MIPC/CCMNI chain"
+	ifdown modem5g
+	sleep 5
+	wait_cli_idle || return 1
+
+	# Network-relevant subset of the stock /etc/auto_recovery.sh.  Preserve
+	# its service order, close every possible CCMNI context, cycle RF, publish
+	# the official event, and finally recreate the MIPC indication subscriber.
+	/etc/init.d/scd restart
+	/etc/init.d/mtk_netagent restart
+	/etc/init.d/ql_ril_service restart
+	/etc/init.d/atcid restart
+	/etc/init.d/ql_netd restart
+
+	for i in $(seq 0 20); do
+		ip link set "ccmni$i" down 2>/dev/null
+	done
+
+	sleep 3
+	wait_cli_idle || return 1
+	mipc_wan_cli --at_cmd 'AT+CFUN=0' >/dev/null 2>&1
+	sleep 2
+	mipc_wan_cli --at_cmd 'AT+CFUN=1' >/dev/null 2>&1
+	ubus send modem_ee 2>/dev/null
+	/etc/init.d/mipc_submonitor.init restart
+
+	# Let registration indications settle before netifd recreates the PDN.
+	sleep 15
+	ifup modem5g
+}
+
+main() {
+	local state up uptime device failures=0 stage=0
+
+	while true; do
+		sleep "$CHECK_INTERVAL"
+		# A user-triggered band/cell transaction deliberately tears down and
+		# recreates the PDN. Never race it with automatic recovery escalation.
+		[ ! -e "$CONTROL_ACTIVE" ] || { failures=0; stage=0; continue; }
+		state="$(interface_state)"
+		up="$(link_value "$state" '@.up')"
+		uptime="$(link_value "$state" '@.uptime')"
+		device="$(link_value "$state" '@.l3_device')"
+
+		[ "$up" = "true" ] || { failures=0; continue; }
+		case "$uptime" in ''|*[!0-9]*) continue ;; esac
+		[ "$uptime" -ge "$SETTLE_TIME" ] || continue
+		[ -n "$device" ] || continue
+
+		if probe_data_path "$device"; then
+			[ "$failures" -eq 0 ] || log "data path healthy again on $device"
+			failures=0
+			stage=0
+			continue
+		fi
+
+		failures=$((failures + 1))
+		log "data probe failed on $device ($failures/$FAIL_LIMIT)"
+		[ "$failures" -ge "$FAIL_LIMIT" ] || continue
+		failures=0
+
+		if ! recovery_lock; then
+			log "another modem recovery is active; postpone this round"
+			continue
+		fi
+		case "$stage" in
+			0) cycle_pdn ; stage=1 ;;
+			1) ps_reattach && stage=2 ;;
+			2) restart_radio && stage=3 ;;
+			*) rebuild_modem_chain && stage=0 ;;
+		esac
+		recovery_unlock
+		# Allow registration and the official data-call sequence to settle.
+		sleep "$SETTLE_TIME"
+	done
+}
+
+main "$@"

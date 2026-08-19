@@ -1,0 +1,4 @@
+#!/bin/sh
+
+/etc/init.d/lg6851f_pstore_archive enable
+exit 0

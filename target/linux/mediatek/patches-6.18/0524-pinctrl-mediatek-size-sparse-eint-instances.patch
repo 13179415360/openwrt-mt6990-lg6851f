@@ -1,0 +1,20 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] pinctrl: mediatek: size sparse EINT instances by index
+
+The MT6990 SDK EINT table has sparse hardware indexes in instance 3.  Allocate
+each instance lookup table through its highest hardware index instead of by
+the number of populated pins, preventing an out-of-bounds write while keeping
+the vendor pin-to-instance mapping intact.
+
+--- a/drivers/pinctrl/mediatek/mtk-eint.c
++++ b/drivers/pinctrl/mediatek/mtk-eint.c
+@@ -520,7 +520,8 @@ int mtk_eint_do_init(struct mtk_eint *ei
+ 			if (inst >= eint->nbase)
+ 				continue;
+-			eint->base_pin_num[inst]++;
++			eint->base_pin_num[inst] = max_t(u16,
++				eint->base_pin_num[inst], eint->pins[i].index + 1);
+ 		}
+ 	} else {
+ 
+ 	/*

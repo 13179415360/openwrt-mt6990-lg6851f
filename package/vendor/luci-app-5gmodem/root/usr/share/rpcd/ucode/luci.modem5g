@@ -1,0 +1,275 @@
+#!/usr/bin/env ucode
+
+'use strict';
+
+import { popen, readfile } from 'fs';
+
+const CLI = '/usr/bin/mipc_wan_cli';
+const ATCLI = '/usr/bin/modem5g-at';
+const SMSCLI = '/usr/bin/modem5g-sms-send';
+const LOCKCLI = '/usr/bin/lg6851f-modem-lock';
+const STATE = '/tmp/lg6851f-modem-status.state';
+const LOCKSTATE = '/etc/modem5g-lock.state';
+
+function board_ok() {
+	return trim(readfile('/tmp/sysinfo/board_name') || '') == 'fiberhome,lg6851f';
+}
+
+function quote(value) {
+	return `'${replace('' + value, "'", "'\\''")}'`;
+}
+
+function capture(argv, seconds) {
+	let command = `/usr/bin/timeout ${seconds || 12} ${join(' ', map(argv, quote))} 2>&1`;
+	let pipe = popen(command, 'r');
+	let output = pipe?.read?.('all') || '';
+	let code = pipe?.close?.();
+	return { output: trim(output), code: code || 0 };
+}
+
+function launch_lock(argv) {
+	let command = [ '/sbin/start-stop-daemon', '-S', '-b', '-x', LOCKCLI, '--' ];
+	for (let arg in argv)
+		push(command, arg);
+	return capture(command, 5);
+}
+
+function cli(option, arg) {
+	let argv = [ CLI, '--' + option ];
+	if (arg != null)
+		push(argv, '' + arg);
+	/* mipc_wan_cli owns the exclusive ttyCMIPC6 control port. Serialize LuCI
+	 * MIPC callers with the status/lock wrappers. modem5g-at talks to atcid on
+	 * ttyCMIPC2 and deliberately uses its own lock. */
+	/* Target BusyBox flock has no -w option and normally propagates the child
+	 * exit status, so status 1 alone cannot distinguish lock contention from
+	 * a real vendor CLI failure.  Lock an inherited fd and emit an explicit
+	 * marker only when acquiring it fails. */
+	let runner = 'exec 9>/var/lock/luci-modem5g-control.lock; /usr/bin/flock -n 9 || { echo __MODEM_LOCK_BUSY__; exit 75; }; /usr/bin/timeout 15 "$@"; rc=$?; /bin/sleep 6; exit $rc';
+	let command = `/bin/sh -c ${quote(runner)} modem5g-cli ${join(' ', map(argv, quote))} 2>&1`;
+	let output = '';
+	let code = 1;
+	/* The LED daemon holds the lock only for a short RAT query, so retry the
+	 * explicit lock-busy result twice.  Never retry a real CLI failure. */
+	for (let attempt = 0; attempt < 3; attempt++) {
+		let pipe = popen(command, 'r');
+		output = pipe?.read?.('all') || '';
+		code = pipe?.close?.();
+		if (index(output, '__MODEM_LOCK_BUSY__') < 0)
+			break;
+		if (attempt < 2)
+			capture([ '/bin/sleep', '1' ], 2);
+	}
+	let busy = index(output, '__MODEM_LOCK_BUSY__') >= 0;
+	return {
+		output: busy ? 'Modem command channel is busy; retry shortly' :
+			(trim(output) || (code ? 'Vendor modem query failed' : '')),
+		code: code || 0
+	};
+}
+
+function valid_at(command) {
+	return type(command) == 'string' && length(command) >= 2 && length(command) <= 512 &&
+		match(command, /^AT[+A-Z0-9?=,._*#;:\" ()\/-]*$/i);
+}
+
+function at(command) {
+	if (!valid_at(command))
+		return { output: '', code: 22, error: 'AT command contains unsupported characters' };
+	return capture([ ATCLI, command ], 18);
+}
+
+function band_list(value, allowed) {
+	if (type(value) != 'array' || !length(value) || length(value) > 16)
+		return null;
+	let out = [];
+	for (let item in value) {
+		let band = +item;
+		if (index(allowed, band) < 0 || index(out, band) >= 0)
+			return null;
+		push(out, band);
+	}
+	return join(',', out);
+}
+
+function network_state() {
+	let result = capture([ '/bin/ubus', 'call', 'network.interface.modem5g', 'status' ], 5);
+	let state = null;
+	try { state = json(result.output); } catch (e) {}
+	return state;
+}
+
+function cached_modem_state() {
+	let data = readfile(STATE) || '';
+	let state = {};
+	for (let line in split(data, '\n')) {
+		let pos = index(line, '=');
+		if (pos > 0)
+			state[substr(line, 0, pos)] = substr(line, pos + 1);
+	}
+	return state;
+}
+
+/* The vendor MIPC client owns an exclusive CCCI control port.  During boot,
+ * opening the LuCI page must not inject a burst of diagnostic requests into
+ * the radio-on/SIM/APN/data-call sequence.  Require the data interface to be
+ * up and settled before any informational CLI/AT request is issued. */
+function modem_settled(network) {
+	if (!network?.up || +network.uptime < 30)
+		return false;
+
+	let daemons = [ 'atcid', 'mtk_netagent', 'scd', 'ql_netd', 'ql_ril_service' ];
+	for (let i = 0; i < length(daemons); i++) {
+		if (capture([ '/bin/pidof', daemons[i] ], 2).code != 0)
+			return false;
+	}
+
+	return true;
+}
+
+function status() {
+	if (!board_ok())
+		return { available: false, error: 'Unsupported board' };
+
+	let network_json = network_state();
+	if (!modem_settled(network_json))
+		return { available: true, initializing: true, network: network_json, error: 'Modem is still completing the official startup sequence' };
+	let cached = cached_modem_state();
+	let age = time() - +(cached.UPDATED || 0);
+	if (!cached.UPDATED || age > 180)
+		return { available: true, initializing: true, network: network_json, error: 'Waiting for the shared modem status collector' };
+	return {
+		available: true,
+		cached: true,
+		cache_age: age,
+		imei: cached.IMEI || '',
+		imsi: cached.IMSI || '',
+		iccid: cached.ICCID || '',
+		sim: cached.SIM || 'unknown',
+		operator: cached.OPERATOR || '',
+		registration: cached.REGISTRATION || 'unknown',
+		register_detail: cached.REGISTERED || 'NO',
+		rat: cached.RAT_RAW || cached.RAT || 'UNKNOWN',
+		signal: cached.SIGNAL || '',
+		cesq: join(' · ', filter([
+			cached.RSSI ? `RSSI=${cached.RSSI} dBm` : null,
+			cached.RSRP ? `RSRP=${cached.RSRP} dBm` : null,
+			cached.RSRQ ? `RSRQ=${cached.RSRQ} dB` : null,
+			cached.SINR ? `SINR=${cached.SINR} dB` : null
+		], v => v != null)),
+		network: network_json
+	};
+}
+
+const methods = {
+	get_status: { call: function() { return status(); } },
+	get_cells: { call: function() {
+		if (!modem_settled(network_state()))
+			return { initializing: true, serving: { output: 'Waiting for modem startup to settle' }, engineering: { output: '' } };
+		return {
+			serving: at('AT+ECELL'),
+			engineering: at('AT+EINFO?'),
+			note: 'Channel information is derived from the same read-only AT+ECELL response shown below.'
+		};
+	} },
+	list_sms: { call: function() {
+		let mode = at('AT+CMGF=1');
+		let charset = at('AT+CSCS="UCS2"');
+		let storage = at('AT+CPMS?');
+		/* atcid safely carries the complete multi-line response.  One CMGL
+		 * avoids monopolising rpcd with up to 100 sequential CMGR calls. */
+		let messages = at('AT+CMGL="ALL"');
+
+		return {
+			success: mode.code == 0 && charset.code == 0 && messages.code == 0,
+			storage: storage.output,
+			output: messages.code != 0 ? (messages.output || 'SMS query failed') :
+				(index(messages.output, '+CMGL:') >= 0 ? messages.output : 'No stored messages')
+		};
+	} },
+	get_smsc: { call: function() { return at('AT+CSCA?'); } },
+	delete_sms: { args: { index: 0 }, call: function(req) {
+		let index = +req.args?.index;
+		if (index < 0 || index > 65535) return { code: 22, error: 'Invalid SMS index' };
+		return at(`AT+CMGD=${index}`);
+	} },
+	set_smsc: { args: { number: '' }, call: function(req) {
+		let number = '' + (req.args?.number || '');
+		if (!match(number, /^\+?[0-9]{3,20}$/)) return { code: 22, error: 'Invalid SMSC number' };
+		return at(`AT+CSCA="${number}"`);
+	} },
+	send_sms: { args: { number: '', text: '' }, call: function(req) {
+		let number = '' + (req.args?.number || '');
+		let body = '' + (req.args?.text || '');
+		if (!match(number, /^\+?[0-9]{3,20}$/)) return { code: 22, error: 'Invalid recipient number' };
+		if (!length(body) || length(body) > 160 || !match(body, /^[ -~]*$/)) return { code: 22, error: 'Use 1-160 printable GSM/ASCII characters' };
+		/* The stock firmware sends through libqlril (sample_sms), not through
+		 * atcid's TCP CMGS prompt.  The latter cannot safely carry Ctrl+Z after
+		 * the vendor's 2024 CR/LF-only TCP queue change. */
+		let result = capture([ SMSCLI, number, body ], 25);
+		let accepted = result.code == 0 && index(result.output, 'official qlril API') >= 0;
+		return {
+			output: result.output,
+			code: accepted ? 0 : 5,
+			success: accepted,
+			error: accepted ? null : 'Modem did not confirm SMS submission'
+		};
+	} },
+	run_at: { args: { command: '' }, call: function(req) { return at(req.args?.command || ''); } },
+	get_network: { call: function() {
+		let state = capture([ '/bin/ubus', 'call', 'network.interface.modem5g', 'status' ], 5);
+		let config = capture([ '/sbin/uci', '-q', 'show', 'network.modem5g' ], 5);
+		let cached = cached_modem_state();
+		return { status: state.output, config: config.output, radio: cached.RADIO || '', rat: cached.RAT_RAW || cached.RAT || 'UNKNOWN', cached: true };
+	} },
+	get_locks: { call: function() {
+		if (!modem_settled(network_state()))
+			return { code: 11, output: 'Waiting for modem startup to settle' };
+		return capture([ LOCKCLI, 'get' ], 40);
+	} },
+	get_lock_request: { call: function() {
+		let state = readfile(LOCKSTATE) || '';
+		let active = readfile('/tmp/lg6851f-modem-control.active') || '';
+		if (!length(state)) return { code: 0, active: length(active) > 0, output: length(active) ? 'OPERATION_ACTIVE' : '' };
+		let boot = trim(readfile('/proc/sys/kernel/random/boot_id') || '');
+		let saved = match(`\n${state}`, /\nBOOT_ID=([^\r\n]+)/);
+		return {
+			code: 0,
+			active: length(active) > 0,
+			output: `${length(active) ? 'OPERATION_ACTIVE\n' : ''}${saved && saved[1] == boot ? 'SAVED_LOCK_STATE' : 'STALE_REQUEST_STATE'}\n${trim(state)}`
+		};
+	} },
+	set_band_lock: { args: { lte: [], nr: [] }, call: function(req) {
+		let lte = band_list(req.args?.lte, [ 1, 3, 5, 7, 8, 20, 28, 32, 38, 40, 41, 42, 43 ]);
+		let nr = band_list(req.args?.nr, [ 1, 3, 5, 7, 8, 20, 28, 38, 40, 41, 77, 78 ]);
+		if (!lte || !nr)
+			return { code: 22, error: 'Select at least one valid LTE band and one valid NR band' };
+		return launch_lock([ 'apply-bands', lte, nr ]);
+	} },
+	reset_band_lock: { call: function() { return launch_lock([ 'reset-bands' ]); } },
+	set_cell_lock: { args: { arfcn: 0, pci: '', rat: '', band: 0 }, call: function(req) {
+		let arfcnText = '' + (req.args?.arfcn ?? '');
+		let arfcn = +arfcnText;
+		let pciText = '' + (req.args?.pci ?? '');
+		if (!match(arfcnText, /^[0-9]+$/) || arfcn < 1 || arfcn > 3279165)
+			return { code: 22, error: 'ARFCN must be an integer from 1 to 3279165' };
+		if (length(pciText) && (!match(pciText, /^[0-9]+$/) || +pciText > 2000))
+			return { code: 22, error: 'PCI must be empty or an integer from 0 to 2000' };
+		let rat = '' + (req.args?.rat || '');
+		let band = +(req.args?.band || 0);
+		if (index([ 'lte', 'nr' ], rat) < 0 || band < 0 || band > 1024)
+			return { code: 22, error: 'Select the LTE/NR type and a valid band' };
+		return launch_lock([ 'set-cell', arfcnText, pciText, rat, '' + band ]);
+	} },
+	clear_cell_lock: { call: function() { return launch_lock([ 'clear-cell' ]); } },
+	set_radio: { args: { enabled: true }, call: function(req) { return cli('nw_radio_state_set', req.args?.enabled ? '1' : '0'); } },
+	set_rat: { args: { mode: 21 }, call: function(req) {
+		let mode = +req.args?.mode;
+		if (index([ 3, 15, 19, 21 ], mode) < 0) return { code: 22, error: 'Invalid RAT mode' };
+		return cli('nw_set_rat', mode);
+	} },
+	ifup: { call: function() { return capture([ '/sbin/ifup', 'modem5g' ], 20); } },
+	ifdown: { call: function() { return capture([ '/sbin/ifdown', 'modem5g' ], 20); } }
+};
+
+return { 'luci.modem5g': methods };

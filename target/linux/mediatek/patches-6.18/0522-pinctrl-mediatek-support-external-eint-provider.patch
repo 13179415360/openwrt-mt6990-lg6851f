@@ -1,0 +1,91 @@
+From: OpenWrt MT6990 repair <mt6990@local>
+Subject: [PATCH] pinctrl: mediatek: support vendor external EINT resources
+
+The mobile MTK SDK keeps the four AP-EINT register instances in a separate
+apirq node referenced by mediatek,eint.  Let the existing multi-base EINT
+core consume those resources while the pin controller remains the IRQ domain
+owner.
+
+--- a/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
++++ b/drivers/pinctrl/mediatek/pinctrl-mtk-common-v2.c
+@@ -368,6 +368,9 @@ int mtk_build_eint(struct mtk_pinctrl *h
+ {
+ 	struct device_node *np = pdev->dev.of_node;
++	struct device_node *eint_np;
+ 	int ret, i, j, count_reg_names;
++	u32 instance_num;
++	bool external_eint;
+ 
+ 	if (!IS_ENABLED(CONFIG_EINT_MTK))
+ 		return 0;
+@@ -381,13 +384,27 @@ int mtk_build_eint(struct mtk_pinctrl *h
+ 	if (!hw->eint)
+ 		return -ENOMEM;
+ 
+-	count_reg_names = of_property_count_strings(np, "reg-names");
+-	if (count_reg_names < 0)
+-		return -EINVAL;
++	eint_np = of_parse_phandle(np, "mediatek,eint", 0);
++	external_eint = !!eint_np;
++	if (!eint_np)
++		eint_np = of_node_get(np);
++
++	if (external_eint) {
++		ret = of_property_read_u32(eint_np, "mediatek,instance-num",
++					   &instance_num);
++		if (ret)
++			goto err_put_node;
++		count_reg_names = instance_num;
++	} else {
++		count_reg_names = of_property_count_strings(eint_np, "reg-names");
++		if (count_reg_names < 0)
++			goto err_put_node;
++	}
+ 
+-	hw->eint->nbase = count_reg_names - (int)hw->soc->nbase_names;
++	hw->eint->nbase = external_eint ? count_reg_names :
++		count_reg_names - (int)hw->soc->nbase_names;
+ 	if (hw->eint->nbase <= 0)
+-		return -EINVAL;
++		goto err_put_node;
+ 
+ 	hw->eint->base = devm_kmalloc_array(&pdev->dev, hw->eint->nbase,
+ 					    sizeof(*hw->eint->base), GFP_KERNEL | __GFP_ZERO);
+@@ -395,8 +412,9 @@ int mtk_build_eint(struct mtk_pinctrl *h
+ 		goto err_free_base;
+ 	}
+ 
+-	for (i = hw->soc->nbase_names, j = 0; i < count_reg_names; i++, j++) {
+-		hw->eint->base[j] = of_iomap(np, i);
++	i = external_eint ? 0 : hw->soc->nbase_names;
++	for (j = 0; i < count_reg_names; i++, j++) {
++		hw->eint->base[j] = of_iomap(eint_np, i);
+ 		if (IS_ERR(hw->eint->base[j])) {
+ 			ret = PTR_ERR(hw->eint->base[j]);
+ 			goto err_free_eint;
+@@ -404,7 +422,7 @@ int mtk_build_eint(struct mtk-pinctrl *h
+ 		}
+ 	}
+ 
+-	hw->eint->irq = irq_of_parse_and_map(np, 0);
++	hw->eint->irq = irq_of_parse_and_map(eint_np, 0);
+ 	if (!hw->eint->irq) {
+ 		ret = -EINVAL;
+ 		goto err_free_eint;
+@@ -423,6 +441,7 @@ int mtk_build_eint(struct mtk_pinctrl *h
+ 	if (ret)
+ 		goto err_free_eint;
+ 
++	of_node_put(eint_np);
+ 	return 0;
+ 
+ err_free_eint:
+@@ -434,4 +453,8 @@ err_free_base:
++	of_node_put(eint_np);
+ 	devm_kfree(hw->dev, hw->eint);
+ 	hw->eint = NULL;
+ 	return ret;
++err_put_node:
++	of_node_put(eint_np);
++	return -EINVAL;
+ }

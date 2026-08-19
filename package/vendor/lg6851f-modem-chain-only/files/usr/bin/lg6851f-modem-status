@@ -1,0 +1,177 @@
+#!/bin/sh
+
+. /lib/functions.sh
+
+TAG=lg6851f-modem-status
+STATE=/tmp/lg6851f-modem-status.state
+STATE_NEW=/tmp/lg6851f-modem-status.state.new
+LOCK=/var/lock/luci-modem5g-control.lock
+CLI=/usr/bin/mipc_wan_cli
+ATCLI=/usr/bin/modem5g-at
+
+config_load lg6851f_modem_status
+config_get start_delay main start_delay 35
+config_get poll_seconds main poll_seconds 5
+config_get registration_interval main registration_interval 20
+config_get radio_interval main radio_interval 60
+config_get identity_interval main identity_interval 3600
+config_get detail_interval main detail_interval 300
+
+clean_value() {
+	printf '%s' "$1" | tr '\r\n' '  ' | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//'
+}
+
+query() {
+	local option="$1" output rc
+	exec 9>"$LOCK"
+	flock -n 9 || return 75
+	output="$(timeout 6 "$CLI" --"$option" 2>/dev/null)"
+	rc=$?
+	# ttyCMIPC6 closes asynchronously. Keep the shared lock throughout the
+	# cooldown so a LuCI/control request cannot overtake the vendor close.
+	sleep 6
+	flock -u 9
+	printf '%s' "$output"
+	return "$rc"
+}
+
+at_query() {
+	local command="$1"
+	# modem5g-at owns the same lock, has an 8 second hard timeout and a
+	# circuit breaker.  Informational failures retain the last good cache.
+	timeout 10 "$ATCLI" "$command" 2>/dev/null
+}
+
+write_state() {
+	{
+		printf 'UPDATED=%s\n' "$now"
+		printf 'UP=%s\n' "$UP"
+		printf 'UPTIME=%s\n' "$UPTIME"
+		printf 'WAN=%s\n' "$WAN"
+		printf 'IPV4=%s\n' "$IPV4"
+		printf 'SIM=%s\n' "$SIM"
+		printf 'REGISTRATION=%s\n' "$REGISTRATION"
+		printf 'REGISTERED=%s\n' "$REGISTERED"
+		printf 'RAT=%s\n' "$RAT"
+		printf 'RAT_RAW=%s\n' "$RAT_RAW"
+		printf 'SIGNAL=%s\n' "$SIGNAL"
+		printf 'RSRP=%s\n' "$RSRP"
+		printf 'RADIO=%s\n' "$RADIO"
+		printf 'IMEI=%s\n' "$IMEI"
+		printf 'IMSI=%s\n' "$IMSI"
+		printf 'ICCID=%s\n' "$ICCID"
+		printf 'OPERATOR=%s\n' "$OPERATOR"
+		printf 'CESQ=%s\n' "$CESQ"
+		printf 'RSSI=%s\n' "$RSSI"
+		printf 'RSRQ=%s\n' "$RSRQ"
+		printf 'SINR=%s\n' "$SINR"
+	} >"$STATE_NEW" && mv "$STATE_NEW" "$STATE"
+}
+
+trap 'rm -f "$STATE_NEW"; exit 0' TERM INT EXIT
+sleep "$start_delay"
+
+last_registration=0
+last_radio=0
+last_identity=0
+last_detail=0
+SIM=unknown
+REGISTRATION=unknown
+REGISTERED=NO
+RAT=UNKNOWN
+RAT_RAW=
+SIGNAL=
+RSRP=
+RADIO=
+IMEI=
+IMSI=
+ICCID=
+OPERATOR=
+CESQ=
+RSSI=
+RSRQ=
+SINR=
+
+while :; do
+	now="$(date +%s)"
+	NET_JSON="$(ubus call network.interface.modem5g status 2>/dev/null)"
+	UP="$(printf '%s' "$NET_JSON" | jsonfilter -e '@.up')"
+	UPTIME="$(printf '%s' "$NET_JSON" | jsonfilter -e '@.uptime')"
+	WAN="$(printf '%s' "$NET_JSON" | jsonfilter -e '@.l3_device')"
+	IPV4=
+	[ -n "$WAN" ] && IPV4="$(ip -4 -o addr show dev "$WAN" 2>/dev/null | sed -n 's/.* inet \([^ ]*\).*/\1/p' | head -n 1)"
+
+	if [ "$UP" = true ] && [ -n "$IPV4" ]; then
+		REGISTERED=YES
+	else
+		REGISTERED=NO
+	fi
+
+	if [ $((now - last_registration)) -ge "$registration_interval" ]; then
+		value="$(query show_sim_status)"
+		[ -n "$value" ] && SIM="$(clean_value "$value")"
+		value="$(query show_register_status)"
+		if [ -n "$value" ]; then
+			REGISTRATION="$(clean_value "$value")"
+			case "$REGISTRATION" in
+				*NOT*REGISTERED*|*Not*registered*|*not*registered*) REGISTERED=NO ;;
+				*REGISTERED*|*Registered*|*registered*) REGISTERED=YES ;;
+			esac
+		fi
+		last_registration="$now"
+	fi
+
+	if [ $((now - last_radio)) -ge "$radio_interval" ]; then
+		value="$(query nw_show_register_rat)"
+		if [ -n "$value" ]; then
+			RAT_RAW="$(clean_value "$value")"
+			case "$RAT_RAW" in *5G*) RAT=5G ;; *4G*|*LTE*) RAT=4G ;; *) RAT=OTHER ;; esac
+		fi
+		# The vendor implementation of nw_get_signal has a duplicate response
+		# free. Keep it isolated in its short-lived CLI process and rate-limit it.
+		value="$(query nw_get_signal)"
+		if [ -n "$value" ]; then
+			SIGNAL="$(clean_value "$value")"
+			RSRP="$(printf '%s' "$SIGNAL" | sed -n 's/.*RSRP=\(-\{0,1\}[0-9][0-9]*\).*/\1/p')"
+		fi
+		value="$(query nw_radio_state_get)"
+		[ -n "$value" ] && RADIO="$(clean_value "$value")"
+		last_radio="$now"
+	fi
+
+	if [ $((now - last_identity)) -ge "$identity_interval" ]; then
+		value="$(query get_imei)"
+		[ -n "$value" ] && IMEI="$(clean_value "$value")"
+		value="$(at_query 'AT+CIMI')"
+		parsed="$(printf '%s\n' "$value" | tr -d '\r' | sed -n '/^[0-9]\{14,16\}$/p' | head -n 1)"
+		[ -n "$parsed" ] && IMSI="$parsed"
+		value="$(at_query 'AT+ICCID')"
+		parsed="$(printf '%s\n' "$value" | tr -d '\r' | sed -n 's/^+ICCID:[[:space:]]*\([0-9A-Fa-f]\{18,22\}\).*/\1/p; /^[0-9A-Fa-f]\{18,22\}$/p' | head -n 1)"
+		[ -n "$parsed" ] && ICCID="$parsed"
+		value="$(at_query 'AT+COPS?')"
+		parsed="$(printf '%s\n' "$value" | tr -d '\r' | sed -n 's/^+COPS:[[:space:]]*[^,]*,[^,]*,"\([^"]*\)".*/\1/p' | head -n 1)"
+		[ -n "$parsed" ] && OPERATOR="$parsed"
+		last_identity="$now"
+	fi
+
+	if [ $((now - last_detail)) -ge "$detail_interval" ]; then
+		value="$(at_query 'AT+CESQ')"
+		parsed="$(printf '%s\n' "$value" | tr -d '\r' | sed -n 's/^+CESQ:[[:space:]]*//p' | head -n 1)"
+		if [ -n "$parsed" ]; then
+			CESQ="$parsed"
+			RSSI="$(printf '%s\n' "$parsed" | awk -F, '{ gsub(/ /, "", $1); if ($1 >= 0 && $1 <= 63) printf "%d", $1 - 110 }')"
+			# This MT6990 firmware appends 5G SS-RSRQ, SS-RSRP and
+			# SS-SINR as fields 7..9.  Their 3GPP ranges are respectively
+			# -43..20 dB, -156..-31 dBm and -23..40 dB.  Fall back to
+			# standard LTE CESQ fields 5..6 only for a six-field response.
+			RSRQ="$(printf '%s\n' "$parsed" | awk -F, '{ if (NF >= 9 && $7 >= 0 && $7 <= 127) printf "%.1f", ($7 / 2) - 43; else if (NF == 6 && $5 >= 0 && $5 <= 34) printf "%.1f", ($5 / 2) - 19.5 }')"
+			cesq_rsrp="$(printf '%s\n' "$parsed" | awk -F, '{ if (NF >= 9 && $8 >= 0 && $8 <= 127) printf "%d", $8 - 156; else if (NF == 6 && $6 >= 0 && $6 <= 97) printf "%d", $6 - 140 }')"
+			SINR="$(printf '%s\n' "$parsed" | awk -F, '{ if (NF >= 9 && $9 >= 0 && $9 <= 127) printf "%.1f", ($9 / 2) - 23 }')"
+			[ -n "$cesq_rsrp" ] && RSRP="$cesq_rsrp"
+		fi
+		last_detail="$now"
+	fi
+
+	write_state
+	sleep "$poll_seconds"
+done

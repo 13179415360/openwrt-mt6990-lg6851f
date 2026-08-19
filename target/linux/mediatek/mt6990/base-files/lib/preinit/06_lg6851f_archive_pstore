@@ -1,0 +1,8 @@
+#!/bin/sh
+# Archive a previous B-slot crash before network, Wi-Fi and modem services run.
+
+lg6851f_archive_previous_pstore() {
+	/etc/init.d/lg6851f_pstore_archive start >/dev/null 2>&1 || true
+}
+
+boot_hook_add preinit_main lg6851f_archive_previous_pstore

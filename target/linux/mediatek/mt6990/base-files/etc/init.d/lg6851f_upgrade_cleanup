@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+# SPDX-License-Identifier: GPL-2.0-only
+
+START=99
+
+start() {
+	local mnt=/tmp/lg6851f-user-data-cleanup
+	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
+
+	[ -b /dev/mmcblk0p46 ] || return 0
+	mkdir -p "$mnt"
+	mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+	if [ -f "$saved" ]; then
+		rm -f "$saved"
+		sync
+		logger -t lg6851f-upgrade "preserved configuration restored; persistent backup cleared"
+	fi
+	umount "$mnt"
+}

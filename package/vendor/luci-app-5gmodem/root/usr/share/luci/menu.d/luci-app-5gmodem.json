@@ -1,0 +1,38 @@
+{
+	"admin/modem5g": {
+		"title": "5Gmodem",
+		"order": 25,
+		"action": { "type": "firstchild" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	},
+	"admin/modem5g/overview": {
+		"title": "Status and Cells",
+		"order": 10,
+		"action": { "type": "view", "path": "modem5g/overview_v6" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	},
+	"admin/modem5g/sms": {
+		"title": "SMS",
+		"order": 20,
+		"action": { "type": "view", "path": "modem5g/sms_v2" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	},
+	"admin/modem5g/network": {
+		"title": "Dial-up and Network",
+		"order": 30,
+		"action": { "type": "view", "path": "modem5g/network_v3" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	},
+	"admin/modem5g/lock": {
+		"title": "Band and Cell Lock",
+		"order": 35,
+		"action": { "type": "view", "path": "modem5g/lock_v16" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	},
+	"admin/modem5g/terminal": {
+		"title": "AT Debug",
+		"order": 40,
+		"action": { "type": "view", "path": "modem5g/terminal_v1" },
+		"depends": { "acl": [ "luci-app-5gmodem" ] }
+	}
+}

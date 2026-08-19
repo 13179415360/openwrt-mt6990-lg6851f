@@ -1,0 +1,99 @@
+#!/bin/sh
+
+# FiberHome LG6851F / MT6990 network steering.
+#
+# This is the sole LG6851F policy implementation and is invoked by netifd's
+# platform/packet-steering.sh hook.  The stock MT6990 CPE image uses
+# /sbin/smp.sh to keep Ethernet RX, TX,
+# DPMAIF/CCIF and Wi-Fi work on separate CPUs and enables RPS on every LAN
+# receive path.  Upstream OpenWrt's generic packet steering sees only the
+# single RX queue exposed by the 6.18 Ethernet driver and otherwise pins that
+# queue to one CPU.  Under simultaneous 5G download/upload that single softnet
+# backlog overflows and is accounted as eth0 rx_dropped.
+
+TAG="MT6990-NET-AFFINITY"
+
+board_is_lg6851f()
+{
+	[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ]
+}
+
+set_irq_mask()
+{
+	local irq="$1"
+	local mask="$2"
+
+	[ -n "$irq" ] || return 0
+	[ -w "/proc/irq/$irq/smp_affinity" ] || return 0
+	echo "$mask" > "/proc/irq/$irq/smp_affinity" 2>/dev/null
+}
+
+set_gic_hwirq_mask()
+{
+	local hwirq="$1"
+	local mask="$2"
+	local irq
+
+	irq="$(awk -v h="$hwirq" '
+		$0 ~ ("GICv3[[:space:]]+" h "[[:space:]]") {
+			gsub(":", "", $1); print $1; exit
+		}' /proc/interrupts 2>/dev/null)"
+	set_irq_mask "$irq" "$mask"
+}
+
+set_action_mask()
+{
+	local pattern="$1"
+	local mask="$2"
+	local actions irq
+
+	for actions in /proc/irq/*/actions; do
+		[ -r "$actions" ] || continue
+		grep -Eq "$pattern" "$actions" 2>/dev/null || continue
+		irq="${actions#/proc/irq/}"
+		irq="${irq%/actions}"
+		set_irq_mask "$irq" "$mask"
+	done
+}
+
+set_rps_mask()
+{
+	local ifname="$1"
+	local mask="$2"
+	local queue
+
+	for queue in /sys/class/net/"$ifname"/queues/rx-*/rps_cpus; do
+		[ -w "$queue" ] || continue
+		echo "$mask" > "$queue" 2>/dev/null
+	done
+}
+
+apply_affinity()
+{
+	board_is_lg6851f || return 0
+
+	# Stock MT6990_CPE split: Ethernet TX on CPU3, RX rings on CPU1/CPU2.
+	set_gic_hwirq_mask 440 8
+	set_gic_hwirq_mask 432 2
+	set_gic_hwirq_mask 433 2
+	set_gic_hwirq_mask 434 4
+	set_gic_hwirq_mask 435 4
+
+	# Keep modem ingress on CPU0, modem control on CPU3 and both MT7990 PCIe
+	# functions on CPU2, matching the stock two-radio CPE policy.
+	set_action_mask '^DPMAIF_AP$' 1
+	set_action_mask '^CCIF_AP_DATA$' 8
+	set_action_mask '^mt7996e(-hif)?$' 4
+
+	# Current 6.18 Ethernet exposes one RX queue.  Spread its softnet work over
+	# all four CPUs; spread the active modem data interface over CPU1 and CPU2.
+	set_rps_mask eth0 f
+	set_rps_mask eth1 f
+	set_rps_mask ccmni0 6
+	set_rps_mask ccmni1 6
+	set_rps_mask ccmni2 6
+
+	logger -t "$TAG" "applied stock CPE IRQ split and RPS policy"
+}
+
+apply_affinity

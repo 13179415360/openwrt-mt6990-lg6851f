@@ -1,0 +1,24 @@
+From: OpenWrt MT6990 integration
+Subject: [PATCH] net: ethernet: mediatek: restore MT6990 SDK IRQ and release order
+
+The SDK tests OWNER_CPU on the current release anchor,
+then follows txd2 and frees the next descriptor.  Mainline follows txd2 first
+and tests the next descriptor, which is one entry too late for this hardware.
+Replicate the SDK ordering for MT6990 and keep every other SoC unchanged.
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -2871,3 +2871,10 @@ static int mtk_poll_tx_qdma(struct mtk_eth *eth, int budget,
+-		desc = mtk_qdma_phys_to_virt(ring, desc->txd2);
+-		if ((desc->txd3 & TX_DMA_OWNER_CPU) == 0)
+-			break;
++		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++			/* Exact SDK order: DDONE belongs to the release anchor. */
++			if ((desc->txd3 & TX_DMA_OWNER_CPU) == 0)
++				break;
++			desc = mtk_qdma_phys_to_virt(ring, next_cpu);
++		} else {
++			desc = mtk_qdma_phys_to_virt(ring, next_cpu);
++			if ((desc->txd3 & TX_DMA_OWNER_CPU) == 0)
++				break;
++		}

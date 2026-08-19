@@ -1,0 +1,117 @@
+#!/bin/ash
+set -u
+
+MEM=/dev/mem
+
+usage() {
+    echo "Usage:"
+    echo "  lg6851f-eth-mmio snapshot"
+    echo "  lg6851f-eth-mmio watch [seconds]"
+    echo "  lg6851f-eth-mmio read <address>"
+    echo "  lg6851f-eth-mmio dump <address> <length>"
+}
+
+require_mem() {
+    [ -c "$MEM" ] || {
+        echo "ERROR: /dev/mem is unavailable"
+        exit 2
+    }
+}
+
+read32() {
+    addr=$(( $1 ))
+    hexdump -v -n 4 -s "$addr" -e '1/4 "%08x"' /dev/mem 2>/dev/null
+}
+
+
+show32() {
+    name="$1"
+    addr="$2"
+    val="$(read32 "$addr")"
+    [ -n "$val" ] || val=00000000
+    printf "%-20s 0x%08x = 0x%s\n" "$name" "$((addr))" "$val"
+}
+
+snapshot() {
+    echo "===== MT6990 Ethernet snapshot ====="
+
+    show32 GDM0_FWD_CFG   0x15100500
+    show32 GDM1_FWD_CFG   0x15101500
+    show32 FE_INT_GRP     0x15100020
+
+    show32 ADMA_RX_BASE   0x15106900
+    show32 ADMA_RX_CNT    0x15106904
+    show32 ADMA_CRX       0x15106908
+    show32 ADMA_DRX       0x1510690c
+    show32 ADMA_GLO_CFG   0x15106a04
+    show32 ADMA_RST_IDX   0x15106a08
+    show32 ADMA_DELAY_INT 0x15106a0c
+    show32 ADMA_INT_STS   0x15106a20
+    show32 ADMA_INT_MASK  0x15106a28
+    show32 ADMA_INT_GRP1  0x15106a50
+    show32 ADMA_INT_GRP2  0x15106a54
+    show32 ADMA_INT_GRP3  0x15106a58
+
+    show32 QDMA_QTX_CFG0  0x15104400
+    show32 QDMA_QTX_SCH0  0x15104404
+    show32 QDMA_SEL       0x151045f0
+    show32 QDMA_GLO_CFG   0x15104604
+    show32 QDMA_INT_STS   0x15104618
+    show32 QDMA_INT_MASK  0x1510461c
+    show32 QDMA_INT_GRP1  0x15104620
+    show32 QDMA_INT_GRP2  0x15104624
+    show32 QDMA_CTX       0x15104700
+    show32 QDMA_DTX       0x15104704
+    show32 QDMA_CRX       0x15104710
+    show32 QDMA_DRX       0x15104714
+
+    echo
+    echo "===== interfaces ====="
+    grep -E 'eth0:|eth1:|br-lan:' /proc/net/dev
+
+    echo
+    echo "===== IRQ ====="
+    grep 15100000 /proc/interrupts
+
+    rx_base_hex="$(read32 0x15106900)"
+    [ -n "$rx_base_hex" ] || rx_base_hex=0
+    rx_base=$((0x$rx_base_hex))
+
+    if [ "$rx_base" -ne 0 ]; then
+        echo
+        printf "===== RX ring first 128 bytes @ 0x%08x =====\n" "$rx_base"
+        hexdump -Cv -n 128 -s "$rx_base" "$MEM" 2>/dev/null
+    fi
+}
+
+require_mem
+cmd="${1:-snapshot}"
+
+case "$cmd" in
+    snapshot)
+        snapshot
+        ;;
+    watch)
+        delay="${2:-2}"
+        while true; do
+            clear
+            date
+            snapshot
+            sleep "$delay"
+        done
+        ;;
+    read)
+        [ "$#" -eq 2 ] || { usage; exit 1; }
+        printf "0x%s\n" "$(read32 "$2")"
+        ;;
+    dump)
+        [ "$#" -eq 3 ] || { usage; exit 1; }
+        addr=$(( $2 ))
+        len=$(( $3 ))
+        hexdump -Cv -n "$len" -s "$addr" "$MEM" 2>/dev/null
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac

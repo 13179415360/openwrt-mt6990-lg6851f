@@ -1,0 +1,476 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-5gmodem\n"
+"PO-Revision-Date: 2026-08-14 19:55+0800\n"
+"Last-Translator: OpenWrt MT6990 LG6851F integration\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "5Gmodem"
+msgstr "5G 模组"
+
+msgid "Status and Cells"
+msgstr "状态与小区"
+
+msgid "SMS"
+msgstr "短信"
+
+msgid "Dial-up and Network"
+msgstr "拨号与网络"
+
+msgid "Connection"
+msgstr "连接状态"
+
+msgid "Online"
+msgstr "在线"
+
+msgid "Offline"
+msgstr "离线"
+
+msgid "Interface"
+msgstr "数据接口"
+
+msgid "IPv4 address"
+msgstr "IPv4 地址"
+
+msgid "Uptime"
+msgstr "连接时长"
+
+msgid "Protocol"
+msgstr "拨号协议"
+
+msgid "Gateway"
+msgstr "网关"
+
+msgid "APN"
+msgstr "接入点 APN"
+
+msgid "IP type"
+msgstr "IP 类型"
+
+msgid "Engineering information"
+msgstr "工程信息"
+
+msgid "AT Debug"
+msgstr "AT 调试"
+
+msgid "5G Modem"
+msgstr "5G 模组"
+
+msgid "5G Modem Status"
+msgstr "5G 模组状态"
+
+msgid "Live · refresh every 30 seconds"
+msgstr "实时 · 每 30 秒刷新"
+
+msgid "Live traffic"
+msgstr "实时流量"
+
+msgid "Download speed"
+msgstr "下载速度"
+
+msgid "Upload speed"
+msgstr "上传速度"
+
+msgid "Waiting for modem startup to settle"
+msgstr "正在等待模组启动稳定"
+
+msgid "Module / SIM / Registration"
+msgstr "模组 / SIM 卡 / 网络注册"
+
+msgid "SIM status"
+msgstr "SIM 卡状态"
+
+msgid "Operator / PLMN"
+msgstr "运营商 / PLMN"
+
+msgid "Registration"
+msgstr "注册状态"
+
+msgid "LTE / NR RAT & Band"
+msgstr "LTE / NR 网络制式与频段"
+
+msgid "Data connection"
+msgstr "数据连接"
+
+msgid "L3 device"
+msgstr "三层网络设备"
+
+msgid "Interface state"
+msgstr "接口状态"
+
+msgid "Connected"
+msgstr "已连接"
+
+msgid "Disconnected"
+msgstr "未连接"
+
+msgid "Observed cellular channels"
+msgstr "检测到的蜂窝频道"
+
+msgid "Derived from the existing read-only AT+ECELL query. Overlapping 3GPP band ranges are shown explicitly."
+msgstr "从现有只读 AT+ECELL 查询中解析；若 3GPP 频段范围重叠，将明确显示全部候选频段。"
+
+msgid "No channel information reported"
+msgstr "模组未报告频道信息"
+
+msgid "Official 4G lock-band list"
+msgstr "官方 4G 可锁频段列表"
+
+msgid "Official 5G lock-band list"
+msgstr "官方 5G 可锁频段列表"
+
+msgid "Currently observed NR channels:"
+msgstr "当前观测到的 NR 频道："
+
+msgid "Band and Cell Lock"
+msgstr "频段与小区锁定"
+
+msgid "Current and supported bands / current cell lock"
+msgstr "当前与全部支持频段 / 当前小区锁"
+
+msgid "Read current and supported bands"
+msgstr "读取当前及全部支持频段"
+
+msgid "4G / 5G band lock"
+msgstr "4G / 5G 频段锁定"
+
+msgid "LTE bands"
+msgstr "LTE 频段"
+
+msgid "NR bands"
+msgstr "NR 频段"
+
+msgid "Apply band lock"
+msgstr "应用频段锁定"
+
+msgid "Confirm band lock"
+msgstr "确认频段锁定"
+
+msgid "Clear band lock / restore defaults"
+msgstr "清除频段锁 / 恢复默认"
+
+msgid "Cell lock"
+msgstr "小区锁定"
+
+msgid "PCI (optional)"
+msgstr "PCI（可选）"
+
+msgid "Channel number (ARFCN)"
+msgstr "频道号（ARFCN）"
+
+msgid "Physical cell ID (PCI, optional)"
+msgstr "物理小区标识（PCI，可选）"
+
+msgid "Select a cell below or enter its ARFCN"
+msgstr "点击下方小区自动填写，或输入 ARFCN"
+
+msgid "Select a cell below or enter its PCI"
+msgstr "点击下方小区自动填写，或输入 PCI"
+
+msgid "Apply cell lock"
+msgstr "应用小区锁定"
+
+msgid "Confirm cell lock"
+msgstr "确认小区锁定"
+
+msgid "Enter a valid ARFCN and an optional PCI from 0 to 2000."
+msgstr "请输入有效的 ARFCN；PCI 可留空，或填写 0 至 2000 的整数。"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Clear cell lock"
+msgstr "清除小区锁定"
+
+msgid "Ready"
+msgstr "就绪"
+
+msgid "Modem operation in progress; please wait…"
+msgstr "模组操作正在排队执行，请稍候…"
+
+msgid "Request sent; waiting for modem verification…"
+msgstr "请求已发送，正在等待模组实读验证…"
+
+msgid "Lock state refreshed"
+msgstr "锁定状态已刷新"
+
+msgid "Cell selected: %s / PCI %s. It has not been applied yet."
+msgstr "已选择小区：%s / PCI %s，尚未应用锁定。"
+
+msgid "The modem did not report the requested lock state. The operation was not confirmed."
+msgstr "模组未返回请求的锁定状态，本次操作未确认成功。"
+
+msgid "Band lock applied and verified"
+msgstr "频段锁定已应用并验证成功"
+
+msgid "Cell lock applied and verified"
+msgstr "小区锁定已应用并验证成功"
+
+msgid "All supported bands restored and state refreshed"
+msgstr "已恢复全部支持频段，状态已刷新"
+
+msgid "Cell lock cleared and state refreshed"
+msgstr "小区锁定已清除，状态已刷新"
+
+msgid "Serving and neighbor cell candidates"
+msgstr "服务小区与邻区候选"
+
+msgid "Passive AT+ECELL measurements. Match ARFCN and PCI before applying a cell lock."
+msgstr "来自 AT+ECELL 的被动测量；应用小区锁之前请核对 ARFCN 与 PCI。"
+
+msgid "This page uses the modem vendor RIL. Changes may interrupt service. Restore defaults if the modem cannot register."
+msgstr "本页使用模组厂商 RIL；修改会短暂中断业务。若模组无法注册，请恢复默认设置。"
+
+msgid "Select at least one LTE band and one NR band."
+msgstr "LTE 与 NR 均须至少选择一个频段。"
+
+msgid "Applying a band lock interrupts mobile data while the modem re-registers. Band lock and cell lock must not be enabled at the same time."
+msgstr "应用频段锁会在模组重新注册时中断移动数据；频段锁与小区锁不能同时启用。"
+
+msgid "A wrong cell lock can disconnect mobile data. Verify the ARFCN and PCI in the serving/neighbor list first."
+msgstr "错误的小区锁会导致移动数据断开；请先在服务小区/邻区列表中核对 ARFCN 与 PCI。"
+
+msgid "The modem returned cell data, but no NR-ARFCN could be identified safely."
+msgstr "模组返回了小区数据，但无法安全识别 NR-ARFCN。"
+
+msgid "Serving cell / Neighbor cells"
+msgstr "主小区 / 邻区"
+
+msgid "Mobile connection"
+msgstr "移动网络连接"
+
+msgid "Network"
+msgstr "当前网络"
+
+msgid "Operator"
+msgstr "运营商"
+
+msgid "Data interface"
+msgstr "数据接口"
+
+msgid "Signal quality"
+msgstr "信号质量"
+
+msgid "Module and SIM"
+msgstr "模组与 SIM 卡"
+
+msgid "Serving and neighbor cells"
+msgstr "主小区与邻区"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Band"
+msgstr "频段"
+
+msgid "Serving"
+msgstr "主小区"
+
+msgid "Neighbor"
+msgstr "邻区"
+
+msgid "No cell measurements are currently available."
+msgstr "当前没有可用的小区测量数据。"
+
+msgid "Mobile network re-registered; refreshing actual serving and neighbor cells…"
+msgstr "移动网络已重新注册，正在读取实际主小区与邻区…"
+
+msgid "Engineering diagnostics"
+msgstr "工程诊断信息"
+
+msgid "Band lock"
+msgstr "锁频段"
+
+msgid "Read"
+msgstr "读取"
+
+msgid "Current lock state and operation result"
+msgstr "当前锁定状态与操作结果"
+
+msgid "Tap a serving or neighbor cell to fill ARFCN and PCI automatically."
+msgstr "点击主小区或邻区即可自动填写 ARFCN 与 PCI。"
+
+msgid "Tap a serving or neighbor cell to fill ARFCN and PCI automatically. ARFCN identifies the channel; PCI identifies the physical cell."
+msgstr "点击主小区或邻区即可自动填写；ARFCN 是频道号，PCI 是物理小区标识。"
+
+msgid "Unavailable"
+msgstr "模组未提供"
+
+msgid "Raw MT6990 engineering output is retained so LTE/NR band, ARFCN, PCI and neighbor records are not lost by an incorrect parser."
+msgstr "保留 MT6990 原始工程信息，以免错误解析导致 LTE/NR 频段、ARFCN、PCI 和邻区记录丢失。"
+
+msgid "Current modem5g interface"
+msgstr "当前 modem5g 接口"
+
+msgid "Connection control"
+msgstr "连接控制"
+
+msgid "Connect / ifup"
+msgstr "连接 / 启用接口"
+
+msgid "Disconnect / ifdown"
+msgstr "断开 / 停用接口"
+
+msgid "Radio on"
+msgstr "开启射频"
+
+msgid "Radio off"
+msgstr "关闭射频"
+
+msgid "Preferred network mode"
+msgstr "首选网络模式"
+
+msgid "RAT mode"
+msgstr "网络制式"
+
+msgid "3G / 4G / 5G automatic"
+msgstr "3G / 4G / 5G 自动"
+
+msgid "4G / 5G automatic"
+msgstr "4G / 5G 自动"
+
+msgid "5G only"
+msgstr "仅 5G"
+
+msgid "4G only"
+msgstr "仅 4G"
+
+msgid "Apply mode"
+msgstr "应用模式"
+
+msgid "Operation result"
+msgstr "操作结果"
+
+msgid "APN, IP type, authentication, MTU and retry settings remain integrated with LuCI Network → modem5g, preventing two pages from writing conflicting configurations."
+msgstr "APN、IP 类型、认证、MTU 和重试设置仍统一放在 LuCI 的“网络 → modem5g”中，避免两个页面写入相互冲突的配置。"
+
+msgid "5G Modem SMS"
+msgstr "5G 模组短信"
+
+msgid "Inbox / stored messages"
+msgstr "收件箱 / 已存短信"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "No messages"
+msgstr "没有短信"
+
+msgid "Index"
+msgstr "索引"
+
+msgid "From"
+msgstr "发件人"
+
+msgid "Time"
+msgstr "时间"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "incomplete"
+msgstr "不完整"
+
+msgid "Send SMS"
+msgstr "发送短信"
+
+msgid "Recipient number"
+msgstr "收件号码"
+
+msgid "Message (GSM/ASCII, max 160)"
+msgstr "短信正文（GSM/ASCII，最多 160 个字符）"
+
+msgid "Send"
+msgstr "发送"
+
+msgid "SMS request completed."
+msgstr "短信发送请求已完成。"
+
+msgid "Delete / SMS center"
+msgstr "删除短信 / 短信中心"
+
+msgid "Message index"
+msgstr "短信索引"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "SMS center number"
+msgstr "短信中心号码"
+
+msgid "Set SMSC"
+msgstr "设置短信中心"
+
+msgid "AT Debug Terminal"
+msgstr "AT 调试终端"
+
+msgid "AT terminal"
+msgstr "AT 终端"
+
+msgid "AT commands can interrupt registration, calls or data service. The terminal is available only to users with write permission and rejects control characters and shell syntax."
+msgstr "AT 命令可能中断网络注册、通话或数据业务。终端仅向具有写入权限的用户开放，并拒绝控制字符和 Shell 语法。"
+
+msgid "Command"
+msgstr "命令"
+
+msgid "AT command"
+msgstr "AT 命令"
+
+msgid "Execute"
+msgstr "执行"
+
+msgid "Terminal output"
+msgstr "终端输出"
+
+msgid "Ready."
+msgstr "就绪。"
+
+msgid "No response"
+msgstr "无响应"
+
+msgid "View the MT6990 integrated 5G modem"
+msgstr "查看 MT6990 集成式 5G 模组"
+
+msgid "IMEI"
+msgstr "IMEI"
+
+msgid "IMSI"
+msgstr "IMSI"
+
+msgid "ICCID"
+msgstr "ICCID"
+
+msgid "IPv4"
+msgstr "IPv4"
+
+msgid "IPv6"
+msgstr "IPv6"
+
+msgid "RSSI / RSRP / RSRQ / SINR"
+msgstr "RSSI / RSRP / RSRQ / SINR"
+
+msgid "Reading current lock state…"
+msgstr "正在读取当前锁定状态…"
+
+msgid "Current bands"
+msgstr "当前频段"
+
+msgid "Lock state unavailable"
+msgstr "锁定状态暂不可用"
+
+msgid "Any"
+msgstr "任意"
+
+msgid "Radio type"
+msgstr "网络制式"
+
+msgid "Band"
+msgstr "频段"
+
+msgid "Select the radio type and band for this cell."
+msgstr "请选择该小区的网络制式和频段。"

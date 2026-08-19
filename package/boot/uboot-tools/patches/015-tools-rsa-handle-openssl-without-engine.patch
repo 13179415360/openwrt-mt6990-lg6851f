@@ -1,0 +1,100 @@
+From: OpenWrt MT6990 maintainers
+Subject: [PATCH] tools: rsa: handle OpenSSL builds without ENGINE support
+
+OpenSSL may be configured with no-engine. In that configuration engine.h
+still provides the ENGINE type, but none of the ENGINE functions used by
+mkimage are declared. Keep PEM signing available and return ENOTSUP only
+when an engine was explicitly requested.
+
+--- a/lib/rsa/rsa-sign.c
++++ b/lib/rsa/rsa-sign.c
+@@ -98,6 +98,7 @@
+  * @evpp	Returns EVP_PKEY object, or NULL on failure
+  * Return: 0 if ok, -ve on error (in which case *evpp will be set to NULL)
+  */
++#ifndef OPENSSL_NO_ENGINE
+ static int rsa_engine_get_pub_key(const char *keydir, const char *name,
+ 				  ENGINE *engine, EVP_PKEY **evpp)
+ {
+@@ -157,6 +158,7 @@
+ 
+ 	return 0;
+ }
++#endif
+ 
+ /**
+  * rsa_get_pub_key() - read a public key
+@@ -170,8 +172,13 @@
+ static int rsa_get_pub_key(const char *keydir, const char *name,
+ 			   ENGINE *engine, EVP_PKEY **evpp)
+ {
+-	if (engine)
++	if (engine) {
++#ifdef OPENSSL_NO_ENGINE
++		return -ENOTSUP;
++#else
+ 		return rsa_engine_get_pub_key(keydir, name, engine, evpp);
++#endif
++	}
+ 	return rsa_pem_get_pub_key(keydir, name, evpp);
+ }
+ 
+@@ -226,6 +233,7 @@
+  * @evpp	Returns EVP_PKEY object, or NULL on failure
+  * Return: 0 if ok, -ve on error (in which case *evpp will be set to NULL)
+  */
++#ifndef OPENSSL_NO_ENGINE
+ static int rsa_engine_get_priv_key(const char *keydir, const char *name,
+ 				   const char *keyfile,
+ 				   ENGINE *engine, EVP_PKEY **evpp)
+@@ -293,6 +301,7 @@
+ 
+ 	return 0;
+ }
++#endif
+ 
+ /**
+  * rsa_get_priv_key() - read a private key
+@@ -306,9 +315,14 @@
+ static int rsa_get_priv_key(const char *keydir, const char *name,
+ 			    const char *keyfile, ENGINE *engine, EVP_PKEY **evpp)
+ {
+-	if (engine)
++	if (engine) {
++#ifdef OPENSSL_NO_ENGINE
++		return -ENOTSUP;
++#else
+ 		return rsa_engine_get_priv_key(keydir, name, keyfile, engine,
+ 					       evpp);
++#endif
++	}
+ 	return rsa_pem_get_priv_key(keydir, name, keyfile, evpp);
+ }
+ 
+@@ -325,6 +339,7 @@
+ 	return 0;
+ }
+ 
++#ifndef OPENSSL_NO_ENGINE
+ static int rsa_engine_init(const char *engine_id, ENGINE **pe)
+ {
+ 	const char *key_pass;
+@@ -380,6 +395,18 @@
+ 		ENGINE_free(e);
+ 	}
+ }
++#else
++static int rsa_engine_init(const char *engine_id, ENGINE **pe)
++{
++	fprintf(stderr, "OpenSSL ENGINE support is unavailable: %s\n",
++		engine_id ? engine_id : "(null)");
++	return -ENOTSUP;
++}
++
++static void rsa_engine_remove(ENGINE *e)
++{
++}
++#endif
+ 
+ static int rsa_sign_with_key(EVP_PKEY *pkey, struct padding_algo *padding_algo,
+ 			     struct checksum_algo *checksum_algo,

@@ -1,0 +1,19 @@
+config MTK_TINYSYS_MEDMCU_SUPPORT
+	tristate "Specify Interface Support MEDMCU"
+	default n
+	help
+		MEDMCU is a MediaTek in-house DSP which can receive
+		command from IPI interface.
+		Set Y to enable this feature.
+		If unsure,
+		Set N to stay with legacy feature.
+
+config MTK_TINYSYS_MEDMCU_RV33_SUPPORT
+	tristate "Specify micro processor RV33 supported by MEDMCU"
+	depends on MTK_TINYSYS_MEDMCU_SUPPORT
+	default MTK_TINYSYS_MEDMCU_SUPPORT
+	help
+		RV33 is one uP supported by SCP which designed by RISC-V.
+		Set Y to enable this feature.
+		If unsure,
+		Set N to stay with legacy feature.

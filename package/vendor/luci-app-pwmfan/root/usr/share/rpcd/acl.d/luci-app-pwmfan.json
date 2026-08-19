@@ -1,0 +1,15 @@
+{
+	"luci-app-pwmfan": {
+		"description": "View and control the PWM fan",
+		"read": {
+			"ubus": {
+				"luci.pwmfan": [ "get_status" ]
+			}
+		},
+		"write": {
+			"ubus": {
+				"luci.pwmfan": [ "set_pwm", "restore_auto" ]
+			}
+		}
+	}
+}

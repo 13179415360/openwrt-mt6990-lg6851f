@@ -1,0 +1,14 @@
+LG6851F / MT6990 B-slot CONN_RO/GNSS recovery image
+
+File: connsys_gnss_b.img
+Size: 8388608 bytes
+SHA256: 633a1e2a19593d9cf12db4e140d893da9d1817c721381848831d90afc0b02463
+Source: FiberHome LG6851F official GOOD A full-partition backup
+
+This is the complete MTK mkimg container with cert1/cert2, not the unsigned
+523368-byte SDK payload.  Its payload is byte-identical to the MT6990 SDK
+connsys_gnss.bin.  It contains platform firmware, not per-device calibration.
+
+The file lives in the target source overlay so OpenWrt clean operations do not
+remove it.  Recovery code is hard-limited to /dev/mmcblk0p27 with GPT PARTNAME
+connsys_gnss_b.  Slot A (/dev/mmcblk0p14) must never be written.

@@ -1,0 +1,31 @@
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -3732,6 +3732,28 @@ static void mtk_tx_timeout(struct net_de
+ 	struct mtk_mac *mac = netdev_priv(dev);
+ 	struct mtk_eth *eth = mac->hw;
+ 
++	/* Keep this dump limited to MT6990.  Its values distinguish a software
++	 * ring stop from a QDMA completion/interrupt failure without changing
++	 * the SDK-derived data path.
++	 */
++	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SOC_MT6990)) {
++		struct mtk_tx_ring *ring = &eth->tx_ring;
++
++		netdev_err(dev,
++			   "MT6990 TX state: free=%d size=%u thresh=%u next=%td last=%td last_ptr=%#x ctx=%#x dtx=%#x crx=%#x drx=%#x int=%#x mask=%#x\n",
++			   atomic_read(&ring->free_count), ring->dma_size,
++			   ring->thresh,
++			   (char *)ring->next_free - (char *)ring->dma,
++			   (char *)ring->last_free - (char *)ring->dma,
++			   ring->last_free_ptr,
++			   mtk_r32(eth, eth->soc->reg_map->qdma.ctx_ptr),
++			   mtk_r32(eth, eth->soc->reg_map->qdma.dtx_ptr),
++			   mtk_r32(eth, eth->soc->reg_map->qdma.crx_ptr),
++			   mtk_r32(eth, eth->soc->reg_map->qdma.drx_ptr),
++			   mtk_r32(eth, eth->soc->reg_map->tx_irq_status),
++			   mtk_r32(eth, eth->soc->reg_map->tx_irq_mask));
++	}
++
+ 	if (test_bit(MTK_RESETTING, &eth->state))
+ 		return;
+ 

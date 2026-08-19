@@ -1,0 +1,81 @@
+#!/bin/sh
+# LG6851F compatibility/migration bootstrap.  New installations receive these
+# values from board.d before netifd starts.  Keep this script idempotent so a
+# volatile overlay cannot trigger a network reload on every boot.
+changed=0
+
+set_network() {
+	local option="$1" value="$2" current
+	current="$(uci -q get "network.modem5g.$option")"
+	[ "$current" = "$value" ] && return 0
+	uci -q set "network.modem5g.$option=$value"
+	changed=1
+}
+
+[ "$(uci -q get network.modem5g)" = "interface" ] || {
+	uci -q set network.modem5g='interface'
+	changed=1
+}
+set_network proto ql_datacall
+set_network device ccmni
+set_network apn cmnet
+set_network iptype 3
+set_network roamingtype 3
+set_network mtu 1400
+set_network plmn 46002
+set_network auto_conf 1
+set_network auto 1
+
+# Migrate images which previously replaced the physical WAN with the modem.
+if [ "$(uci -q get network.wan.proto)" = "ql_datacall" ] || \
+   [ "$(uci -q get network.wan.device)" = "ccmni" ]; then
+	uci -q batch <<-'EOF'
+		set network.wan='interface'
+		set network.wan.proto='dhcp'
+		set network.wan.device='eth1'
+	EOF
+	changed=1
+fi
+
+[ "$changed" = 0 ] || uci -q commit network
+
+# Attach by zone name, never by a positional @zone index.  The modem is a WAN
+# uplink and needs both masquerading and the standard LAN -> WAN forwarding.
+wan_zone=""
+zone_index=0
+while zone_name="$(uci -q get "firewall.@zone[$zone_index].name")"; do
+	[ "$zone_name" = "wan" ] && { wan_zone="@zone[$zone_index]"; break; }
+	zone_index=$((zone_index + 1))
+done
+
+if [ -n "$wan_zone" ]; then
+	if ! uci -q get "firewall.$wan_zone.network" | tr ' ' '\n' | grep -qx modem5g; then
+		uci -q add_list "firewall.$wan_zone.network=modem5g"
+		changed=1
+	fi
+	[ "$(uci -q get "firewall.$wan_zone.masq")" = "1" ] || {
+		uci -q set "firewall.$wan_zone.masq=1"
+		changed=1
+	}
+fi
+
+has_lan_wan_forward=0
+forward_index=0
+while uci -q get "firewall.@forwarding[$forward_index]" >/dev/null; do
+	if [ "$(uci -q get "firewall.@forwarding[$forward_index].src")" = "lan" ] &&
+	   [ "$(uci -q get "firewall.@forwarding[$forward_index].dest")" = "wan" ]; then
+		has_lan_wan_forward=1
+		break
+	fi
+	forward_index=$((forward_index + 1))
+done
+[ "$has_lan_wan_forward" = 1 ] || {
+	forward_section="$(uci -q add firewall forwarding)"
+	uci -q set "firewall.$forward_section.src=lan"
+	uci -q set "firewall.$forward_section.dest=wan"
+	changed=1
+}
+
+[ "$changed" = 0 ] || uci -q commit firewall
+
+exit 0

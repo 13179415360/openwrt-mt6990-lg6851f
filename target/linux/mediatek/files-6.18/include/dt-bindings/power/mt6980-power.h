@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (c) 2022 MediaTek Inc.
+ * Author: Pei-hsuan Cheng <pei-hsuan.cheng@mediatek.com>
+ */
+
+#ifndef _DT_BINDINGS_POWER_MT6980_POWER_H
+#define _DT_BINDINGS_POWER_MT6980_POWER_H
+
+#define MT6980_POWER_DOMAIN_MD				0
+#define MT6980_POWER_DOMAIN_CONN_ON			1
+#define MT6980_POWER_DOMAIN_MSDC			2
+#define MT6980_POWER_DOMAIN_PCIE1			3
+#define MT6980_POWER_DOMAIN_PCIE2			4
+#define MT6980_POWER_DOMAIN_PCIE0			5
+#define MT6980_POWER_DOMAIN_SSUSB_TOP		6
+#define MT6980_POWER_DOMAIN_SSUSB_PHY		7
+#define MT6980_POWER_DOMAIN_NR				8
+
+#endif /* _DT_BINDINGS_POWER_MT6980_POWER_H */

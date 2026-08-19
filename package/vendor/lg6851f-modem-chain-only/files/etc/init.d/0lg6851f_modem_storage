@@ -1,0 +1,93 @@
+#!/bin/sh /etc/rc.common
+
+START=09
+STOP=91
+
+log_msg() {
+	logger -t lg6851f_modem_storage "$*"
+	echo "lg6851f_modem_storage: $*"
+}
+
+link_gpt_partitions() {
+	local uevent devname partname
+
+	mkdir -p /dev/block
+	for uevent in /sys/class/block/mmcblk0p*/uevent; do
+		[ -r "$uevent" ] || continue
+		devname=
+		partname=
+		while IFS='=' read -r key value; do
+			case "$key" in
+				DEVNAME) devname="$value" ;;
+				PARTNAME) partname="$value" ;;
+			esac
+		done < "$uevent"
+		[ -n "$devname" ] && [ -n "$partname" ] || continue
+		ln -sf "/dev/$devname" "/dev/block/$partname"
+	done
+}
+
+mount_part() {
+	local device="$1"
+	local target="$2"
+	local attempt=1
+
+	mkdir -p "$target"
+	grep -qs " $target " /proc/mounts && return 0
+	while [ "$attempt" -le 3 ]; do
+		if mount -t ext4 -o noatime "$device" "$target"; then
+			log_msg "mounted $device on $target (attempt $attempt)"
+			return 0
+		fi
+		log_msg "WARN: failed to mount $device on $target (attempt $attempt)"
+		attempt=$((attempt + 1))
+		sleep 1
+	done
+	return 1
+}
+
+start() {
+	local slot
+
+	link_gpt_partitions
+	slot="$(sed -n 's/.*bootslot=\([^ ]*\).*/\1/p' /proc/cmdline)"
+	case "$slot" in
+		a|b) ;;
+		*) slot=b ;;
+	esac
+
+	# Vendor userspace was built without Android property support and opens
+	# slot-independent names such as /dev/block/md1img.  Reproduce the
+	# official setup_link mapping for every A/B partition used by the stack.
+	for part in connsys_gnss mcf1 mcf2 md1img md1dsp spmfw pi_img dpm \
+		medmcu sspm mcupm lk tee boot rootfs; do
+		[ -e "/dev/block/${part}_$slot" ] || continue
+		ln -sf "/dev/block/${part}_$slot" "/dev/block/$part"
+	done
+
+	mkdir -p /mnt/vendor/nvcfg /mnt/vendor/nvdata
+	mkdir -p /mnt/vendor/protect_f /mnt/vendor/protect_s
+	mkdir -p /mnt/vendor/mdota /mnt/vendor/mdota2 /mnt/vendor/mdlpm /vendor
+	[ -e /vendor/firmware ] || ln -s /etc/firmware /vendor/firmware
+	[ -e /vendor/etc ] || ln -s /etc /vendor/etc
+
+	mount_part /dev/block/nvcfg /mnt/vendor/nvcfg
+	mount_part /dev/block/nvdata /mnt/vendor/nvdata
+	mount_part /dev/block/protect1 /mnt/vendor/protect_f
+	mount_part /dev/block/protect2 /mnt/vendor/protect_s
+	mount_part /dev/block/mcf1 /mnt/vendor/mdota
+	mount_part /dev/block/mcf2 /mnt/vendor/mdota2
+
+	# NVRAM is the hard prerequisite for MD boot.  A failure of an optional
+	# FSD partition must not suppress nvram_daemon after nvdata is available.
+	if ! grep -qs ' /mnt/vendor/nvdata ' /proc/mounts; then
+		log_msg "ERROR: nvdata is unavailable; modem boot is unsafe"
+		return 1
+	fi
+	mkdir -p /mnt/vendor/nvdata/md_cmn
+	log_msg "official modem storage setup complete, slot=$slot"
+}
+
+stop() {
+	:
+}

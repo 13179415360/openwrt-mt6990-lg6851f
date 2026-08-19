@@ -1,0 +1,147 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -16,6 +16,7 @@
+ #include <dt-bindings/power/mt2701-power.h>
+ #include <dt-bindings/power/mt2712-power.h>
+ #include <dt-bindings/power/mt6797-power.h>
++#include <dt-bindings/power/mt6990-power.h>
+ #include <dt-bindings/power/mt7622-power.h>
+ #include <dt-bindings/power/mt7623a-power.h>
+ #include <dt-bindings/power/mt8173-power.h>
+@@ -25,6 +26,7 @@
+ 
+ #define MTK_SCPD_ACTIVE_WAKEUP		BIT(0)
+ #define MTK_SCPD_FWAIT_SRAM		BIT(1)
++#define MTK_SCPD_ALWAYS_ON		BIT(2)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -358,6 +360,11 @@ err_clk:
+ 	return ret;
+ }
+ 
++static int scpsys_power_noop(struct generic_pm_domain *genpd)
++{
++	return 0;
++}
++
+ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ {
+ 	struct scp_domain *scpd = container_of(genpd, struct scp_domain, genpd);
+@@ -426,6 +433,7 @@ static struct scp *init_scp(struct platf
+ {
+ 	struct genpd_onecell_data *pd_data;
+ 	int i, j;
++	bool needs_infracfg = false;
+ 	struct scp *scp;
+ 	struct clk *clk[CLK_MAX];
+ 
+@@ -456,12 +464,23 @@ static struct scp *init_scp(struct platf
+ 	if (!pd_data->domains)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	scp->infracfg = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
+-			"infracfg");
+-	if (IS_ERR(scp->infracfg)) {
+-		dev_err(&pdev->dev, "Cannot find infracfg controller: %ld\n",
++	for (i = 0; i < num; i++) {
++		if (scp_domain_data[i].bus_prot_mask &&
++		    !(scp_domain_data[i].caps & MTK_SCPD_ALWAYS_ON)) {
++			needs_infracfg = true;
++			break;
++		}
++	}
++
++	if (needs_infracfg) {
++		scp->infracfg = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
++				"infracfg");
++		if (IS_ERR(scp->infracfg)) {
++			dev_err(&pdev->dev,
++				"Cannot find infracfg controller: %ld\n",
+ 				PTR_ERR(scp->infracfg));
+-		return ERR_CAST(scp->infracfg);
++			return ERR_CAST(scp->infracfg);
++		}
+ 	}
+ 
+ 	for (i = 0; i < num; i++) {
+@@ -504,8 +523,14 @@ static struct scp *init_scp(struct platf
+ 		}
+ 
+ 		genpd->name = data->name;
+-		genpd->power_off = scpsys_power_off;
+-		genpd->power_on = scpsys_power_on;
++		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_ALWAYS_ON)) {
++			genpd->power_off = scpsys_power_noop;
++			genpd->power_on = scpsys_power_noop;
++			genpd->flags |= GENPD_FLAG_ALWAYS_ON;
++		} else {
++			genpd->power_off = scpsys_power_off;
++			genpd->power_on = scpsys_power_on;
++		}
+ 		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_ACTIVE_WAKEUP))
+ 			genpd->flags |= GENPD_FLAG_ACTIVE_WAKEUP;
+ 	}
+@@ -1043,6 +1068,52 @@ static const struct scp_soc_data mt6797_
+ 	.bus_prot_reg_update = true,
+ };
+ 
++
++#define MT6990_ALWAYS_ON_DOMAIN(_id, _name) \
++	[_id] = { \
++		.name = _name, \
++		.caps = MTK_SCPD_ALWAYS_ON, \
++	}
++
++/*
++ * MT6990 bring-up provider.
++ *
++ * The boot firmware owns the actual MT6990 MTCMOS sequencing on this target.
++ * Keep every domain registered and logically on so consumers can attach
++ * without Linux toggling modem, MED, MSDC or interconnect power controls.
++ */
++static const struct scp_domain_data scp_domain_data_mt6990[] = {
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MD, "md"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_CONN_ON, "conn_on"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_AUDIO, "audio"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_DISP, "disp"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MFG0, "mfg0"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_EIP97, "eip97"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MSDC, "msdc"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_ETH, "eth"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MED, "medsys"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_NET, "netsys"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SSUSB_TOP, "ssusb_top"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SSUSB_PHY, "ssusb_phy"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_HSM_TOP, "hsm_top"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_PCIE1, "pcie1"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_PCIE2, "pcie2"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_PCIE0, "pcie0"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_TOP_0, "xfi_top_0"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_PHY_0, "xfi_phy_0"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_TOP_1, "xfi_top_1"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_XFI_PHY_1, "xfi_phy_1"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SGMII_TOP_0, "sgmii_top_0"),
++	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SGMII_TOP_1, "sgmii_top_1"),
++};
++
++static const struct scp_soc_data mt6990_data = {
++	.domains = scp_domain_data_mt6990,
++	.num_domains = MT6990_POWER_DOMAIN_NR,
++};
++
++#undef MT6990_ALWAYS_ON_DOMAIN
++
+ static const struct scp_soc_data mt7622_data = {
+ 	.domains = scp_domain_data_mt7622,
+ 	.num_domains = ARRAY_SIZE(scp_domain_data_mt7622),
+@@ -1090,6 +1161,9 @@ static const struct of_device_id of_scps
+ 		.compatible = "mediatek,mt6797-scpsys",
+ 		.data = &mt6797_data,
+ 	}, {
++		.compatible = "mediatek,mt6990-scpsys",
++		.data = &mt6990_data,
++	}, {
+ 		.compatible = "mediatek,mt7622-scpsys",
+ 		.data = &mt7622_data,
+ 	}, {

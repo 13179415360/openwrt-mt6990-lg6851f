@@ -1,0 +1,229 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -27,6 +27,7 @@
+ #define MTK_SCPD_ACTIVE_WAKEUP		BIT(0)
+ #define MTK_SCPD_FWAIT_SRAM		BIT(1)
+ #define MTK_SCPD_ALWAYS_ON		BIT(2)
++#define MTK_SCPD_MT6990_NETSYS		BIT(3)
+ #define MTK_SCPD_CAPS(_scpd, _x)	((_scpd)->data->caps & (_x))
+ 
+ #define SPM_VDE_PWR_CON			0x0210
+@@ -50,6 +51,14 @@
+ #define SPM_HIF1_PWR_CON		0x02e8	/* MT7622 */
+ #define SPM_WB_PWR_CON			0x02ec	/* MT7622 */
+ 
++#define MT6990_NETSYS_PWR_CON		0x0e50
++#define MT6990_NETSYS_S_SRAM_CON	0x0f20
++#define MT6990_PWR_STATUS		0x0f38
++#define MT6990_PWR_STATUS_2ND		0x0f3c
++#define MT6990_NETSYS_STA_MASK		BIT(21)
++#define MT6990_NETSYS_PWR_SRAM_BIT	BIT(8)
++#define MT6990_NETSYS_CLK_NUM		5
++
+ #define SPM_PWR_STATUS			0x060c
+ #define SPM_PWR_STATUS_2ND		0x0610
+ 
+@@ -153,6 +162,7 @@ struct scp {
+ 	struct device *dev;
+ 	void __iomem *base;
+ 	struct regmap *infracfg;
++	struct clk *mt6990_netsys_clks[MT6990_NETSYS_CLK_NUM];
+ 	struct scp_ctrl_reg ctrl_reg;
+ 	bool bus_prot_reg_update;
+ };
+@@ -365,6 +375,123 @@ static int scpsys_power_noop(struct gene
+ 	return 0;
+ }
+ 
++
++struct mt6990_netsys_bus_prot {
++	u32 clr_ofs;
++	u32 mask;
++};
++
++static const char * const mt6990_netsys_clk_names[] = {
++	"netsys",
++	"wedsys",
++	"medsys",
++	"net500",
++	"net2x",
++};
++
++static const struct mt6990_netsys_bus_prot mt6990_netsys_bus_prot[] = {
++	{ 0x0b88, BIT(5) },
++	{ 0x0ba8, BIT(5) },
++	{ 0x0718, GENMASK(14, 9) },
++	{ 0x0b88, BIT(2) },
++	{ 0x0ba8, BIT(2) },
++	{ 0x02a4, BIT(8) },
++	{ 0x0718, BIT(28) },
++};
++
++static int mt6990_netsys_power_on(struct generic_pm_domain *genpd)
++{
++	struct scp_domain *scpd = container_of(genpd, struct scp_domain, genpd);
++	struct scp *scp = scpd->scp;
++	void __iomem *ctl_addr = scp->base + MT6990_NETSYS_PWR_CON;
++	void __iomem *sram_addr = scp->base + MT6990_NETSYS_S_SRAM_CON;
++	u32 val;
++	int i, ret, tmp;
++
++	ret = scpsys_clk_enable(scp->mt6990_netsys_clks,
++				MT6990_NETSYS_CLK_NUM);
++	if (ret) {
++		dev_err(scp->dev, "MT6990 NETSYS: failed to enable clocks: %d\n",
++			ret);
++		return ret;
++	}
++
++	val = readl(ctl_addr);
++	val |= PWR_ON_BIT;
++	writel(val, ctl_addr);
++
++	val |= PWR_ON_2ND_BIT;
++	writel(val, ctl_addr);
++
++	ret = readl_poll_timeout(scp->base + MT6990_PWR_STATUS, tmp,
++				 (tmp & MT6990_NETSYS_STA_MASK) ==
++				 MT6990_NETSYS_STA_MASK,
++				 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
++	if (ret)
++		goto err_disable_clks;
++
++	ret = readl_poll_timeout(scp->base + MT6990_PWR_STATUS_2ND, tmp,
++				 (tmp & MT6990_NETSYS_STA_MASK) ==
++				 MT6990_NETSYS_STA_MASK,
++				 MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
++	if (ret)
++		goto err_disable_clks;
++
++	val = readl(ctl_addr);
++	val &= ~PWR_CLK_DIS_BIT;
++	writel(val, ctl_addr);
++
++	val &= ~PWR_ISO_BIT;
++	writel(val, ctl_addr);
++
++	val |= PWR_RST_B_BIT;
++	writel(val, ctl_addr);
++
++	val &= ~MT6990_NETSYS_PWR_SRAM_BIT;
++	writel(val, ctl_addr);
++
++	for (i = 0; i < 6; i++) {
++		u32 pdn = BIT(7 + i);
++		u32 ack = BIT(19 + i);
++
++		val = readl(sram_addr);
++		val &= ~pdn;
++		writel(val, sram_addr);
++
++		ret = readl_poll_timeout(sram_addr, tmp, !(tmp & ack),
++					 MTK_POLL_DELAY_US,
++					 MTK_POLL_TIMEOUT);
++		if (ret)
++			goto err_disable_clks;
++	}
++
++	for (i = ARRAY_SIZE(mt6990_netsys_bus_prot) - 1; i >= 0; i--) {
++		ret = regmap_write(scp->infracfg,
++				   mt6990_netsys_bus_prot[i].clr_ofs,
++				   mt6990_netsys_bus_prot[i].mask);
++		if (ret)
++			goto err_disable_clks;
++	}
++
++	dev_info(scp->dev,
++		 "MT6990 NETSYS on: E50=%08x F20=%08x F38=%08x F3C=%08x\n",
++		 readl(ctl_addr), readl(sram_addr),
++		 readl(scp->base + MT6990_PWR_STATUS),
++		 readl(scp->base + MT6990_PWR_STATUS_2ND));
++
++	return 0;
++
++err_disable_clks:
++	dev_err(scp->dev,
++		"MT6990 NETSYS power-on failed: ret=%d E50=%08x F20=%08x F38=%08x F3C=%08x\n",
++		ret, readl(ctl_addr), readl(sram_addr),
++		readl(scp->base + MT6990_PWR_STATUS),
++		readl(scp->base + MT6990_PWR_STATUS_2ND));
++	scpsys_clk_disable(scp->mt6990_netsys_clks,
++			   MT6990_NETSYS_CLK_NUM);
++	return ret;
++}
++
+ static int scpsys_power_off(struct generic_pm_domain *genpd)
+ {
+ 	struct scp_domain *scpd = container_of(genpd, struct scp_domain, genpd);
+@@ -472,6 +599,10 @@ static struct scp *init_scp(struct platf
+ 		}
+ 	}
+ 
++	if (of_device_is_compatible(pdev->dev.of_node,
++				    "mediatek,mt6990-scpsys"))
++		needs_infracfg = true;
++
+ 	if (needs_infracfg) {
+ 		scp->infracfg = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
+ 				"infracfg");
+@@ -483,6 +614,22 @@ static struct scp *init_scp(struct platf
+ 		}
+ 	}
+ 
++	if (of_device_is_compatible(pdev->dev.of_node,
++				    "mediatek,mt6990-scpsys")) {
++		for (i = 0; i < MT6990_NETSYS_CLK_NUM; i++) {
++			scp->mt6990_netsys_clks[i] =
++				devm_clk_get(&pdev->dev,
++					     mt6990_netsys_clk_names[i]);
++			if (IS_ERR(scp->mt6990_netsys_clks[i])) {
++				dev_err(&pdev->dev,
++					"MT6990 NETSYS: cannot get clock %s: %ld\n",
++					mt6990_netsys_clk_names[i],
++					PTR_ERR(scp->mt6990_netsys_clks[i]));
++				return ERR_CAST(scp->mt6990_netsys_clks[i]);
++			}
++		}
++	}
++
+ 	for (i = 0; i < num; i++) {
+ 		struct scp_domain *scpd = &scp->domains[i];
+ 		const struct scp_domain_data *data = &scp_domain_data[i];
+@@ -523,7 +670,11 @@ static struct scp *init_scp(struct platf
+ 		}
+ 
+ 		genpd->name = data->name;
+-		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_ALWAYS_ON)) {
++		if (MTK_SCPD_CAPS(scpd, MTK_SCPD_MT6990_NETSYS)) {
++			genpd->power_off = scpsys_power_noop;
++			genpd->power_on = mt6990_netsys_power_on;
++			genpd->flags |= GENPD_FLAG_ALWAYS_ON;
++		} else if (MTK_SCPD_CAPS(scpd, MTK_SCPD_ALWAYS_ON)) {
+ 			genpd->power_off = scpsys_power_noop;
+ 			genpd->power_on = scpsys_power_noop;
+ 			genpd->flags |= GENPD_FLAG_ALWAYS_ON;
+@@ -1092,7 +1243,12 @@ static const struct scp_domain_data scp_
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MSDC, "msdc"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_ETH, "eth"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_MED, "medsys"),
+-	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_NET, "netsys"),
++	[MT6990_POWER_DOMAIN_NET] = {
++		.name = "netsys",
++		.sta_mask = MT6990_NETSYS_STA_MASK,
++		.ctl_offs = MT6990_NETSYS_PWR_CON,
++		.caps = MTK_SCPD_ALWAYS_ON | MTK_SCPD_MT6990_NETSYS,
++	},
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SSUSB_TOP, "ssusb_top"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_SSUSB_PHY, "ssusb_phy"),
+ 	MT6990_ALWAYS_ON_DOMAIN(MT6990_POWER_DOMAIN_HSM_TOP, "hsm_top"),
+@@ -1110,6 +1266,10 @@ static const struct scp_domain_data scp_
+ static const struct scp_soc_data mt6990_data = {
+ 	.domains = scp_domain_data_mt6990,
+ 	.num_domains = MT6990_POWER_DOMAIN_NR,
++	.regs = {
++		.pwr_sta_offs = MT6990_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6990_PWR_STATUS_2ND,
++	},
+ };
+ 
+ #undef MT6990_ALWAYS_ON_DOMAIN

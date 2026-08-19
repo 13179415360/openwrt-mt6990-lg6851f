@@ -1,0 +1,55 @@
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -10,5 +10,16 @@ menu "MediaTek SoC drivers"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+ 
++config MTK_IPI
++	tristate "MediaTek vendor TinySys IPI support"
++	depends on RPMSG_MTK
++	help
++	  MediaTek vendor IPI transport used by the MT6990 MEDMCU.
++
++config MTK_MBOX
++	tristate "MediaTek vendor TinySys mailbox support"
++	help
++	  MediaTek configurable SRAM mailbox used by TinySys processors.
++
+ config MTK_CMDQ
+ 	tristate "MediaTek CMDQ Support"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -2,6 +2,8 @@
+ obj-$(CONFIG_MTK_CMDQ) += mtk-cmdq-helper.o
+ obj-$(CONFIG_MTK_DEVAPC) += mtk-devapc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
++obj-$(CONFIG_MTK_IPI) += mtk_tinysys_ipi.o
++obj-$(CONFIG_MTK_MBOX) += mtk-mbox.o
+ obj-$(CONFIG_MTK_PMIC_WRAP) += mtk-pmic-wrap.o
+ obj-$(CONFIG_MTK_SCPSYS) += mtk-scpsys.o
+ obj-$(CONFIG_MTK_SCPSYS_PM_DOMAINS) += mtk-pm-domains.o
+--- a/drivers/rpmsg/Kconfig
++++ b/drivers/rpmsg/Kconfig
+@@ -8,6 +8,13 @@ menu "Rpmsg drivers"
+ config RPMSG
+ 	tristate
+ 
++config RPMSG_MTK
++	tristate "MediaTek vendor TinySys RPMsg transport"
++	depends on MTK_MBOX
++	select RPMSG
++	help
++	  MediaTek RPMsg transport over the vendor TinySys mailbox.
++
+ config RPMSG_CHAR
+ 	tristate "RPMSG device interface"
+ 	depends on RPMSG
+--- a/drivers/rpmsg/Makefile
++++ b/drivers/rpmsg/Makefile
+@@ -3,5 +3,6 @@ obj-$(CONFIG_RPMSG)		+= rpmsg_core.o
+ obj-$(CONFIG_RPMSG_CHAR)	+= rpmsg_char.o
+ obj-$(CONFIG_RPMSG_CTRL)	+= rpmsg_ctrl.o
+ obj-$(CONFIG_RPMSG_NS)		+= rpmsg_ns.o
++obj-$(CONFIG_RPMSG_MTK)		+= mtk_rpmsg_mbox.o
+ obj-$(CONFIG_RPMSG_MTK_SCP)	+= mtk_rpmsg.o
+ qcom_glink-objs			:= qcom_glink_native.o qcom_glink_ssr.o

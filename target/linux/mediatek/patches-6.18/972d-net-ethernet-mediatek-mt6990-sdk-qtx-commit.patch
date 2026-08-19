@@ -1,0 +1,13 @@
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -1993,7 +1993,9 @@ static int mtk_tx_map(struct sk_buff *skb
+ 	wmb();
+ 
+ 	if (MTK_HAS_CAPS(soc->caps, MTK_QDMA)) {
+-		if (netif_xmit_stopped(txq) || !netdev_xmit_more())
++		/* The MT6990 SDK commits every skb to the QDMA CPU pointer. */
++		if (MTK_HAS_CAPS(soc->caps, MTK_SOC_MT6990) ||
++		    netif_xmit_stopped(txq) || !netdev_xmit_more())
+ 			mtk_w32(eth, state.txd->txd2, soc->reg_map->qdma.ctx_ptr);
+ 	} else {
+ 		int next_idx;

@@ -1,0 +1,24 @@
+{
+	"admin/pwmfan": {
+		"title": "PWM Fan",
+		"order": 30,
+		"action": {
+			"type": "firstchild"
+		},
+		"depends": {
+			"acl": [ "luci-app-pwmfan" ]
+		}
+	},
+
+	"admin/pwmfan/control": {
+		"title": "Overview",
+		"order": 1,
+		"action": {
+			"type": "view",
+			"path": "pwmfan/panel_v2"
+		},
+		"depends": {
+			"acl": [ "luci-app-pwmfan" ]
+		}
+	}
+}

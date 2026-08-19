@@ -1,0 +1,179 @@
+#!/usr/bin/env ucode
+
+'use strict';
+
+import { glob, readfile, writefile } from 'fs';
+
+const SAFE_LEVELS = [ 125, 170, 200, 220, 240, 255 ];
+const MANUAL = '/tmp/lg6851f-fan-control.manual';
+
+function supported_board() {
+	let board = readfile('/tmp/sysinfo/board_name');
+	return board != null && trim(board) == 'fiberhome,lg6851f';
+}
+
+function number(path) {
+	let value = readfile(path);
+	return value != null ? +trim(value) : null;
+}
+
+
+function fan_paths() {
+	let result = [];
+
+	for (let path in glob('/sys/class/hwmon/hwmon*')) {
+		let name = readfile(path + '/name');
+		if (name != null && trim(name) == 'pwmfan' && readfile(path + '/pwm1') != null)
+			push(result, path);
+	}
+
+	return result;
+}
+
+function set_all_fans(value) {
+	let fans = fan_paths();
+	let written = 0;
+
+	for (let fan in fans)
+		if (writefile(fan + '/pwm1', `${value}\n`))
+			written++;
+
+	return length(fans) > 0 && written == length(fans);
+}
+
+function cooling_path() {
+	for (let path in glob('/sys/class/thermal/cooling_device*')) {
+		let type = readfile(path + '/type');
+		if (type != null && trim(type) == 'pwm-fan')
+			return path;
+	}
+
+	return null;
+}
+
+function temperatures() {
+	let result = [];
+
+	for (let path in glob('/sys/class/thermal/thermal_zone*')) {
+		let temp = number(path + '/temp');
+		if (temp != null && temp > -40000 && temp < 200000)
+			push(result, { name: trim(readfile(path + '/type') || 'thermal'), temp });
+	}
+
+	for (let path in glob('/sys/class/hwmon/hwmon*')) {
+		let temp = number(path + '/temp1_input');
+		if (temp != null && temp > -40000 && temp < 200000)
+			push(result, { name: trim(readfile(path + '/name') || 'hwmon'), temp });
+	}
+
+	return result;
+}
+
+function automatic_level(temp) {
+	return 100;
+}
+
+/* Accept the current direct-polarity levels.  Obsolete cached pages may still
+ * submit 20/40/60/80, which are clamped to the proven safe PWM100 value. */
+function normalize_level(value) {
+	if (value == 125 || value == 170 || value == 200 ||
+	    value == 220 || value == 240 || value == 255)
+		return value;
+
+	/* Obsolete cached pages used unsafe low values.  Keep those requests from
+	 * stopping a direct-polarity fan until the browser reloads current assets. */
+	if (value == 20 || value == 40 || value == 60 || value == 80 || value == 100)
+		return 125;
+
+	return null;
+}
+
+function status() {
+	if (!supported_board())
+		return { available: false, supported: false };
+
+	let fans = fan_paths();
+	let fan = length(fans) > 0 ? fans[0] : null;
+	let cooling = cooling_path();
+	let temps = temperatures();
+	let hottest = null;
+	let rpm = fan != null ? number(fan + '/fan1_input') : null;
+	let pwm_values = [];
+
+	for (let path in fans)
+		push(pwm_values, {
+			device: trim(readfile(path + '/device/uevent') || path),
+			pwm: number(path + '/pwm1')
+		});
+
+	for (let sensor in temps)
+		if (hottest == null || sensor.temp > hottest)
+			hottest = sensor.temp;
+
+	return {
+		supported: true,
+		available: fan != null,
+		fan_count: length(fans),
+		pwm: fan != null ? number(fan + '/pwm1') : null,
+		pwm_values,
+		rpm,
+		tach_available: rpm != null,
+		stalled: rpm != null && rpm == 0 && number(fan + '/pwm1') > 0,
+		controller: readfile('/tmp/lg6851f-fan-control.state'),
+		cooling_state: cooling != null ? number(cooling + '/cur_state') : null,
+		max_state: cooling != null ? number(cooling + '/max_state') : null,
+		hottest,
+		temperatures: temps,
+		reverse: true,
+		levels: SAFE_LEVELS
+	};
+}
+
+const methods = {
+	get_status: {
+		call: function() {
+			return status();
+		}
+	},
+
+	set_pwm: {
+		args: { value: 0 },
+		call: function(req) {
+			if (!supported_board())
+				return { success: false, error: 'Unsupported board' };
+
+			let value = normalize_level(+req.args?.value);
+
+			if (length(fan_paths()) == 0)
+				return { success: false, error: 'PWM fan not found' };
+
+			if (value == null)
+				return { success: false, error: 'Unsafe PWM value' };
+
+			if (!set_all_fans(value))
+				return { success: false, error: 'Unable to write PWM value' };
+			if (!writefile(MANUAL, `${value}\n`))
+				return { success: false, error: 'Unable to hold manual PWM value' };
+
+			return { success: true, status: status() };
+		}
+	},
+
+	restore_auto: {
+		call: function() {
+			if (!supported_board())
+				return { success: false, error: 'Unsupported board' };
+
+			/* A zero-byte write reports 0 and was mistaken for failure even though
+			 * automatic control resumed.  A newline trims to an empty command while
+			 * preserving a truthful successful write result. */
+			if (!set_all_fans(100) || !writefile(MANUAL, '\n') ||
+			    !writefile('/tmp/lg6851f-fan-control.recalibrate', '1\n'))
+				return { success: false, error: 'Unable to restart automatic fan detection' };
+
+			return { success: true, status: status() };
+		}
+	}
+};
+
+return { 'luci.pwmfan': methods };

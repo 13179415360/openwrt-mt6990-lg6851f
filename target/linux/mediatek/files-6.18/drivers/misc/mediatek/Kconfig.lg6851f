@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# LG6851F persistent Kconfig definitions required by the imported vendor
+# CCCI/DPMAIF/CCMNI stack.
+
+menu "MediaTek LG6851F modem stack"
+
+config MTK_PLATFORM
+	string
+	default "mt6990"
+
+config MTK_MD2_SUPPORT
+	int
+	default 0
+
+config MTPROF
+	bool
+	default n
+
+endmenu

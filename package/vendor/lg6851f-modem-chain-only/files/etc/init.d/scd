@@ -1,0 +1,29 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+
+START=53
+STOP=46
+
+CONFIGURATION=scd
+
+start_service() {
+    # Read scd configuration
+    config_load "${CONFIGURATION}"
+
+    local ap_time_to_modem
+    local modem_time_to_ap
+    local modem_reboot_ap
+
+    config_get ap_time_to_modem features ap_time_to_modem
+    config_get modem_time_to_ap features modem_time_to_ap
+    config_get modem_reboot_ap features modem_reboot_ap
+
+    echo "start scd $ap_time_to_modem $modem_time_to_ap $modem_reboot_ap"
+    procd_open_instance scd
+    procd_set_param command /usr/bin/scd $ap_time_to_modem $modem_time_to_ap $modem_reboot_ap
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_set_param respawn
+    procd_close_instance
+}

@@ -1,0 +1,16 @@
+{
+	"luci-app-5gmodem": {
+		"description": "View the MT6990 integrated 5G modem",
+		"read": {
+			"ubus": {
+				"luci.modem5g": [ "get_status", "get_cells", "list_sms", "get_smsc", "get_network", "get_locks", "get_lock_request" ]
+			}
+		},
+		"write": {
+			"ubus": {
+				"luci.modem5g": [ "send_sms", "delete_sms", "set_smsc", "run_at", "set_radio", "set_rat", "ifup", "ifdown", "set_band_lock", "reset_band_lock", "set_cell_lock", "clear_cell_lock" ]
+			},
+			"uci": [ "network" ]
+		}
+	}
+}

@@ -1,0 +1,8 @@
+config main 'main'
+	option enabled '1'
+	option start_delay '35'
+	option poll_seconds '5'
+	option registration_interval '20'
+	option radio_interval '60'
+	option identity_interval '3600'
+	option detail_interval '300'

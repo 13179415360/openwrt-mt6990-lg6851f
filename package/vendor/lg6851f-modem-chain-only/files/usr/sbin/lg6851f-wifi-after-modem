@@ -1,0 +1,145 @@
+#!/bin/sh
+
+# Keep the management AP quiet while the integrated modem completes its
+# official startup/data-call sequence.  Always fall back to Wi-Fi after the
+# deadline so a missing SIM or weak mobile signal cannot lock users out.
+
+TAG="lg6851f-wifi"
+MODEM_SETTLE=30
+WIFI_DETECT_TIMEOUT=90
+MODEM_TIMEOUT=180
+
+log() {
+	logger -t "$TAG" "$*"
+	echo "$TAG: $*"
+}
+
+wireless_sections() {
+	uci -q show wireless 2>/dev/null |
+		sed -n "s/^wireless\.\([^.=]*\)=wifi-device$/\1/p"
+}
+
+wireless_interfaces() {
+	uci -q show wireless 2>/dev/null |
+		sed -n "s/^wireless\.\([^.=]*\)=wifi-iface$/\1/p"
+}
+
+persistent_wifi_is_enabled() {
+	local section radio
+
+	# On an established installation netifd already owns normal wireless
+	# startup.  Do not tear down and recreate preserved APs merely to impose
+	# the first-boot modem ordering; that duplicate reload races hostapd and
+	# has produced transient -EMFILE/control-socket errors.
+	for section in $(wireless_interfaces); do
+		[ "$(uci -q get "wireless.$section.mode")" = "ap" ] || continue
+		[ "$(uci -q get "wireless.$section.disabled")" = "1" ] && continue
+		radio="$(uci -q get "wireless.$section.device")"
+		[ -n "$radio" ] || continue
+		[ "$(uci -q get "wireless.$radio.disabled")" = "1" ] && continue
+		return 0
+	done
+
+	return 1
+}
+
+ensure_wireless_config() {
+	local elapsed=0
+
+	while [ "$elapsed" -lt "$WIFI_DETECT_TIMEOUT" ]; do
+		[ -d /sys/class/ieee80211/phy0 ] && break
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+
+	[ -d /sys/class/ieee80211/phy0 ] || {
+		log "wireless PHY did not appear within ${WIFI_DETECT_TIMEOUT}s"
+		return 1
+	}
+
+	if [ -z "$(wireless_sections)" ]; then
+		log "generating first-boot OpenWrt wireless configuration"
+		wifi config
+	fi
+
+	[ -n "$(wireless_sections)" ]
+}
+
+modem_processes_ready() {
+	local daemon
+
+	for daemon in atcid mtk_netagent scd ql_netd ql_ril_service; do
+		pidof "$daemon" >/dev/null 2>&1 || return 1
+	done
+	return 0
+}
+
+modem_is_settled() {
+	local state up uptime
+
+	state="$(ubus call network.interface.modem5g status 2>/dev/null)" || return 1
+	up="$(printf '%s' "$state" | jsonfilter -e '@.up' 2>/dev/null)"
+	uptime="$(printf '%s' "$state" | jsonfilter -e '@.uptime' 2>/dev/null)"
+	[ "$up" = "true" ] || return 1
+	case "$uptime" in
+		''|*[!0-9]*) return 1 ;;
+	esac
+	[ "$uptime" -ge "$MODEM_SETTLE" ] || return 1
+	modem_processes_ready
+}
+
+enable_management_wifi() {
+	local section radio_count=0 ap_count=0 changed=0
+
+	for section in $(wireless_sections); do
+		uci -q set "wireless.$section.disabled=0"
+		uci -q set "wireless.$section.country=CN"
+		changed=1
+		radio_count=$((radio_count + 1))
+	done
+
+	for section in $(wireless_interfaces); do
+		[ "$(uci -q get "wireless.$section.mode")" = "ap" ] || continue
+		uci -q set "wireless.$section.disabled=0"
+		changed=1
+		ap_count=$((ap_count + 1))
+	done
+
+	[ "$changed" = 1 ] && [ "$ap_count" -gt 0 ] || return 1
+	uci -q commit wireless
+
+	# One `wifi up` performs the required network reload and brings all enabled
+	# radios up.  Calling it once per radio is not selective: every invocation
+	# reloads the entire network and tears down/recreates the first AP again.
+	wifi up
+	log "Wi-Fi enabled automatically on $radio_count radio(s), $ap_count AP(s)"
+}
+
+main() {
+	local elapsed=0 reason="modem stable"
+
+	ensure_wireless_config || return 1
+	if persistent_wifi_is_enabled; then
+		log "preserved Wi-Fi configuration is enabled; leaving single startup to netifd"
+		return 0
+	fi
+
+	# A fresh/default configuration is still disabled.  Keep it down until the
+	# modem settles, then enable it once as the first-boot management fallback.
+	wifi down >/dev/null 2>&1
+	log "Wi-Fi held down until modem is stable (fallback ${MODEM_TIMEOUT}s)"
+
+	while ! modem_is_settled; do
+		if [ "$elapsed" -ge "$MODEM_TIMEOUT" ]; then
+			reason="fallback timeout"
+			break
+		fi
+		sleep 2
+		elapsed=$((elapsed + 2))
+	done
+
+	log "enabling Wi-Fi: $reason"
+	enable_management_wifi
+}
+
+main "$@"

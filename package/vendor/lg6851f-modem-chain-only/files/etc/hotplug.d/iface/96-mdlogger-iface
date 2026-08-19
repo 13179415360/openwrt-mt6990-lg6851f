@@ -1,0 +1,61 @@
+#!/bin/sh
+
+msg="$HOTPLUG_TYPE $ACTION $INTERFACE $DEVICE $IFUPDATE_ADDRESSES $IFUPDATE_ROUTES $IFUPDATE_PREFIXES $IFUPDATE_DATA"
+_log()
+{
+   logger -t mdlogger "hotplug: $@"
+}
+
+[ "$INTERFACE" = lan ] || exit 0
+[ "$ACTION" != ifdown ] || [ "$(uci -q get network.wan.mode)" != 2 ] || {
+   _log Notify $msg
+   ubus call service signal '{"name":"mdlogger","signal":12}'
+   exit 0
+}
+[ "$DEVICE" = br-lan ] || exit 0
+[ "$ACTION" = ifup -o "$ACTION" = ifupdate ] || exit 0
+
+lport="$(uci -q get system.@system[0].md_log_port)"
+[ -z "$lport" ] || ipstr="$(netstat -antp | sed -ne "/[[:digit:]]:$lport/p")"
+[ -n "$ipstr" ] || {
+   _log "No lport $lport"
+   exit
+}
+_log $ipstr
+
+rtt="$(ip route show table local | grep "local" | sed -ne 's/dev .*$//p')"
+check_ip_notify()
+{
+   ipstr2="$(echo "$ipstr" | grep "$1")"
+   [ -n "$ipstr2" ] || { 
+      _log "$1 no entry"
+      return
+   }
+
+   num="$(echo "$ipstr2" | sed -n '$=')"
+   ipn=$(echo "$ipstr2" | sed -ne "s/:$lport .*$//p" | sed -ne 's/.* //p')
+   qn=$(echo "$ipstr2" | awk '{print $2 " " $3}')
+   cn=1
+   while [ $cn -le $num ]
+   do
+      cq=$(echo "$qn" | sed "$cn!d" | sed -ne '/[1-9]/p')
+      cip=$(echo "$ipn" | sed "$cn!d")
+      if [ -n "$cq" ] || [ "$cip" != "0.0.0.0" -a -z "$(echo "$rtt" | grep "$cip ")" ]; then
+         _log "Notify $1 $cq $cip $msg"
+         ubus call service signal '{"name":"mdlogger","signal":12}'
+         exit
+      fi
+      cn=$((cn+1))
+   done
+}
+
+check_ip_notify ESTAB
+check_ip_notify LISTEN
+check_ip_notify FIN
+md_ip="$(uci -q get system.@system[0].md_log_ip)"
+[ -z "$md_ip" ] || [ "$md_ip" == "0.0.0.0" ] || check_ip_notify $md_ip
+old="$(cat /proc/net/nf_conntrack | sed -ne "s/.*dst=\([^ ]*\).*dport=$lport.*/\1/p" | head -1)"
+[ -z "$old" ] || [ "$old" == "0.0.0.0" ] || check_ip_notify $old
+_log "Ignore $msg"
+exit
+

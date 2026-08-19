@@ -1,0 +1,98 @@
+From 4c0a17e28340e458627d672564200406e220d6a3 Mon Sep 17 00:00:00 2001
+From: Vlastimil Babka <vbabka@suse.cz>
+Date: Wed, 5 Nov 2025 10:05:33 +0100
+Subject: [PATCH] slab: prevent recursive kmalloc() in alloc_empty_sheaf()
+
+Backport the upstream recursion guard needed by the initial 6.18 sheaf
+implementation.  A sheaf is itself allocated from kmalloc and must not
+recursively try to create another sheaf from the same allocation path.
+
+---
+ include/linux/gfp_types.h |  6 ------
+ mm/slub.c                 | 36 ++++++++++++++++++++++++++----------
+ 2 files changed, 26 insertions(+), 16 deletions(-)
+
+--- a/include/linux/gfp_types.h
++++ b/include/linux/gfp_types.h
+@@ -55,9 +55,7 @@ enum {
+ #ifdef CONFIG_LOCKDEP
+ 	___GFP_NOLOCKDEP_BIT,
+ #endif
+-#ifdef CONFIG_SLAB_OBJ_EXT
+ 	___GFP_NO_OBJ_EXT_BIT,
+-#endif
+ 	___GFP_LAST_BIT
+ };
+ 
+@@ -98,11 +96,7 @@ enum {
+ #else
+ #define ___GFP_NOLOCKDEP	0
+ #endif
+-#ifdef CONFIG_SLAB_OBJ_EXT
+ #define ___GFP_NO_OBJ_EXT       BIT(___GFP_NO_OBJ_EXT_BIT)
+-#else
+-#define ___GFP_NO_OBJ_EXT       0
+-#endif
+ 
+ /*
+  * Physical address zone modifiers (see linux/mmzone.h - low four bits)
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -2031,6 +2031,14 @@ static bool freelist_corrupted(struct km
+ }
+ #endif /* CONFIG_SLUB_DEBUG */
+ 
++/*
++ * The allocated objcg pointers array is not accounted directly.
++ * Moreover, it should not come from DMA buffer and is not readily
++ * reclaimable. So those GFP bits should be masked off.
++ */
++#define OBJCGS_CLEAR_MASK	(__GFP_DMA | __GFP_RECLAIMABLE | \
++				__GFP_ACCOUNT | __GFP_NOFAIL)
++
+ #ifdef CONFIG_SLAB_OBJ_EXT
+ 
+ #ifdef CONFIG_MEM_ALLOC_PROFILING_DEBUG
+@@ -2081,14 +2089,6 @@ static inline void handle_failed_objexts
+ 
+ #endif /* CONFIG_MEM_ALLOC_PROFILING_DEBUG */
+ 
+-/*
+- * The allocated objcg pointers array is not accounted directly.
+- * Moreover, it should not come from DMA buffer and is not readily
+- * reclaimable. So those GFP bits should be masked off.
+- */
+-#define OBJCGS_CLEAR_MASK	(__GFP_DMA | __GFP_RECLAIMABLE | \
+-				__GFP_ACCOUNT | __GFP_NOFAIL)
+-
+ static inline void init_slab_obj_exts(struct slab *slab)
+ {
+ 	slab->obj_exts = 0;
+@@ -2596,8 +2596,24 @@ static void *setup_object(struct kmem_ca
+ 
+ static struct slab_sheaf *alloc_empty_sheaf(struct kmem_cache *s, gfp_t gfp)
+ {
+-	struct slab_sheaf *sheaf = kzalloc(struct_size(sheaf, objects,
+-					s->sheaf_capacity), gfp);
++	struct slab_sheaf *sheaf;
++	size_t sheaf_size;
++
++	if (gfp & __GFP_NO_OBJ_EXT)
++		return NULL;
++
++	gfp &= ~OBJCGS_CLEAR_MASK;
++
++	/*
++	 * Prevent recursion to the same cache, or a deep stack of kmallocs of
++	 * varying sizes (sheaf capacity might differ for each kmalloc size
++	 * bucket)
++	 */
++	if (s->flags & SLAB_KMALLOC)
++		gfp |= __GFP_NO_OBJ_EXT;
++
++	sheaf_size = struct_size(sheaf, objects, s->sheaf_capacity);
++	sheaf = kzalloc(sheaf_size, gfp);
+ 
+ 	if (unlikely(!sheaf))
+ 		return NULL;
+
