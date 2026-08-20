@@ -78,7 +78,7 @@ int ccci_log_write(const char *fmt, ...)
 
 	va_start(args, fmt);
 	write_len +=
-		vsnprintf(temp_log + write_len,
+		vscnprintf(temp_log + write_len,
 			CCCI_LOG_MAX_WRITE - write_len,
 			fmt, args);
 	va_end(args);
@@ -150,7 +150,7 @@ int ccci_log_write_raw(unsigned int set_flags, const char *fmt, ...)
 	}
 
 	va_start(args, fmt);
-	write_len += vsnprintf(temp_log + write_len,
+	write_len += vscnprintf(temp_log + write_len,
 					CCCI_LOG_MAX_WRITE - write_len,
 					fmt, args);
 	va_end(args);
@@ -443,7 +443,7 @@ int ccci_dump_write(int md_id, int buf_type,
 	}
 
 	va_start(args, fmt);
-	write_len += vsnprintf(temp_log + write_len,
+	write_len += vscnprintf(temp_log + write_len,
 					CCCI_LOG_MAX_WRITE - write_len,
 					fmt, args);
 	va_end(args);
@@ -1069,7 +1069,7 @@ int ccci_event_log(const char *fmt, ...)
 			current->comm);
 
 	va_start(args, fmt);
-	write_len += vsnprintf(temp_log
+	write_len += vscnprintf(temp_log
 					+ write_len,
 					CCCI_LOG_MAX_WRITE - write_len,
 					fmt, args);
