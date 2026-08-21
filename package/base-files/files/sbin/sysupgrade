@@ -444,6 +444,7 @@ else
 	[ $FORCE -eq 1 ] && json_add_boolean force 1
 	[ $SAVE_CONFIG -eq 1 ] && json_add_string backup "$CONF_TAR"
 	json_add_string command "$COMMAND"
+	[ "$LG6851F_DEFER_SERVICE_STOP" = 1 ] && json_add_boolean defer_service_stop 1
 	json_add_object options
 	json_add_int save_partitions "$SAVE_PARTITIONS"
 	json_add_int add_provisioning "$ADD_PROVISIONING"

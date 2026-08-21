@@ -1560,26 +1560,13 @@
 			};
 
 			cooling-maps {
-				fan-map-low {
-					trip = <&fan_low>;
-					cooling-device = <&soc_fan 1 1>;
-				};
-
-				fan-map-medium {
-					trip = <&fan_medium>;
-					cooling-device = <&soc_fan 2 2>;
-				};
-
-				fan-map-high {
-					trip = <&fan_high>;
-					cooling-device = <&soc_fan 3 3>;
-				};
-
-				fan-map-full {
-					trip = <&fan_full>;
-					cooling-device = <&soc_fan 4 4>;
-				};
-
+				/*
+				 * Fan policy is owned by lg6851f-fan-control because PWM0/PWM5
+				 * routing and polarity vary between production batches.  Do not
+				 * bind soc_fan here: once LVTS is active, the thermal governor
+				 * would otherwise overwrite the userspace curve every 100 ms.
+				 * CPU/GPU throttling and the critical shutdown trip remain below.
+				 */
 				map0 {
 					trip = <0x33>;
 					cooling-device = <0x0b 0xffffffff 0xffffffff 0x0c 0xffffffff 0xffffffff 0x0d 0xffffffff 0xffffffff 0x0e 0xffffffff 0xffffffff>;
@@ -5593,6 +5580,9 @@
 		compatible = "mediatek,mt6980-lvts";
 		#thermal-sensor-cells = <0x01>;
 		reg = <0x00 0x1100b000 0x00 0x1000 0x00 0x1100c000 0x00 0x1000>;
+		/* Linux 6.18 requires an explicit parent to translate the two
+		 * stock MT6990 GIC SPI specifiers into platform IRQ resources. */
+		interrupt-parent = <0x01>;
 		interrupts = <0x00 0x108 0x04 0x00 0x109 0x04>;
 		clocks = <0x2b 0x20 0x2b 0x21 0x2b 0x22 0x2b 0x23>;
 		clock-names = "lvts_clk1\0lvts_clk2\0lvts_clk3\0lvts_clk4";

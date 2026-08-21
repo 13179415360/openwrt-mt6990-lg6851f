@@ -69,6 +69,7 @@ write_state() {
 		echo "direction=${DIRECTION:-unknown}"
 		echo "temperature=$temp"
 		echo "rpm=$speed"
+		echo "tach_valid=$TACH_VALID"
 		echo "pwm0=$p0"
 		echo "pwm5=$p5"
 	} > "$STATE"
@@ -116,14 +117,14 @@ calibrate() {
 }
 
 tachless_compatible() {
-	# Some LG6851F production revisions route the fitted fan through PWM5
-	# while GPIO121 is not wired as a tachometer (the exported input remains
-	# permanently zero).  Driving both production candidates together is safe:
-	# only the physically routed output reaches the single fitted fan.
-	ACTIVE=both
+	# The recovered stock boot DT and userspace agree that every four-wire
+	# LG6851F uses pwm-fan@1: PWM0 on GPIO124.  GPIO121 is the tach input.
+	# A zero tach reading must not switch the fan over to the stock three-wire
+	# PWM5 path; some fitted fans do not return a readable pulse train.
+	ACTIVE=pwm0
 	DIRECTION=direct
 	TACH_VALID=0
-	log "tachometer unavailable; using synchronized PWM0+PWM5 direct control"
+	log "tachometer unavailable; using stock four-wire PWM0 direct control"
 }
 
 safe_fallback() {
@@ -147,8 +148,8 @@ safe_fallback() {
 target_pwm() {
 	local temp="$1"
 	if [ "$DIRECTION" = direct ]; then
-		[ "$temp" -lt 60000 ] && { echo 125; return; }
-		[ "$temp" -lt 65000 ] && { echo 125; return; }
+		[ "$temp" -lt 60000 ] && { echo 110; return; }
+		[ "$temp" -lt 65000 ] && { echo 110; return; }
 		[ "$temp" -lt 70000 ] && { echo 170; return; }
 		[ "$temp" -lt 75000 ] && { echo 200; return; }
 		[ "$temp" -lt 80000 ] && { echo 220; return; }
@@ -183,22 +184,16 @@ fi
 
 stall_count=0
 last_target=
-manual_count=0
 while [ ! -e "$STOP" ]; do
 	manual=$(cat "$MANUAL" 2>/dev/null)
 	case "$manual" in
-		125|170|200|220|240|255)
+		115|180|220)
 			set_both "$manual"
 			write_state manual "$(hottest)" "$(rpm)"
-			manual_count=$((manual_count + 1))
-			if [ "$manual_count" -ge 12 ]; then
-				rm -f "$MANUAL"
-				manual_count=0
-			fi
 			sleep 5
 			continue
 			;;
-		*) manual_count=0;;
+		*) ;;
 	esac
 	if [ -e "$RECALIBRATE" ]; then
 		rm -f "$RECALIBRATE"
@@ -212,9 +207,7 @@ while [ ! -e "$STOP" ]; do
 	temp=$(hottest)
 	target=$(target_pwm "$temp")
 
-	# Keep the unused production-route candidate at the proven safe value when
-	# tachometer calibration identified it.  Tachless revisions need both
-	# production candidates synchronized.
+	# Keep the unused stock three-wire route at its harmless baseline value.
 	if [ "$ACTIVE" = pwm0 ]; then
 		echo "$target" > "$P0"; echo 100 > "$P5"
 	elif [ "$ACTIVE" = pwm5 ]; then

@@ -4,6 +4,14 @@
 
 RAMFS_COPY_BIN='tar gzip dd sha256sum wc grep sed cut mount umount cp mkdir sync hexdump rm'
 
+# The 6.18.37 recovery baseline can panic while procd stops the vendor modem
+# stack (DPMAIF frees already-corrupted skb slabs).  Ask patched procd to enter
+# the RAM upgrade root before stopping services.  platform_do_upgrade() then
+# commits and verifies the inactive/fixed B images before the final forced
+# reboot, so a shutdown-time driver failure can no longer prevent the update.
+LG6851F_DEFER_SERVICE_STOP=1
+export LG6851F_DEFER_SERVICE_STOP
+
 LG6851F_TRACE_MNT=/tmp/lg6851f-upgrade-data
 
 lg6851f_trace() {

@@ -61,6 +61,15 @@ msgstr "标准"
 msgid "Normal"
 msgstr "正常"
 
+msgid "Quiet"
+msgstr "安静"
+
+msgid "Strong wind"
+msgstr "强风"
+
+msgid "Automatic"
+msgstr "自动"
+
 msgid "Medium"
 msgstr "中速"
 

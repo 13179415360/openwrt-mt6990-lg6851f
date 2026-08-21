@@ -21,8 +21,8 @@ const callRestoreAuto = rpc.declare({
 });
 
 function speedLabel(value) {
-	return ({ 100: _('Standard'), 125: _('Normal'), 170: _('Medium'),
-		200: _('High'), 220: _('Very high'), 240: _('Maximum'),
+	return ({ 110: _('Automatic'), 115: _('Quiet'), 170: _('Automatic'), 180: _('Normal'),
+		200: _('Automatic'), 220: _('Strong wind'), 240: _('Automatic'),
 		255: _('Emergency maximum') })[value] || _('PWM');
 }
 
@@ -46,6 +46,7 @@ return baseclass.extend({
 		const rpm = document.getElementById('pwmfan-rpm');
 		const channels = document.getElementById('pwmfan-channels');
 		const controller = document.getElementById('pwmfan-controller');
+		const sensors = document.getElementById('pwmfan-sensors');
 
 		if (pwm) pwm.textContent = '%s (%s)'.format(data.pwm, speedLabel(data.pwm));
 		if (state) state.textContent = '%s / %s'.format(data.cooling_state ?? '-', data.max_state ?? '-');
@@ -57,6 +58,9 @@ return baseclass.extend({
 		if (channels) channels.textContent = (data.pwm_values || []).map(function(fan, index) {
 			return '%s%d=%s'.format(_('Fan channel '), index + 1, fan.pwm ?? '-');
 		}).join(' · ');
+		if (sensors) sensors.textContent = (data.temperatures || []).map(function(sensor) {
+			return '%s: %.1f °C'.format(sensor.name, sensor.temp / 1000);
+		}).join(' · ') || _('Unavailable');
 		if (controller) {
 			const values = {};
 			String(data.controller || '').trim().split(/\n/).forEach(function(line) {
@@ -73,7 +77,7 @@ return baseclass.extend({
 			if (!result || !result.success)
 				throw new Error(result?.error || _('PWM control failed'));
 			this.update(result.status);
-			ui.addNotification(null, E('p', {}, _('Temporary fan speed applied; thermal control remains active.')));
+			ui.addNotification(null, E('p', {}, _('Manual fan speed applied; it remains active until the temperature profile is restored.')));
 		}, this)).catch(function(err) {
 				ui.addNotification(_('MT6990 PWM Fan'), E('p', {}, err.message), 'error');
 		});
@@ -95,7 +99,7 @@ return baseclass.extend({
 		if (!data || !data.available)
 			return E('em', {}, _('No standard pwm-fan hwmon device was found.'));
 
-		const buttons = [ 125, 170, 200, 220, 240, 255 ].map(L.bind(function(value) {
+		const buttons = [ 115, 180, 220 ].map(L.bind(function(value) {
 			return E('button', {
 				'class': 'btn cbi-button pwmfan-speed',
 				'click': ui.createHandlerFn(this, 'handleSet', value),
@@ -137,18 +141,19 @@ return baseclass.extend({
 					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan status')), E('strong', { 'id': 'pwmfan-status' }) ])
 					,E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan speed')), E('strong', { 'id': 'pwmfan-rpm' }) ])
 					,E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('PWM channels')), E('strong', { 'id': 'pwmfan-channels' }) ])
+					,E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Temperature sensors')), E('strong', { 'id': 'pwmfan-sensors' }) ])
 				])
 			]),
 			E('section', { 'class': 'pwmfan-panel' }, [
 				E('h3', {}, _('Automatic Temperature Curve')),
 				E('div', { 'class': 'pwmfan-curve' }, [
-					[ '<60°C', 'PWM 125' ], [ '60–65°C', 'PWM 125' ], [ '65–70°C', 'PWM 170' ], [ '70–75°C', 'PWM 200' ], [ '75–80°C', 'PWM 220' ], [ '80–85°C', 'PWM 240' ], [ '≥85°C', 'PWM 255' ]
+					[ '<60°C', 'PWM 110' ], [ '60–65°C', 'PWM 110' ], [ '65–70°C', 'PWM 170' ], [ '70–75°C', 'PWM 200' ], [ '75–80°C', 'PWM 220' ], [ '80–85°C', 'PWM 240' ], [ '≥85°C', 'PWM 255' ]
 				].map(function(step) { return E('div', { 'class': 'pwmfan-step' }, [ E('strong', {}, step[0]), E('small', {}, step[1]) ]); }))
 			]),
 			E('section', { 'class': 'pwmfan-panel' }, [
 				E('h3', {}, _('Controls')),
 				E('div', { 'class': 'pwmfan-actions' }, buttons),
-				E('small', { 'class': 'pwmfan-note' }, _('Manual speed remains active for 60 seconds; Apply temperature profile restores automatic control immediately.'))
+				E('small', { 'class': 'pwmfan-note' }, _('Manual speed remains active until Apply temperature profile restores automatic control.'))
 			]),
 			E('section', { 'class': 'pwmfan-panel' }, [
 				E('h3', {}, _('Automatic detection')),

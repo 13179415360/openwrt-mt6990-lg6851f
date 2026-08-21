@@ -1,0 +1,31 @@
+--- a/system.c
++++ b/system.c
+@@ -739,6 +739,7 @@ enum {
+ 	SYSUPGRADE_PREFIX,
+ 	SYSUPGRADE_COMMAND,
+ 	SYSUPGRADE_OPTIONS,
++	SYSUPGRADE_DEFER_SERVICE_STOP,
+ 	__SYSUPGRADE_MAX
+ };
+ 
+@@ -750,5 +751,6 @@ static const struct blobmsg_policy sysupg
+ 	[SYSUPGRADE_COMMAND] = { .name = "command", .type = BLOBMSG_TYPE_STRING },
+ 	[SYSUPGRADE_OPTIONS] = { .name = "options", .type = BLOBMSG_TYPE_TABLE },
++	[SYSUPGRADE_DEFER_SERVICE_STOP] = { .name = "defer_service_stop", .type = BLOBMSG_TYPE_BOOL },
+ };
+ 
+ static void sysupgrade_error(struct ubus_context *ctx,
+@@ -824,7 +826,12 @@ static int sysupgrade(struct ubus_context
+ 		return UBUS_STATUS_NOT_SUPPORTED;
+ 	}
+ 
+-	service_stop_all();
++	/* Inactive-slot platforms with fragile vendor shutdown paths may need to
++	 * commit and verify the new slot from the RAM upgrade root first.  The
++	 * default remains the traditional stop-before-upgrade ordering. */
++	if (!tb[SYSUPGRADE_DEFER_SERVICE_STOP] ||
++	    !blobmsg_get_bool(tb[SYSUPGRADE_DEFER_SERVICE_STOP]))
++		service_stop_all();
+ 
+ 	sysupgrade_exec_upgraded(blobmsg_get_string(tb[SYSUPGRADE_PREFIX]),
+ 				 blobmsg_get_string(tb[SYSUPGRADE_PATH]),

@@ -4,7 +4,7 @@
 
 import { glob, readfile, writefile } from 'fs';
 
-const SAFE_LEVELS = [ 125, 170, 200, 220, 240, 255 ];
+const SAFE_LEVELS = [ 115, 180, 220 ];
 const MANUAL = '/tmp/lg6851f-fan-control.manual';
 
 function supported_board() {
@@ -73,17 +73,16 @@ function automatic_level(temp) {
 	return 100;
 }
 
-/* Accept the current direct-polarity levels.  Obsolete cached pages may still
- * submit 20/40/60/80, which are clamped to the proven safe PWM100 value. */
+/* Accept the current direct-polarity levels. Obsolete cached pages are mapped
+ * to the new, verified quiet manual level. */
 function normalize_level(value) {
-	if (value == 125 || value == 170 || value == 200 ||
-	    value == 220 || value == 240 || value == 255)
+	if (value == 115 || value == 180 || value == 220)
 		return value;
 
 	/* Obsolete cached pages used unsafe low values.  Keep those requests from
 	 * stopping a direct-polarity fan until the browser reloads current assets. */
-	if (value == 20 || value == 40 || value == 60 || value == 80 || value == 100)
-		return 125;
+	if (value == 20 || value == 40 || value == 60 || value == 80 || value == 100 || value == 125)
+		return 115;
 
 	return null;
 }
@@ -98,6 +97,10 @@ function status() {
 	let temps = temperatures();
 	let hottest = null;
 	let rpm = fan != null ? number(fan + '/fan1_input') : null;
+	let controller = readfile('/tmp/lg6851f-fan-control.state');
+	let tach_valid = controller != null && index(controller, 'tach_valid=1') >= 0;
+	let stalled = controller != null && index(controller, 'status=stalled') >= 0;
+	let reverse = controller != null && index(controller, 'direction=inverse') >= 0;
 	let pwm_values = [];
 
 	for (let path in fans)
@@ -117,14 +120,14 @@ function status() {
 		pwm: fan != null ? number(fan + '/pwm1') : null,
 		pwm_values,
 		rpm,
-		tach_available: rpm != null,
-		stalled: rpm != null && rpm == 0 && number(fan + '/pwm1') > 0,
-		controller: readfile('/tmp/lg6851f-fan-control.state'),
+		tach_available: tach_valid,
+		stalled,
+		controller,
 		cooling_state: cooling != null ? number(cooling + '/cur_state') : null,
 		max_state: cooling != null ? number(cooling + '/max_state') : null,
 		hottest,
 		temperatures: temps,
-		reverse: true,
+		reverse,
 		levels: SAFE_LEVELS
 	};
 }
