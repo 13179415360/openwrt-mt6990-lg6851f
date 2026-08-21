@@ -8,7 +8,9 @@ dist_file=/etc/apk/repositories.d/distfeeds.list
 compat_file=/etc/apk/repositories.d/lg6851f-userland.list
 custom_file=/etc/apk/repositories.d/customfeeds.list
 # jsDelivr is used because GitHub Raw is unreliable on some cellular routes.
-feed_root=https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@apk-feed-6.18.44
+# Pin one immutable, fully verified feed snapshot. Moving branch aliases can be
+# served inconsistently by different CDN edges immediately after publication.
+feed_root=https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@760d829021769a0aff5d713e7316c7d36ff40c71
 
 if [ -f "$arch_file" ]; then
 	sed -i '/^aarch64_cortex-a53$/d' "$arch_file"
