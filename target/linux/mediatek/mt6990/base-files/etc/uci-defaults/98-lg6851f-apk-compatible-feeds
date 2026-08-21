@@ -1,32 +1,40 @@
 #!/bin/sh
 
-# MT6990 is maintained locally and therefore has no repository below the
-# official OpenWrt snapshots target tree. Its Cortex-A55 CPUs can execute the
-# official Cortex-A53 user-space packages, but target/kernel packages must
-# continue to come from this firmware build.
+# LG6851F/MT6990 uses a locally maintained target, kernel ABI and Cortex-A55
+# package ABI. Never mix it with rolling OpenWrt snapshot repositories.
 
 arch_file=/etc/apk/arch
 dist_file=/etc/apk/repositories.d/distfeeds.list
 compat_file=/etc/apk/repositories.d/lg6851f-userland.list
+custom_file=/etc/apk/repositories.d/customfeeds.list
+# jsDelivr is used because GitHub Raw is unreliable on some cellular routes.
+feed_root=https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@apk-feed-6.18.44
 
-grep -qxF 'aarch64_cortex-a53' "$arch_file" 2>/dev/null || \
-	echo 'aarch64_cortex-a53' >> "$arch_file"
-
-# LuCI treats any failed index as an apk update failure. Keep the generated
-# unavailable URLs as comments so that the reason remains diagnosable.
-if [ -f "$dist_file" ]; then
-	sed -i 's|^https://downloads\.openwrt\.org/snapshots/|# disabled: no official MT6990/A55 build feed: https://downloads.openwrt.org/snapshots/|' "$dist_file"
+if [ -f "$arch_file" ]; then
+	sed -i '/^aarch64_cortex-a53$/d' "$arch_file"
 fi
+grep -qxF 'aarch64_cortex-a55_neon-vfpv4' "$arch_file" 2>/dev/null || \
+	echo 'aarch64_cortex-a55_neon-vfpv4' >> "$arch_file"
 
-cat > "$compat_file" <<'EOF'
-# Official architecture-compatible user-space feeds for LG6851F/MT6990.
-# Never add another target's packages/kmods feed here: kernel ABI is MT6990-specific.
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/base/packages.adb
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/luci/packages.adb
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/packages/packages.adb
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/routing/packages.adb
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/telephony/packages.adb
-https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/video/packages.adb
+cat > "$dist_file" <<EOF
+# LG6851F/MT6990 exclusive signed feeds.
+# Linux 6.18.44; aarch64_cortex-a55_neon-vfpv4.
+$feed_root/target/packages.adb
+$feed_root/base/packages.adb
+$feed_root/luci/packages.adb
+$feed_root/packages/packages.adb
 EOF
+
+rm -f "$compat_file"
+
+if [ -s "$custom_file" ] && grep -qvE '^[[:space:]]*(#|$)' "$custom_file"; then
+	cp "$custom_file" /etc/apk/customfeeds.disabled-by-mt6990-safety 2>/dev/null || true
+fi
+cat > "$custom_file" <<'EOF'
+# Disabled: LG6851F/MT6990 accepts only its dedicated signed feed.
+EOF
+
+# Fail closed if somebody accidentally adds an official/generic repository.
+rm -f /etc/apk/keys/openwrt-snapshots.pem
 
 exit 0
