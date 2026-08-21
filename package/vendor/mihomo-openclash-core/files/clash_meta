@@ -3,7 +3,9 @@
 set -eu
 
 archive=/usr/lib/mihomo-openclash/mihomo.gz
-runtime=/tmp/mihomo-openclash-core
+# OpenClash uses `pidof clash` throughout its service and firewall scripts.
+# Keep that process basename even though the bundled core is Mihomo.
+runtime=/tmp/clash
 lock=/tmp/mihomo-openclash-core.lock
 
 while ! mkdir "$lock" 2>/dev/null; do

@@ -96,6 +96,13 @@ make package/<package-name>/compile V=s
 
 后续 MT6990 第三方软件将单独维护为 feed 仓库，避免主源码树被不同用户的插件需求污染。
 
+## 2026-08-21 维修固化说明
+
+- OpenClash 使用 Mihomo 时，核心包装器必须以 `/tmp/clash` 为运行文件名。OpenClash 的服务与防火墙脚本通过 `pidof clash` 检测核心；使用其他文件名会导致核心已经监听端口却被误判为启动失败。修复包含在 `mihomo-openclash-core 1.19.29-r2`。
+- `mt6990-userdata-storage 1-r3` 支持从当前根 overlay 的真实 `upperdir` 迁移数据，不再假定源目录恒为 `/overlay/upper`。
+- LG6851F Web 升级保留设置时，preinit 仅对带 `.mt6990-extroot-managed` 标记的软件层刷新新 squashfs UUID 绑定，使 `/dev/mmcblk0p46` 的软件、管理员密码和 Wi-Fi 配置在升级后继续挂载；该流程不格式化分区、不修改 GPT，也不触碰 A 槽。
+- 本次修复保持 Linux 6.18.44，不包含内核版本升级。
+
 ## 安全说明
 
 仓库不包含设备分区备份、SSH 密钥、用户账号、维修现场日志和崩溃证据。构建链内的 MTK `hsm_test_keys` 仅用于当前已验证的测试签名流程，不应用于生产密钥管理。

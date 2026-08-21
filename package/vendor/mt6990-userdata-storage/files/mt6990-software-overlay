@@ -17,6 +17,18 @@ storage_uuid() {
 	block info "$device" | sed -n 's/.*UUID="\([^"]*\)".*/\1/p'
 }
 
+current_upperdir() {
+	awk '$2 == "/" && $3 == "overlay" {
+		n = split($4, opts, ",")
+		for (i = 1; i <= n; i++)
+			if (opts[i] ~ /^upperdir=/) {
+				sub(/^upperdir=/, "", opts[i])
+				print opts[i]
+				exit
+			}
+	}' /proc/mounts
+}
+
 ensure_mounted() {
 	/etc/init.d/mt6990-userdata-storage start || die "cannot mount $device"
 	grep -qs " $mountpoint " /proc/mounts || die "$mountpoint is not mounted"
@@ -37,8 +49,10 @@ enable_overlay() {
 	[ -n "$free_kb" ] && [ "$free_kb" -ge "$minimum_free_kb" ] || die "less than 600 MiB free on $device"
 	ruuid="$(root_uuid)"
 	suuid="$(storage_uuid)"
+	source_upper="$(current_upperdir)"
 	[ -n "$ruuid" ] || die "cannot determine current rootfs UUID"
 	[ -n "$suuid" ] || die "cannot determine storage UUID"
+	[ -n "$source_upper" ] && [ -d "$source_upper" ] || die "cannot determine current overlay upper directory"
 
 	if [ -e "$mountpoint/upper" ] || [ -e "$mountpoint/work" ] || [ -e "$mountpoint/etc/.extroot-uuid" ]; then
 		[ -f "$mountpoint/.mt6990-extroot-managed" ] || die "unmanaged extroot files already exist; refusing to overwrite"
@@ -51,7 +65,7 @@ enable_overlay() {
 	fi
 
 	mkdir -p "$mountpoint/upper" "$mountpoint/work" "$mountpoint/etc"
-	cp -a /overlay/upper/. "$mountpoint/upper/" || die "copying current overlay failed"
+	cp -a "$source_upper"/. "$mountpoint/upper/" || die "copying current overlay from $source_upper failed"
 	echo "$ruuid" > "$mountpoint/etc/.extroot-uuid"
 	echo "$ruuid" > "$mountpoint/.mt6990-extroot-managed"
 	sync
