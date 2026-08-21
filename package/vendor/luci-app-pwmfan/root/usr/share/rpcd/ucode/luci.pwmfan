@@ -110,8 +110,14 @@ function status() {
 		});
 
 	for (let sensor in temps)
-		if (hottest == null || sensor.temp > hottest)
+		if (match(sensor.name, /^cpu_little[0-9]+$/) && (hottest == null || sensor.temp > hottest))
 			hottest = sensor.temp;
+
+	/* Fail safe when CPU thermal zones are unavailable. */
+	if (hottest == null)
+		for (let sensor in temps)
+			if (hottest == null || sensor.temp > hottest)
+				hottest = sensor.temp;
 
 	return {
 		supported: true,

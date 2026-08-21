@@ -50,7 +50,20 @@ absolute() {
 }
 
 hottest() {
-	local f value max=0
+	local zone f type value max=0
+	# Keep the control curve and LuCI gauge on the same source: the hottest
+	# cpu_little core.  Fall back to every valid sensor only if CPU zones are
+	# unavailable, so a thermal-driver regression cannot leave the fan idle.
+	for zone in /sys/class/thermal/thermal_zone*; do
+		[ -r "$zone/type" ] && [ -r "$zone/temp" ] || continue
+		type=$(cat "$zone/type" 2>/dev/null)
+		case "$type" in cpu_little[0-9]*) ;; *) continue;; esac
+		value=$(cat "$zone/temp" 2>/dev/null)
+		case "$value" in ''|*[!0-9]*) continue;; esac
+		[ "$value" -gt "$max" ] && [ "$value" -lt 200000 ] && max="$value"
+	done
+	[ "$max" -gt 0 ] && { echo "$max"; return; }
+
 	for f in /sys/class/thermal/thermal_zone*/temp /sys/class/hwmon/hwmon*/temp1_input; do
 		[ -r "$f" ] || continue
 		value=$(cat "$f" 2>/dev/null)

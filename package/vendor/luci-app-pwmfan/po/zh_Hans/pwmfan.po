@@ -31,6 +31,9 @@ msgstr "温度 / 风扇概览"
 msgid "Current maximum temperature"
 msgstr "当前最高温度"
 
+msgid "CPU temperature"
+msgstr "CPU 温度"
+
 msgid "Low"
 msgstr "低"
 
@@ -48,6 +51,15 @@ msgstr "散热状态"
 
 msgid "Fan status"
 msgstr "风扇状态"
+
+msgid "Fan speed"
+msgstr "风扇转速"
+
+msgid "PWM channels"
+msgstr "PWM 通道"
+
+msgid "Fan channel "
+msgstr "风扇通道 "
 
 msgid "Automatic Temperature Curve"
 msgstr "自动温控曲线"
@@ -114,6 +126,27 @@ msgstr "临时风扇转速已应用；自动温控仍保持启用。"
 
 msgid "Fan output matched to the current temperature profile."
 msgstr "风扇输出已匹配当前温控曲线。"
+
+msgid "Manual fan speed applied; it remains active until the temperature profile is restored."
+msgstr "手动风扇速度已生效；点击“应用温控曲线”前将一直保持手动模式。"
+
+msgid "Manual speed remains active until Apply temperature profile restores automatic control."
+msgstr "手动速度将持续生效；点击“应用温控曲线”后恢复自动温控。"
+
+msgid "Automatic detection"
+msgstr "自动检测"
+
+msgid "Controller state / active route / polarity"
+msgstr "控制器状态 / 当前通道 / PWM 极性"
+
+msgid "Detecting"
+msgstr "检测中"
+
+msgid "direct"
+msgstr "正向"
+
+msgid "inverse"
+msgstr "反向"
 
 msgid "PWM control failed"
 msgstr "PWM 控制失败"
