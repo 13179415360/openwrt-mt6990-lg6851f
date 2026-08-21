@@ -1,0 +1,12 @@
+board=lg6851f
+target=mediatek/mt6990
+kernel=6.18.44
+architecture=aarch64_cortex-a55_neon-vfpv4
+openwrt_revision=r35183-10631d244c
+target_packages=83
+base_packages=83
+luci_packages=21
+packages_packages=4
+total_packages=191
+public_key_sha256=fee65298978c37b71198b8472673e6a73c5f7c0c99be6a85d030c4dc4a879d84
+generated_utc=2026-08-21T11:11:20Z
