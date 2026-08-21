@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -eu
+
+archive=/usr/lib/mihomo-openclash/mihomo.gz
+runtime=/tmp/mihomo-openclash-core
+lock=/tmp/mihomo-openclash-core.lock
+
+while ! mkdir "$lock" 2>/dev/null; do
+	[ -x "$runtime" ] && exec "$runtime" "$@"
+	sleep 1
+done
+
+trap 'rmdir "$lock" 2>/dev/null || true' EXIT INT TERM
+
+if [ ! -x "$runtime" ] || [ "$archive" -nt "$runtime" ]; then
+	tmp="${runtime}.new.$$"
+	gzip -dc "$archive" >"$tmp"
+	chmod 0755 "$tmp"
+	mv -f "$tmp" "$runtime"
+fi
+
+rmdir "$lock" 2>/dev/null || true
+trap - EXIT INT TERM
+exec "$runtime" "$@"

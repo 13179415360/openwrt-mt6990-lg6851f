@@ -1,0 +1,38 @@
+#!/bin/sh /etc/rc.common
+
+START=19
+STOP=89
+
+device=/dev/mmcblk0p46
+mountpoint=/mnt/mt6990-data
+storage=$mountpoint/openwrt-software
+entrypoint=/opt/mt6990
+
+is_mounted() {
+	grep -qs " $mountpoint " /proc/mounts
+}
+
+start() {
+	mkdir -p "$mountpoint"
+	if ! is_mounted; then
+		source_mount="$(awk -v dev="$device" '$1 == dev { print $2; exit }' /proc/mounts)"
+		if [ -n "$source_mount" ]; then
+			mount -o bind "$source_mount" "$mountpoint" || return 1
+		else
+			mount -t ext4 -o rw,noatime,nosuid,nodev "$device" "$mountpoint" || return 1
+		fi
+	fi
+	mkdir -p "$storage/apps" "$storage/data" "$storage/cache" "$storage/logs" "$entrypoint"
+	chmod 0755 "$storage" "$storage/apps" "$storage/data" "$storage/cache" "$storage/logs"
+	grep -qs " $entrypoint " /proc/mounts || mount -o bind "$storage" "$entrypoint"
+}
+
+stop() {
+	grep -qs " $entrypoint " /proc/mounts && umount "$entrypoint"
+	is_mounted || return 0
+	umount "$mountpoint"
+}
+
+shutdown() {
+	stop
+}

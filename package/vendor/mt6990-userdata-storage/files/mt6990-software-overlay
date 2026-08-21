@@ -1,0 +1,83 @@
+#!/bin/sh
+
+device=/dev/mmcblk0p46
+mountpoint=/mnt/mt6990-data
+minimum_free_kb=614400
+
+die() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+root_uuid() {
+	block info | sed -n '/MOUNT="\/rom"/s/.*UUID="\([^"]*\)".*/\1/p'
+}
+
+storage_uuid() {
+	block info "$device" | sed -n 's/.*UUID="\([^"]*\)".*/\1/p'
+}
+
+ensure_mounted() {
+	/etc/init.d/mt6990-userdata-storage start || die "cannot mount $device"
+	grep -qs " $mountpoint " /proc/mounts || die "$mountpoint is not mounted"
+}
+
+status() {
+	echo "root_device=$(awk '$2 == "/rom" { print $1; exit }' /proc/mounts)"
+	echo "overlay_device=$(awk '$2 == "/overlay" { print $1; exit }' /proc/mounts)"
+	echo "storage_device=$device"
+	echo "storage_free_kb=$(df -k "$mountpoint" 2>/dev/null | awk 'NR == 2 { print $4 }')"
+	echo "configured=$(uci -q get fstab.mt6990_extroot.enabled || echo 0)"
+	echo "active=$(awk -v dev="$device" '$1 == dev && $2 == "/overlay" { found=1 } END { print found ? 1 : 0 }' /proc/mounts)"
+}
+
+enable_overlay() {
+	ensure_mounted
+	free_kb="$(df -k "$mountpoint" | awk 'NR == 2 { print $4 }')"
+	[ -n "$free_kb" ] && [ "$free_kb" -ge "$minimum_free_kb" ] || die "less than 600 MiB free on $device"
+	ruuid="$(root_uuid)"
+	suuid="$(storage_uuid)"
+	[ -n "$ruuid" ] || die "cannot determine current rootfs UUID"
+	[ -n "$suuid" ] || die "cannot determine storage UUID"
+
+	if [ -e "$mountpoint/upper" ] || [ -e "$mountpoint/work" ] || [ -e "$mountpoint/etc/.extroot-uuid" ]; then
+		[ -f "$mountpoint/.mt6990-extroot-managed" ] || die "unmanaged extroot files already exist; refusing to overwrite"
+		stamp="$(date +%Y%m%d-%H%M%S)"
+		archive="$mountpoint/openwrt-extroot-backups/$stamp"
+		mkdir -p "$archive"
+		[ ! -e "$mountpoint/upper" ] || mv "$mountpoint/upper" "$archive/upper"
+		[ ! -e "$mountpoint/work" ] || mv "$mountpoint/work" "$archive/work"
+		[ ! -e "$mountpoint/etc/.extroot-uuid" ] || mv "$mountpoint/etc/.extroot-uuid" "$archive/extroot-uuid"
+	fi
+
+	mkdir -p "$mountpoint/upper" "$mountpoint/work" "$mountpoint/etc"
+	cp -a /overlay/upper/. "$mountpoint/upper/" || die "copying current overlay failed"
+	echo "$ruuid" > "$mountpoint/etc/.extroot-uuid"
+	echo "$ruuid" > "$mountpoint/.mt6990-extroot-managed"
+	sync
+
+	uci -q delete fstab.mt6990_extroot
+	uci set fstab.mt6990_extroot='mount'
+	uci set fstab.mt6990_extroot.target='/overlay'
+	uci set fstab.mt6990_extroot.uuid="$suuid"
+	uci set fstab.mt6990_extroot.fstype='ext4'
+	uci set fstab.mt6990_extroot.options='rw,noatime'
+	uci set fstab.mt6990_extroot.enabled='1'
+	uci commit fstab
+	echo "MT6990_EXTROOT_READY=1"
+	echo "A reboot is required; supervise the next boot through TTL."
+}
+
+disable_overlay() {
+	uci -q set fstab.mt6990_extroot.enabled='0'
+	uci commit fstab
+	echo "MT6990_EXTROOT_DISABLED=1"
+	echo "A reboot is required. Existing external data was preserved."
+}
+
+case "${1:-status}" in
+	status) ensure_mounted; status ;;
+	enable|refresh) enable_overlay ;;
+	disable) disable_overlay ;;
+	*) echo "Usage: $0 {status|enable|refresh|disable}" >&2; exit 2 ;;
+esac
