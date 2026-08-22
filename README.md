@@ -245,3 +245,8 @@ bin/mt6990-apk-repository/
 ## 上游与许可证
 
 本项目基于 [OpenWrt](https://github.com/openwrt/openwrt)。OpenWrt 主体代码使用 GPL-2.0，各组件以其源文件中标注的许可证为准。
+
+## 设备刷机工具
+
+- 123云盘：[下载设备刷机工具](https://4001579968.share.123pan.cn/123pan/gl1cMh-P7nP?pwd=Mvrn#)
+- 访问密码：`Mvrn`
