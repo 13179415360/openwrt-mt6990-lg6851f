@@ -1,0 +1,18 @@
+config global
+	option anon_swap '0'
+	option anon_mount '0'
+	option auto_swap '1'
+	option auto_mount '1'
+	option delay_root '5'
+	option check_fs '0'
+
+# LG6851F has a fixed GPT layout: user_data is always mmcblk0p46.  Select the
+# board partition by its stable device path instead of embedding the ext4 UUID
+# from one particular unit.  block-mount will only accept it as extroot after
+# the per-unit migration tool has created upper/work and .extroot-uuid.
+config mount 'mt6990_extroot'
+	option target '/overlay'
+	option device '/dev/mmcblk0p46'
+	option fstype 'ext4'
+	option options 'rw,noatime'
+	option enabled '1'

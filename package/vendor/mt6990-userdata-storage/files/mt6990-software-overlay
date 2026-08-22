@@ -73,7 +73,7 @@ enable_overlay() {
 	uci -q delete fstab.mt6990_extroot
 	uci set fstab.mt6990_extroot='mount'
 	uci set fstab.mt6990_extroot.target='/overlay'
-	uci set fstab.mt6990_extroot.uuid="$suuid"
+	uci set fstab.mt6990_extroot.device="$device"
 	uci set fstab.mt6990_extroot.fstype='ext4'
 	uci set fstab.mt6990_extroot.options='rw,noatime'
 	uci set fstab.mt6990_extroot.enabled='1'

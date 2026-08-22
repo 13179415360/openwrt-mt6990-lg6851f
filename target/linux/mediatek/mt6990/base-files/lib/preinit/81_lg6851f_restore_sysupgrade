@@ -4,15 +4,27 @@
 lg6851f_restore_sysupgrade() {
 	local mnt=/tmp/lg6851f-user-data
 	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
-	local rootdev rootuuid
+	local rootdev rootuuid source_mount mounted_here=0
 
 	[ -b /dev/mmcblk0p46 ] || return 0
-	mkdir -p "$mnt"
-	mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+	[ "$(cat /sys/class/block/mmcblk0p46/partition 2>/dev/null)" = 46 ] || return 0
+	[ "$(cat /sys/class/block/mmcblk0p46/size 2>/dev/null)" = 5187456 ] || return 0
+	grep -qx 'PARTNAME=user_data' /sys/class/block/mmcblk0p46/uevent 2>/dev/null || return 0
+	source_mount="$(awk '$1 == "/dev/mmcblk0p46" && $3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ { print $2; exit }' /proc/mounts)"
+	if [ -n "$source_mount" ]; then
+		mnt="$source_mount"
+		saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
+	else
+		mkdir -p "$mnt"
+		mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+		mounted_here=1
+	fi
 	# Every signed sysupgrade has a new squashfs UUID. Refresh the extroot
 	# binding before mount_root evaluates it, otherwise a preserved p46
 	# software layer is correctly rejected and the system falls back to RAM.
-	if [ -f "$mnt/.mt6990-extroot-managed" ]; then
+	if [ -f "$mnt/.mt6990-extroot-managed" ] &&
+	   [ -d "$mnt/upper" ] && [ -d "$mnt/work" ] &&
+	   [ -f "$mnt/etc/.extroot-uuid" ]; then
 		rootdev="$(sed -n 's/.*[[:space:]]root=\([^[:space:]]*\).*/\1/p' /proc/cmdline)"
 		rootuuid="$(block info "$rootdev" 2>/dev/null | sed -n 's/.*UUID="\([^"]*\)".*/\1/p')"
 		if [ -n "$rootuuid" ]; then
@@ -26,7 +38,7 @@ lg6851f_restore_sysupgrade() {
 		cp -f "$saved" /sysupgrade.tgz &&
 			echo "LG6851F: staged preserved configuration for restore"
 	fi
-	umount "$mnt"
+	[ "$mounted_here" = 1 ] && umount "$mnt"
 }
 
 boot_hook_add preinit_mount_root lg6851f_restore_sysupgrade

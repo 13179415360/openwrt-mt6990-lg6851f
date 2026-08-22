@@ -23,159 +23,6 @@
 	#address-cells = <0x02>;
 	#size-cells = <0x02>;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	dpmaif@0x10011000 {
 		compatible = "mediatek,dpmaif";
 		reg = <0x00 0x10011000 0x00 0x1000 0x00 0x1022d000 0x00 0x1000 0x00 0x1022c000 0x00 0x1000 0x00 0x1022e000 0x00 0x1000 0x00 0x15b14000 0x00 0x1000 0x00 0x15b38000 0x00 0x1000 0x00 0x15b13000 0x00 0x1000>;
@@ -185,93 +32,6 @@
 		clock-names = "infra-dpmaif-clk\0infra-dpmaif-rg-mmw-clk";
 		phandle = <0x137>;
 	};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	phy1@0x11e00000 {
 		compatible = "mediatek,mt6980-pcie-phy";
@@ -299,40 +59,6 @@
 		phandle = <0x7f>;
 	};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	iocfg_rt8@0x11c00000 {
 		reg = <0x00 0x11c00000 0x00 0x1000>;
 		phandle = <0x164>;
@@ -347,40 +73,6 @@
 		reg = <0x00 0x11f50000 0x00 0x1000>;
 		phandle = <0x166>;
 	};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	/* stock boot DTB lines 10-13: chosen */
 	chosen {
@@ -3326,18 +3018,6 @@
 		reg = <0x00 0x10030000 0x00 0x1000>;
 	};
 
-	/* stock boot DTB lines 2820-2829: mhccif@12020000 */
-	mhccif@12020000 {
-		compatible = "mediatek,mt6880-mhccif";
-		#interrupt-cells = <0x03>;
-		interrupt-controller;
-		reg = <0x00 0x12020000 0x00 0x1000 0x00 0x12021000 0x00 0x1000>;
-		reg-names = "mhccif_rc\0mhccif_ep";
-		interrupts = <0x00 0xae 0x04>;
-		status = "disabled";
-		phandle = <0xf9>;
-	};
-
 	/* stock boot DTB lines 2831-3509: spmi@12804000 */
 	spmi@12804000 {
 		compatible = "mediatek,mt6990-spmi";
@@ -4796,25 +4476,6 @@
 		};
 	};
 
-	/* stock boot DTB lines 4223-4239: usb-phy */
-	usb-phy {
-		compatible = "mediatek,fpga-u3phy";
-		mediatek,ippc = <0x11203e00>;
-		#address-cells = <0x02>;
-		#size-cells = <0x02>;
-		fpga_i2c_physical_base = <0x11ed0000>;
-		status = "disabled";
-		phandle = <0x14f>;
-
-		usb-phy@0 {
-			chip-id = <0xa60931a>;
-			port = <0x00>;
-			pclk_phase = <0x17>;
-			#phy-cells = <0x01>;
-			phandle = <0x150>;
-		};
-	};
-
 	/* stock boot DTB lines 4241-4275: usb-phy0@11ec0000 */
 	usb-phy0@11ec0000 {
 		compatible = "mediatek,xsphy";
@@ -4904,7 +4565,6 @@
 		dma-names = "tx\0rx";
 		phandle = <0x154>;
 	};
-
 
 	/* MT6990 SGMIISYS PCS syscons; names and addresses match the stock DT. */
 	sgmiisys0: sgmiisys@11304000 {
@@ -5007,7 +4667,6 @@
 
 	ethernet@15100000 {
 		compatible = "mediatek,mt6990-eth", "syscon";
-
 
 		reg = <0x00 0x15100000 0x00 0x30000>;
 		interrupts-extended = <0x01 0x00 0x197 0x04 0x01 0x00 0x198 0x04 0x01 0x00 0x190 0x04 0x01 0x00 0x191 0x04 0x01 0x00 0x192 0x04 0x01 0x00 0x193 0x04 0x05 0x32 0x02 0x05 0x34 0x02>;
@@ -5733,13 +5392,6 @@
 		phandle = <0x167>;
 	};
 
-	/* stock boot DTB lines 5221-5225: dsi_te */
-	dsi_te {
-		compatible = "mediatek, dsi_te-eint";
-		status = "disabled";
-		phandle = <0x168>;
-	};
-
 	/* stock boot DTB lines 5227-5233: dispsys */
 	dispsys {
 		compatible = "mediatek,dispsys";
@@ -6101,48 +5753,29 @@
 		};
 	};
 
-
-
-
-
 	/*
 	 * Official live isolation: only pwm-fan@1 / PWM0 changes the single
-	 * physical fan RPM.  GPIO124 is its output.  The board circuit is
-	 * electrically inverted: PWM value 100 gives ~2310 RPM while 255 nearly
-	 * stops it, so higher cooling states deliberately use lower duty values.
+	 * physical fan RPM. GPIO124 is its output. The circuit is inverted:
+	 * PWM100 gives about 2310 RPM while PWM255 nearly stops it.
 	 */
 	soc_fan: pwm-fan {
 		compatible = "pwm-fan";
 		pwms = <0xb2 0 40000>;
-		/* Stock fan tachometer: GPIO121, falling edge, two pulses/rev. */
+		/* Stock tachometer: GPIO121, falling edge, two pulses/revolution. */
 		interrupt-parent = <&pio>;
 		interrupts = <121 2>;
 		pulses-per-revolution = <2>;
-		/*
-		 * Some LG6851F production batches gate the physical fan supply with
-		 * GPIO107.  The stock oem_fan_init sequence drives it high before
-		 * programming PWM0.  Keeping it as an always-on supply is harmless on
-		 * the batch where PWM0 alone was sufficient and fixes the gated batch.
-		 */
+		/* GPIO107 gates the fitted fan supply on some production batches. */
 		fan-supply = <&fan_power>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&fan_pwm0_pin_default &pwm_decode_pin_default>;
 		#cooling-cells = <2>;
-		/*
-		 * The mainline driver starts with the final entry.  Keep PWM100 last
-		 * so this board always boots at its proven reliable standard speed;
-		 * the MT6990 LuCI controller applies the increasing thermal curve.
-		 */
+		/* Boot at the proven standard speed; userspace applies the curve. */
 		cooling-levels = <100 100 100 100 100 100 100>;
 		status = "okay";
 	};
 
-	/*
-	 * The boot image recovered from the affected production unit contains a
-	 * second stock pwm-fan consumer on PWM5 (GPIO122, 20 us period).  Keep
-	 * both stock fan outputs active: known boards use PWM0/GPIO124, while the
-	 * affected hardware batch may route the fitted fan to this PWM5 output.
-	 */
+	/* Affected production units also carry a PWM5/GPIO122 fan route. */
 	aux_fan: pwm-fan-aux {
 		compatible = "pwm-fan";
 		pwms = <0xb2 5 20000>;
@@ -6157,9 +5790,9 @@
 };
 
 / {
-};
+	lg6851f_dts_path_verify = "lg6851f-openwrt-main-dts-path-verify-20260709_181442";
+	lg6851f_dts_path_verify_file = "/home/zjl-pc/openwrt/target/linux/mediatek/dts/mt6990-fiberhome-lg6851f.dts";
 
-/ {
 	/* Stock oem_fan_init: GPIO107 mode 0, output high, then enable PWM. */
 	fan_power: regulator-fan-power {
 		compatible = "regulator-fixed";
@@ -6189,25 +5822,8 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
-};
 
-
-/ {
-	lg6851f_dts_path_verify = "lg6851f-openwrt-main-dts-path-verify-20260709_181442";
-	lg6851f_dts_path_verify_file = "/home/zjl-pc/openwrt/target/linux/mediatek/dts/mt6990-fiberhome-lg6851f.dts";
-};
-
-/ {
 	/* MT6990_OPENWRT_REAL_MMC0_ROOTFS_BEGIN */
-	/*
-	 * Restore real eMMC/MMC controller nodes for eMMC rootfs boot.
-	 *
-	 * Bootargs require:
-	 *   root=/dev/mmcblk0p39 rootwait
-	 *
-	 * Keep this as real controller nodes in the monolithic board DTS.
-	 * Do not use &mmc0/&mmc1 unless this DTS includes mt6990.dtsi.
-	 */
 	mmc0: mmc@11230000 {
 		compatible = "mediatek,mt6990-mmc";
 		reg = <0x00 0x11230000 0x00 0x1000>,
@@ -6237,11 +5853,9 @@
 		cap-mmc-hw-reset;
 		hs400-ds-delay = <0x12814>;
 		supports-cqe;
-
 		non-removable;
 		no-sd;
 		no-sdio;
-
 		status = "okay";
 	};
 
@@ -6250,10 +5864,8 @@
 		reg = <0x00 0x11240000 0x00 0x1000>,
 		      <0x00 0x11d60000 0x00 0x1000>;
 		interrupts = <0x00 0x105 0x04>;
-
 		clocks = <&clk26m>, <&clk26m>;
 		clock-names = "source", "hclk";
-
 		status = "disabled";
 	};
 	/* MT6990_OPENWRT_REAL_MMC0_ROOTFS_END */

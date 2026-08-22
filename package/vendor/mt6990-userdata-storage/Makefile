@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mt6990-userdata-storage
 PKG_VERSION:=1
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 
 PKG_MAINTAINER:=MT6990 LG6851F maintainers
 PKG_LICENSE:=GPL-2.0-only
