@@ -59,7 +59,7 @@ return baseclass.extend({
 		if (bar) bar.style.width = '%d%%'.format(cpuTemperature != null ? Math.max(0, Math.min(100, ((cpuTemperature / 1000) - 35) * 100 / 55)) : 0);
 		if (target) target.textContent = '%s (%s)'.format(data.pwm, data.reverse ? _('Reverse PWM') : _('PWM'));
 		if (status) status.textContent = data.pwm > 0 ? _('Running') : _('Stopped');
-		if (rpm) rpm.textContent = data.tach_available ? '%d RPM'.format(data.rpm) : _('Unavailable');
+		if (rpm) rpm.textContent = data.tach_available ? '%d RPM'.format(data.rpm) : _('No speed feedback (PWM control operating normally)');
 		if (channels) channels.textContent = (data.pwm_values || []).map(function(fan, index) {
 			return '%s%d=%s'.format(_('Fan channel '), index + 1, fan.pwm ?? '-');
 		}).join(' · ');

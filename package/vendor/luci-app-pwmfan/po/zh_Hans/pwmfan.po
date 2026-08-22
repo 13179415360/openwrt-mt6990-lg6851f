@@ -55,6 +55,9 @@ msgstr "风扇状态"
 msgid "Fan speed"
 msgstr "风扇转速"
 
+msgid "No speed feedback (PWM control operating normally)"
+msgstr "无转速反馈（PWM 控制正常）"
+
 msgid "PWM channels"
 msgstr "PWM 通道"
 
