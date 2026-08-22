@@ -94,7 +94,142 @@ make package/<package-name>/clean
 make package/<package-name>/compile V=s
 ```
 
-后续 MT6990 第三方软件将单独维护为 feed 仓库，避免主源码树被不同用户的插件需求污染。
+## MT6990 专用 APK 软件库
+
+本项目的软件资产分为两部分：
+
+- `main` 分支保存可重复构建的源码、MT6990 补丁和仓库生成脚本。
+- [`apk-feed-6.18.44`](https://github.com/13179415360/openwrt-mt6990-lg6851f/tree/apk-feed-6.18.44) 分支保存同一套工具链编译并签名的 APK、四类 `packages.adb` 索引、公钥和 SHA256 清单。
+
+该软件库只适用于 FiberHome LG6851F、Linux 6.18.44 和 `aarch64_cortex-a55_neon-vfpv4`。不要给其他 OpenWrt 设备使用，也不要混入官方滚动 SNAPSHOT 或通用架构软件源；内核模块尤其要求内核 ABI 完全一致。
+
+### 固件用户如何使用
+
+最新固件已内置公钥和软件源配置，不需要手工添加网址。为避免 GitHub Raw 在部分移动网络不可达，以及 CDN 对移动分支缓存不一致，设备固定使用经过核验的不可变二进制提交 `760d829021769a0aff5d713e7316c7d36ff40c71`：
+
+```text
+https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@760d829021769a0aff5d713e7316c7d36ff40c71/target/packages.adb
+https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@760d829021769a0aff5d713e7316c7d36ff40c71/base/packages.adb
+https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@760d829021769a0aff5d713e7316c7d36ff40c71/luci/packages.adb
+https://cdn.jsdelivr.net/gh/13179415360/openwrt-mt6990-lg6851f@760d829021769a0aff5d713e7316c7d36ff40c71/packages/packages.adb
+```
+
+网页操作：进入 LuCI 的“系统 → 软件包”，先点“更新列表”，再搜索和安装需要的软件。
+
+SSH 命令行操作：
+
+```sh
+# 更新四类索引
+apk update
+
+# 搜索软件
+apk search -v luci-app-pwmfan
+
+# 安装前只模拟依赖解析，不改系统
+apk add --simulate luci-app-pwmfan
+
+# 确认无冲突后正式安装
+apk add luci-app-pwmfan
+```
+
+可用下面的命令检查设备是否使用专用架构和固定软件源：
+
+```sh
+cat /etc/apk/arch
+cat /etc/apk/repositories.d/distfeeds.list
+apk update
+```
+
+正常情况下架构应包含 `aarch64_cortex-a55_neon-vfpv4`，四个索引均指向上述固定提交。若设备仍是旧固件、Linux 版本不是6.18.44、签名公钥不匹配或源文件不存在，请先升级本项目的最新 Web 固件，不要直接复制软件源地址强行安装。
+
+### 添加其他软件并自行编译
+
+优先使用软件源码或 OpenWrt feed，不要把其他设备、其他架构或其他内核版本的成品 APK 直接混进本仓库。添加软件通常有两种方式。
+
+方式一：软件已经存在于 OpenWrt feeds。先更新并安装包定义：
+
+```bash
+./scripts/feeds update -a
+./scripts/feeds install -a
+make menuconfig
+```
+
+在 `make menuconfig` 中搜索包名：按 `/` 后输入名称即可定位。选择方式决定产物用途：
+
+- 选成 `<*>`：软件直接进入随后生成的 rootfs/完整 Web 固件。
+- 选成 `<M>`：只构建 APK，不默认装进固件。
+- `< >`：不构建。
+
+保存配置后可以先单包验证：
+
+```bash
+make package/<包名>/clean
+make package/<包名>/compile -j1 V=s
+```
+
+例如：
+
+```bash
+make package/luci-app-pwmfan/compile -j1 V=s
+```
+
+方式二：软件不在现有 feeds。把符合 OpenWrt 包规范的源码目录放到独立路径，例如：
+
+```text
+package/custom/<包名>/Makefile
+package/custom/<包名>/files/
+package/custom/<包名>/patches/
+```
+
+也可以在 `feeds.conf.default` 中增加自己的 Git feed，再运行 `./scripts/feeds update <feed名>` 和 `./scripts/feeds install -a`。建议个人软件放在独立 `package/custom/` 或独立 feed，不要直接改写 OpenWrt 上游同名包，便于以后更新和排查冲突。
+
+新增包的 `Makefile` 至少要正确声明包名、版本、目标架构、依赖、源码地址与源码哈希，以及 `Build/Compile`、`Package/<名称>/install` 等实际需要的阶段。首次编译建议始终使用 `-j1 V=s`；如果失败，从日志中最早出现的 `missing dependency`、下载哈希错误或编译器错误开始处理，不要只看最后一行。
+
+如果目的是把软件固化进 Web 升级包，将它选为 `<*>` 后执行完整构建：
+
+```bash
+make defconfig
+make -j4 V=s
+```
+
+如果只想生成可在 LuCI“软件包”页面安装的 APK，将它选为 `<M>` 或 `<*>` 并完成编译，然后更新索引和专用仓库：
+
+```bash
+make package/index
+./scripts/mt6990-build-apk-repository.sh
+```
+
+生成的 APK 会按来源进入 `bin/mt6990-apk-repository/target`、`base`、`luci` 或 `packages`。先检查清单和签名索引：
+
+```bash
+cat bin/mt6990-apk-repository/repository.manifest
+sha256sum -c bin/mt6990-apk-repository/SHA256SUMS
+```
+
+个人发布时必须同时发布相应目录里的 APK 与 `packages.adb`，并让设备信任这次构建所用的公钥。不要发布私钥。若更换了编译配置、工具链、内核 ABI 或签名密钥，应视为新的软件库快照，使用新的固定提交或版本目录，不能覆盖旧索引后假装兼容。
+
+### 生成完整的同批软件库
+
+完成一次全量构建后运行：
+
+```bash
+./scripts/mt6990-build-apk-repository.sh
+```
+
+脚本会强制核对 Linux 6.18.44、目标架构、已签名的四类索引和 APK 公钥，然后把可发布目录生成到：
+
+```text
+bin/mt6990-apk-repository/
+├── target/
+├── base/
+├── luci/
+├── packages/
+├── mt6990-apk-public-key.pem
+├── repository.manifest
+└── SHA256SUMS
+```
+
+这可确保个人软件库中的 APK 和固件来自同一次构建。APK 私钥只应保存在自己的构建机上，禁止上传到 GitHub、复制进固件或发送给他人。
 
 ## 2026-08-21 维修固化说明
 
