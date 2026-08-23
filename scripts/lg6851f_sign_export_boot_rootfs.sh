@@ -8,7 +8,8 @@
 #   ./scripts/lg6851f_sign_export_boot_rootfs.sh
 #
 # All persistent outputs are written only to:
-#   /home/zjl-pc/openwrt/boot和rootfs签名成功包/
+#   /home/zjl-pc/openwrt/A槽单刷boot和rootfs签名成功包/
+#   /home/zjl-pc/openwrt/B槽单刷boot和rootfs签名成功包/
 #
 # Notes:
 # - This script uses the MTK signing toolchain only for post-build boot signing.
@@ -29,7 +30,8 @@ KDIR="$OWRT/build_dir/target-aarch64_cortex-a55+neon-vfpv4_musl/linux-mediatek_m
 BOOT_PART_SIZE=33554432
 ROOTFS_PART_SIZE=134217728
 
-FINAL_DIR="$OWRT/boot和rootfs签名成功包"
+FINAL_A_DIR="$OWRT/A槽单刷boot和rootfs签名成功包"
+FINAL_DIR="$OWRT/B槽单刷boot和rootfs签名成功包"
 WORK="$(mktemp -d /tmp/lg6851f-sign.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
@@ -310,6 +312,17 @@ PY
 
 sha256sum "$FINAL_BOOT" "$FINAL_ROOTFS" | tee "$SHA_FILE"
 
+# A and B use the same verified signed kernel/rootfs bytes.  Export explicit
+# slot-named copies so offline flash users cannot confuse the target names.
+mkdir -p "$FINAL_A_DIR"
+rm -f "$FINAL_A_DIR/boot_a.img" "$FINAL_A_DIR/rootfs_a.img" \
+	"$FINAL_A_DIR/SHA256SUMS.txt" "$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json"
+cp -f "$FINAL_BOOT" "$FINAL_A_DIR/boot_a.img"
+cp -f "$FINAL_ROOTFS" "$FINAL_A_DIR/rootfs_a.img"
+sed 's/boot_b/boot_a/g; s/rootfs_b/rootfs_a/g' "$MANIFEST" > \
+	"$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json"
+sha256sum "$FINAL_A_DIR/boot_a.img" "$FINAL_A_DIR/rootfs_a.img" > "$FINAL_A_DIR/SHA256SUMS.txt"
+
 echo
 echo "===== final files ====="
 file "$FINAL_BOOT" "$FINAL_ROOTFS" "$UNSIGNED_BOOT"
@@ -321,3 +334,5 @@ echo "RESULT=LG6851F_SIGNED_BOOT_ROOTFS_READY"
 echo "BOOT=$FINAL_BOOT"
 echo "ROOTFS=$FINAL_ROOTFS"
 echo "MANIFEST=$MANIFEST"
+echo "A_BOOT=$FINAL_A_DIR/boot_a.img"
+echo "A_ROOTFS=$FINAL_A_DIR/rootfs_a.img"

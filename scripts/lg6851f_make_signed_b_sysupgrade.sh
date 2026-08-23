@@ -5,7 +5,7 @@
 set -eu
 
 OWRT="${OWRT:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
-SIGNED_DIR="$OWRT/boot和rootfs签名成功包"
+SIGNED_DIR="$OWRT/B槽单刷boot和rootfs签名成功包"
 OUT_DIR="$OWRT/bin/targets/mediatek/mt6990"
 OUT="$OUT_DIR/lg6851f-mt6990-b-signed-sysupgrade.tar.gz"
 BOOT="$SIGNED_DIR/boot_b.img"

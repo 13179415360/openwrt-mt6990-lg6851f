@@ -65,7 +65,8 @@ make -j4 V=s
 
 ```text
 bin/targets/mediatek/mt6990/
-boot和rootfs签名成功包/
+A槽单刷boot和rootfs签名成功包/
+B槽单刷boot和rootfs签名成功包/
 ```
 
 关键产物包括：

@@ -10,5 +10,8 @@ This is the complete MTK mkimg container with cert1/cert2, not the unsigned
 connsys_gnss.bin.  It contains platform firmware, not per-device calibration.
 
 The file lives in the target source overlay so OpenWrt clean operations do not
-remove it.  Recovery code is hard-limited to /dev/mmcblk0p27 with GPT PARTNAME
-connsys_gnss_b.  Slot A (/dev/mmcblk0p14) must never be written.
+remove it. The exact same verified container is shared by both slots; package
+builders rename it to connsys_gnss_a.img or connsys_gnss_b.img. Recovery code
+hard-limits A to /dev/mmcblk0p14 with PARTNAME=connsys_gnss_a and B to
+/dev/mmcblk0p27 with PARTNAME=connsys_gnss_b. Each path also checks bootslot,
+partition number, size and SHA256 before any write.

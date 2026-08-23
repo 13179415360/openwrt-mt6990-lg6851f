@@ -1,0 +1,8 @@
+#!/bin/sh
+# Restore A-slot CONN_RO/GNSS before network, Wi-Fi and modem startup.
+
+lg6851f_repair_connsys_gnss_a() {
+	/usr/sbin/lg6851f-repair-connsys-gnss-a >/dev/null 2>&1 || true
+}
+
+boot_hook_add preinit_main lg6851f_repair_connsys_gnss_a

@@ -1,0 +1,60 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Restore only LG6851F A-slot CONN_RO/GNSS from the shared verified image.
+
+SOURCE=/usr/lib/firmware/lg6851f/connsys_gnss_b.img
+TARGET=/dev/mmcblk0p14
+SYS=/sys/class/block/mmcblk0p14
+EXPECTED_SHA=633a1e2a19593d9cf12db4e140d893da9d1817c721381848831d90afc0b02463
+EXPECTED_SIZE=8388608
+TRACE_MNT=/tmp/lg6851f-gnss-repair-data
+
+trace() {
+	logger -t MT6990-GNSS-REPAIR "$*"
+	[ -b /dev/mmcblk0p46 ] || return 0
+	[ "$(cat /sys/class/block/mmcblk0p46/partition 2>/dev/null)" = 46 ] || return 0
+	[ "$(cat /sys/class/block/mmcblk0p46/size 2>/dev/null)" = 5187456 ] || return 0
+	grep -qx 'PARTNAME=user_data' /sys/class/block/mmcblk0p46/uevent 2>/dev/null || return 0
+	mkdir -p "$TRACE_MNT"
+	grep -q " $TRACE_MNT " /proc/mounts 2>/dev/null ||
+		mount -t ext4 -o rw,noatime,nosuid,nodev /dev/mmcblk0p46 "$TRACE_MNT" 2>/dev/null || return 0
+	mkdir -p "$TRACE_MNT/openwrt-sysupgrade"
+	printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >> "$TRACE_MNT/openwrt-sysupgrade/connsys-gnss-a-repair.log"
+	sync
+	umount "$TRACE_MNT" 2>/dev/null || true
+}
+
+valid_target() {
+	grep -qw 'bootslot=a' /proc/cmdline 2>/dev/null || return 1
+	grep -aq 'fiberhome,lg6851f' /proc/device-tree/compatible 2>/dev/null || return 1
+	[ -b "$TARGET" ] || return 1
+	[ "$(cat "$SYS/partition" 2>/dev/null)" = 14 ] || return 1
+	[ "$(cat "$SYS/size" 2>/dev/null)" = 16384 ] || return 1
+	grep -qx 'PARTNAME=connsys_gnss_a' "$SYS/uevent" 2>/dev/null || return 1
+}
+
+valid_source() {
+	[ -f "$SOURCE" ] || return 1
+	[ "$(wc -c < "$SOURCE" | tr -d ' ')" = "$EXPECTED_SIZE" ] || return 1
+	[ "$(dd if="$SOURCE" bs=1 count=4 2>/dev/null | hexdump -v -e '1/1 "%02x"')" = 88168858 ] || return 1
+	[ "$(dd if="$SOURCE" bs=1 skip=8 count=12 2>/dev/null)" = connsys_gnss ] || return 1
+	[ "$(sha256sum "$SOURCE" | cut -d ' ' -f 1)" = "$EXPECTED_SHA" ]
+}
+
+repair() {
+	local current after
+	valid_target || return 0
+	valid_source || { trace "FAIL embedded official image validation; p14 not touched"; return 1; }
+	current="$(sha256sum "$TARGET" 2>/dev/null | cut -d ' ' -f 1)"
+	[ "$current" = "$EXPECTED_SHA" ] && { logger -t MT6990-GNSS-REPAIR "PASS p14 already healthy"; return 0; }
+	trace "BEGIN p14 repair old_sha256=$current"
+	dd if="$SOURCE" of="$TARGET" bs=1M conv=fsync 2>/dev/null || { trace "FAIL p14 write"; return 1; }
+	sync
+	after="$(sha256sum "$TARGET" 2>/dev/null | cut -d ' ' -f 1)"
+	[ "$after" = "$EXPECTED_SHA" ] || { trace "FAIL p14 readback expected=$EXPECTED_SHA actual=$after"; return 1; }
+	trace "PASS p14 restored and readback verified sha256=$after; rebooting once"
+	sync
+	reboot -f
+}
+
+repair

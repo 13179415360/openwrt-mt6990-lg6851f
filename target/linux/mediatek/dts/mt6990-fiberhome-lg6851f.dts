@@ -4447,6 +4447,7 @@
 		mediatek,force-vbus;
 		mediatek,clk-mgr;
 		mediatek,original-qmu-gpd;
+		mediatek,qmu-gpd-checksum;
 		mediatek,usb3-drd;
 		mediatek,gen1-txdeemph;
 		usb-role-switch;

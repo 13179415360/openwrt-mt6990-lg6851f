@@ -7,7 +7,8 @@ set -eu
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 record_file="$repo_dir/MT6990设备维修记录.md"
 image_dir="$repo_dir/bin/targets/mediatek/mt6990"
-signed_dir="$repo_dir/boot和rootfs签名成功包"
+signed_a_dir="$repo_dir/A槽单刷boot和rootfs签名成功包"
+signed_dir="$repo_dir/B槽单刷boot和rootfs签名成功包"
 connsys_gnss="$repo_dir/target/linux/mediatek/mt6990/base-files/usr/lib/firmware/lg6851f/connsys_gnss_b.img"
 
 [ -f "$connsys_gnss" ] || {
@@ -62,6 +63,10 @@ if grep -qx 'CONFIG_TARGET_mediatek_mt6990=y' "$repo_dir/.config" &&
 		printf 'ERROR: standard make did not produce signed Web sysupgrade package\n' >&2
 		exit 1
 	}
+	[ -f "$image_dir/lg6851f-mt6990-a-signed-sysupgrade.tar.gz" ] || {
+		printf 'ERROR: standard make did not produce A-slot signed Web sysupgrade package\n' >&2
+		exit 1
+	}
 else
 	printf '%s\n' "非 MT6990/LG6851F 配置，跳过设备产物验证。"
 fi
@@ -87,13 +92,22 @@ timestamp=$(date '+%Y-%m-%d %H:%M:%S %Z')
 	done
 
 	if [ -f "$signed_dir/boot_b.img" ] && [ -f "$signed_dir/rootfs_b.img" ]; then
-		printf -- '- 自动签名：成功，固定目录 `%s`\n' "boot和rootfs签名成功包/"
+		printf -- '- B槽自动签名：成功，固定目录 `%s`\n' "B槽单刷boot和rootfs签名成功包/"
 		for image in boot_b.img rootfs_b.img; do
 			image_path="$signed_dir/$image"
 			size=$(stat -c '%s' "$image_path")
 			hash=$(sha256sum "$image_path" | cut -d ' ' -f 1)
 			printf -- '- 签名成品 `%s`: 大小 %s，SHA256 `%s`\n' \
-				"boot和rootfs签名成功包/$image" "$size" "$hash"
+				"B槽单刷boot和rootfs签名成功包/$image" "$size" "$hash"
+		done
+	fi
+	if [ -f "$signed_a_dir/boot_a.img" ] && [ -f "$signed_a_dir/rootfs_a.img" ]; then
+		printf -- '- A槽自动签名：成功，固定目录 `%s`\n' "A槽单刷boot和rootfs签名成功包/"
+		for image in boot_a.img rootfs_a.img; do
+			image_path="$signed_a_dir/$image"
+			printf -- '- 签名成品 `%s`: 大小 %s，SHA256 `%s`\n' \
+				"A槽单刷boot和rootfs签名成功包/$image" \
+				"$(stat -c '%s' "$image_path")" "$(sha256sum "$image_path" | cut -d ' ' -f 1)"
 		done
 	fi
 

@@ -136,7 +136,8 @@ world: prepare $(target/stamp-compile) $(package/stamp-compile) $(package/stamp-
 	$(if $(CONFIG_TARGET_mediatek_mt6990_DEVICE_fiberhome_lg6851f), \
 		@echo 'MT6990/LG6851F: finalizing signed boot/rootfs and LuCI sysupgrade package'; \
 		OWRT='$(TOPDIR)' '$(TOPDIR)/scripts/lg6851f_sign_export_boot_rootfs.sh' && \
-		OWRT='$(TOPDIR)' '$(TOPDIR)/scripts/lg6851f_make_signed_b_sysupgrade.sh';) 
+		OWRT='$(TOPDIR)' '$(TOPDIR)/scripts/lg6851f_make_signed_a_sysupgrade.sh' && \
+		OWRT='$(TOPDIR)' '$(TOPDIR)/scripts/lg6851f_make_signed_b_sysupgrade.sh';)
 	$(_SINGLE)$(SUBMAKE) -r checksum
 ifneq ($(CONFIG_CCACHE),)
 	$(STAGING_DIR_HOST)/bin/ccache -s

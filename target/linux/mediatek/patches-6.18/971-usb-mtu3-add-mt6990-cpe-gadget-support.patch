@@ -23,8 +23,74 @@ From: OpenWrt MT6990 repair <local@mt6990>\nSubject: [PATCH] usb: mtu3: add MT69
 +		dev_info(mtu->dev, "use original QMU GPD format\n");
 +	}
  
- 	value = mtu3_readl(mtu->ippc_base, U3D_SSUSB_IP_DEV_CAP);
- 	mtu->u3_capable = !!SSUSB_IP_DEV_U3_PORT_NUM(value);
+	value = mtu3_readl(mtu->ippc_base, U3D_SSUSB_IP_DEV_CAP);
+	mtu->u3_capable = !!SSUSB_IP_DEV_U3_PORT_NUM(value);
+--- a/drivers/usb/mtu3/mtu3_qmu.c
++++ b/drivers/usb/mtu3/mtu3_qmu.c
+@@ -68,5 +68,26 @@
+ })
+ 
++/* MT6990's original 16-byte GPD format uses byte 1 as a checksum. */
++static bool mtu3_qmu_gpd_checksum_enabled(struct mtu3 *mtu)
++{
++	return device_property_read_bool(mtu->dev,
++					 "mediatek,qmu-gpd-checksum");
++}
++
++static void mtu3_qmu_set_gpd_checksum(struct qmu_gpd *gpd)
++{
++	u8 *data = (u8 *)gpd;
++	u8 checksum = GPD_FLAGS_HWO | GPD_FLAGS_IOC;
++	int i;
++
++	data[1] = 0;
++	/* Hardware validates the final IOC/HWO flags written after this. */
++	for (i = 0; i < sizeof(*gpd); i++)
++		checksum += data[i];
++
++	data[1] = 0xff - checksum;
++}
++
+ static dma_addr_t gpd_virt_to_dma(struct mtu3_gpd_ring *ring,
+ 				  struct qmu_gpd *gpd)
+ {
+@@ -262,6 +283,9 @@ static int mtu3_prepare_tx_gpd(struct mt
+ 		else
+ 			gpd->dw3_info |= cpu_to_le32(GPD_EXT_FLAG_ZLP);
+ 	}
++	if (mtu3_qmu_gpd_checksum_enabled(mtu))
++		mtu3_qmu_set_gpd_checksum(gpd);
++
+ 
+ 	/* prevent reorder, make sure GPD's HWO is set last */
+ 	mb();
+@@ -298,5 +322,8 @@ static int mtu3_prepare_rx_gpd(struct mt
+ 	ext_addr |= GPD_EXT_NGP(mtu, upper_32_bits(enq_dma));
+ 	gpd->dw3_info = cpu_to_le32(ext_addr);
++	if (mtu3_qmu_gpd_checksum_enabled(mtu))
++		mtu3_qmu_set_gpd_checksum(gpd);
++
+ 	/* prevent reorder, make sure GPD's HWO is set last */
+ 	mb();
+ 	gpd->dw0_info |= cpu_to_le32(GPD_FLAGS_IOC | GPD_FLAGS_HWO);
+@@ -330,5 +357,8 @@ int mtu3_qmu_start(struct mtu3_ep *mep)
+ 		write_txq_start_addr(mbase, epnum, ring->dma);
+ 		mtu3_setbits(mbase, MU3D_EP_TXCR0(epnum), TX_DMAREQEN);
++		if (mtu3_qmu_gpd_checksum_enabled(mtu))
++			mtu3_setbits(mbase, U3D_QCR0, QMU_TX_CS_EN(epnum));
++
+ 		/* send zero length packet according to ZLP flag in GPD */
+ 		mtu3_setbits(mbase, U3D_QCR1, QMU_TX_ZLP(epnum));
+ 		mtu3_writel(mbase, U3D_TQERRIESR0,
+@@ -347,5 +377,8 @@ int mtu3_qmu_start(struct mtu3_ep *mep)
+ 		write_rxq_start_addr(mbase, epnum, ring->dma);
+ 		mtu3_setbits(mbase, MU3D_EP_RXCR0(epnum), RX_DMAREQEN);
++		if (mtu3_qmu_gpd_checksum_enabled(mtu))
++			mtu3_setbits(mbase, U3D_QCR0, QMU_RX_CS_EN(epnum));
++
+ 		/* don't expect ZLP */
+ 		mtu3_clrbits(mbase, U3D_QCR3, QMU_RX_ZLP(epnum));
+ 		/* move to next GPD when receive ZLP */
 --- a/drivers/usb/mtu3/mtu3_dr.c
 +++ b/drivers/usb/mtu3/mtu3_dr.c
 @@ -8,6 +8,8 @@
@@ -351,4 +417,3 @@ From: OpenWrt MT6990 repair <local@mt6990>\nSubject: [PATCH] usb: mtu3: add MT69
  	/* update parameters of slew rate calibrate if exist */
  	device_property_read_u32(dev, "mediatek,src-ref-clk-mhz",
  				 &xsphy->src_ref_clk);
-

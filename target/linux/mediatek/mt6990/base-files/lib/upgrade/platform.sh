@@ -52,6 +52,95 @@ lg6851f_control_value() {
 	sed -n "s/^$2=//p" "$1"
 }
 
+lg6851f_check_a_image() {
+	local control="$1" boot_size rootfs_size boot_sha rootfs_sha connsys_size connsys_sha
+	grep -qw 'bootslot=a' /proc/cmdline || {
+		echo "This is the A-slot Web package, but the device is not running slot A."
+		return 1
+	}
+	[ "$(lg6851f_control_value "$control" slot)" = a ] || return 1
+	[ "$(lg6851f_control_value "$control" boot_partition)" = boot_a ] || return 1
+	[ "$(lg6851f_control_value "$control" rootfs_partition)" = rootfs_a ] || return 1
+	[ "$(lg6851f_control_value "$control" connsys_gnss_partition)" = connsys_gnss_a ] || return 1
+	[ "$(lg6851f_control_value "$control" touches_slot_b)" = 0 ] || return 1
+	[ "$(lg6851f_control_value "$control" touches_bootctrl)" = priority-and-a-retry ] || return 1
+	boot_size="$(lg6851f_control_value "$control" boot_size)"
+	rootfs_size="$(lg6851f_control_value "$control" rootfs_size)"
+	boot_sha="$(lg6851f_control_value "$control" boot_sha256)"
+	rootfs_sha="$(lg6851f_control_value "$control" rootfs_sha256)"
+	connsys_size="$(lg6851f_control_value "$control" connsys_gnss_size)"
+	connsys_sha="$(lg6851f_control_value "$control" connsys_gnss_sha256)"
+	[ "$boot_size" = 33554432 ] && [ "$rootfs_size" = 134217728 ] || return 1
+	[ "$connsys_size" = 8388608 ] || return 1
+	[ "${#boot_sha}" = 64 ] && [ -z "$(echo "$boot_sha" | sed 's/[0-9a-f]//g')" ] || return 1
+	[ "${#rootfs_sha}" = 64 ] && [ -z "$(echo "$rootfs_sha" | sed 's/[0-9a-f]//g')" ] || return 1
+	[ "$connsys_sha" = 633a1e2a19593d9cf12db4e140d893da9d1817c721381848831d90afc0b02463 ] || return 1
+	[ -b /dev/mmcblk0p14 ] && [ -b /dev/mmcblk0p25 ] && [ -b /dev/mmcblk0p26 ] || return 1
+	[ "$(cat /sys/class/block/mmcblk0p14/partition)" = 14 ] || return 1
+	[ "$(cat /sys/class/block/mmcblk0p14/size)" = 16384 ] || return 1
+	grep -qx 'PARTNAME=connsys_gnss_a' /sys/class/block/mmcblk0p14/uevent || return 1
+	[ "$(cat /sys/class/block/mmcblk0p25/size)" = 65536 ] || return 1
+	[ "$(cat /sys/class/block/mmcblk0p26/size)" = 262144 ] || return 1
+	echo "LG6851F fixed-A package header verified; synchronized writes and partition headers will be checked during upgrade."
+}
+
+lg6851f_do_upgrade_a() {
+	local image="$1" magic before after expected control connsys_expected connsys_actual
+	lg6851f_trace "BEGIN image=$image slot=a"
+	control=/tmp/lg6851f-upgrade-control
+	connsys_expected="$(lg6851f_control_value "$control" connsys_gnss_sha256)"
+	[ "$connsys_expected" = 633a1e2a19593d9cf12db4e140d893da9d1817c721381848831d90afc0b02463 ] || {
+		lg6851f_trace "FAIL invalid connsys_gnss_a declaration"; exit 1;
+	}
+	[ "$(cat /sys/class/block/mmcblk0p14/partition 2>/dev/null)" = 14 ] &&
+		[ "$(cat /sys/class/block/mmcblk0p14/size 2>/dev/null)" = 16384 ] &&
+		grep -qx 'PARTNAME=connsys_gnss_a' /sys/class/block/mmcblk0p14/uevent 2>/dev/null || {
+		lg6851f_trace "FAIL p14 target identity mismatch; no image partitions touched"; exit 1;
+	}
+	connsys_actual="$(sha256sum /dev/mmcblk0p14 2>/dev/null | cut -d ' ' -f 1)"
+	if [ "$connsys_actual" = "$connsys_expected" ]; then
+		lg6851f_trace "PASS connsys_gnss_a already healthy; write skipped"
+	else
+		echo "Restoring signed connsys_gnss_a to /dev/mmcblk0p14 ..."
+		lg6851f_trace "WRITE connsys_gnss_a old_sha256=$connsys_actual mode=tar-direct+sync+sha256"
+		tar -xOzf "$image" connsys_gnss_a.img > /dev/mmcblk0p14 || { lg6851f_trace "FAIL connsys_gnss_a write"; exit 1; }
+		sync
+		connsys_actual="$(sha256sum /dev/mmcblk0p14 2>/dev/null | cut -d ' ' -f 1)"
+		[ "$connsys_actual" = "$connsys_expected" ] || {
+			lg6851f_trace "FAIL connsys_gnss_a readback expected=$connsys_expected actual=$connsys_actual"; exit 1;
+		}
+		lg6851f_trace "PASS connsys_gnss_a restored and readback verified sha256=$connsys_actual"
+	fi
+	echo "Writing rootfs_a to /dev/mmcblk0p26 ..."
+	tar -xOzf "$image" rootfs_a.img > /dev/mmcblk0p26 || exit 1
+	sync
+	magic="$(dd if=/dev/mmcblk0p26 bs=1 count=4 2>/dev/null | hexdump -v -e '1/1 "%02x"')"
+	[ "$magic" = 68737173 ] || { lg6851f_trace "FAIL rootfs_a magic=$magic"; exit 1; }
+	lg6851f_trace "PASS rootfs_a synced magic=hsqs"
+	echo "Writing boot_a to /dev/mmcblk0p25 ..."
+	tar -xOzf "$image" boot_a.img > /dev/mmcblk0p25 || exit 1
+	sync
+	magic="$(dd if=/dev/mmcblk0p25 bs=1 count=8 2>/dev/null | hexdump -v -e '1/1 "%02x"')"
+	[ "$magic" = 414e44524f494421 ] || { lg6851f_trace "FAIL boot_a magic=$magic"; exit 1; }
+	lg6851f_trace "PASS boot_a synced magic=ANDROID!"
+	dd if=/dev/mmcblk0p1 of=/tmp/lg6851f-bootctrl10.before bs=1 skip=2060 count=10 2>/dev/null || exit 1
+	before="$(hexdump -v -e '1/1 "%02x"' /tmp/lg6851f-bootctrl10.before)"
+	[ "${#before}" = 20 ] || exit 1
+	expected="0f00${before:4:6}0e${before:12:8}"
+	printf '\017\000' | dd of=/dev/mmcblk0p1 bs=1 seek=2060 count=2 conv=notrunc 2>/dev/null || exit 1
+	printf '\016' | dd of=/dev/mmcblk0p1 bs=1 seek=2065 count=1 conv=notrunc 2>/dev/null || exit 1
+	sync
+	after="$(dd if=/dev/mmcblk0p1 bs=1 skip=2060 count=10 2>/dev/null | hexdump -v -e '1/1 "%02x"')"
+	[ "$after" = "$expected" ] || {
+		dd if=/tmp/lg6851f-bootctrl10.before of=/dev/mmcblk0p1 bs=1 count=10 seek=2060 conv=notrunc 2>/dev/null
+		sync; lg6851f_trace "FAIL bootctrl A verify expected=$expected actual=$after"; exit 1
+	}
+	rm -f /tmp/lg6851f-bootctrl10.before
+	lg6851f_trace "COMPLETE connsys_gnss_a+boot_a+rootfs_a; verification=GNSS-sha256+boot/rootfs-magic slot_b=untouched bootctrl=A-priority+A-retry-reset"
+	umount "$LG6851F_TRACE_MNT" 2>/dev/null || true
+	echo "LG6851F A-slot upgrade complete; A is the verified next boot target."
+}
+
 platform_check_image() {
 	local image="$1" board format boot_size rootfs_size boot_sha rootfs_sha image_size control
 	local connsys_size connsys_sha
@@ -87,11 +176,19 @@ platform_check_image() {
 		return 1
 	}
 	format="$(lg6851f_control_value "$control" format)"
+	if [ "$format" = lg6851f-mt6990-a-signed-v1 ]; then
+		lg6851f_check_a_image "$control"
+		return $?
+	fi
 	[ "$format" = lg6851f-mt6990-b-signed-v1 ] || {
 		echo "Unsupported LG6851F upgrade format: $format"
 		return 1
 	}
 	[ "$(lg6851f_control_value "$control" slot)" = b ] || return 1
+	grep -qw 'bootslot=b' /proc/cmdline || {
+		echo "This is the B-slot Web package, but the device is not running slot B."
+		return 1
+	}
 	[ "$(lg6851f_control_value "$control" touches_slot_a)" = 0 ] || return 1
 	[ "$(lg6851f_control_value "$control" touches_bootctrl)" = priority-and-b-retry ] || return 1
 
@@ -133,6 +230,10 @@ platform_do_upgrade() {
 		lg6851f_trace "FAIL unable to read CONTROL prefix"
 		exit 1
 	}
+	if [ "$(lg6851f_control_value "$control" slot)" = a ]; then
+		lg6851f_do_upgrade_a "$image"
+		return
+	fi
 	connsys_expected="$(lg6851f_control_value "$control" connsys_gnss_sha256)"
 	[ "$connsys_expected" = 633a1e2a19593d9cf12db4e140d893da9d1817c721381848831d90afc0b02463 ] || {
 		lg6851f_trace "FAIL invalid connsys_gnss_b declaration"
