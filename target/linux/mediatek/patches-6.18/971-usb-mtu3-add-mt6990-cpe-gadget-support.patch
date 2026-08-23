@@ -1,0 +1,354 @@
+From: OpenWrt MT6990 repair <local@mt6990>\nSubject: [PATCH] usb: mtu3: add MT6990 CPE gadget compatibility\n\nRestore the vendor PHY power sequence, clock-managed role transition,\nforced VBUS handling and original QMU GPD layout required by LG6851F.\nAll non-generic behavior is selected explicitly through DT properties.\n\n--- a/drivers/usb/mtu3/mtu3_core.c
++++ b/drivers/usb/mtu3/mtu3_core.c
+@@ -93,7 +93,7 @@
+ }
+ 
+ /* only port0 of U2/U3 supports device mode */
+-static int mtu3_device_enable(struct mtu3 *mtu)
++int mtu3_device_enable(struct mtu3 *mtu)
+ {
+ 	void __iomem *ibase = mtu->ippc_base;
+ 	u32 check_clk = 0;
+@@ -859,6 +859,15 @@
+ 	value = mtu3_readl(mtu->ippc_base, U3D_SSUSB_IP_TRUNK_VERS);
+ 	mtu->hw_version = IP_TRUNK_VERS(value);
+ 	mtu->gen2cp = !!(mtu->hw_version >= MTU3_TRUNK_VERS_1003);
++	/* Some MT6990 CPE variants report trunk 0x1007 but retain the
++	 * original QMU GPD layout.  The extended layout makes a 24-byte RX
++	 * buffer look like one byte to hardware and breaks ADB's CNXN packet.
++	 */
++	if (device_property_read_bool(mtu->dev,
++				      "mediatek,original-qmu-gpd")) {
++		mtu->gen2cp = false;
++		dev_info(mtu->dev, "use original QMU GPD format\n");
++	}
+ 
+ 	value = mtu3_readl(mtu->ippc_base, U3D_SSUSB_IP_DEV_CAP);
+ 	mtu->u3_capable = !!SSUSB_IP_DEV_U3_PORT_NUM(value);
+--- a/drivers/usb/mtu3/mtu3_dr.c
++++ b/drivers/usb/mtu3/mtu3_dr.c
+@@ -8,6 +8,8 @@
+  */
+ 
+ #include <linux/string_choices.h>
++#include <linux/of_platform.h>
++#include <linux/iopoll.h>
+ #include "mtu3.h"
+ #include "mtu3_dr.h"
+ #include "mtu3_debug.h"
+@@ -87,6 +89,8 @@
+ static void switch_port_to_device(struct ssusb_mtk *ssusb)
+ {
+ 	u32 check_clk = 0;
++	u32 value;
++	unsigned int i;
+ 
+ 	dev_dbg(ssusb->dev, "%s\n", __func__);
+ 
+@@ -98,6 +102,73 @@
+ 	}
+ 
+ 	ssusb_check_clocks(ssusb, check_clk);
++
++	/*
++	 * The MT6990 board has no usable VBUS-valid pin in device mode.
++	 * Match the vendor MTU3 sequence selected by mediatek,force-vbus:
++	 * put every PHY into peripheral mode and make the device controller
++	 * see VBUS before mtu3_start() asserts the gadget pull-up.
++	 */
++	for (i = 0; i < ssusb->num_phys; i++) {
++		phy_set_mode(ssusb->phys[i], PHY_MODE_USB_DEVICE);
++	}
++
++	if (device_property_read_bool(ssusb->dev, "mediatek,force-vbus")) {
++		value = mtu3_readl(ssusb->ippc_base, SSUSB_U2_CTRL(0));
++		value &= ~SSUSB_U2_PORT_OTG_SEL;
++		mtu3_writel(ssusb->ippc_base, SSUSB_U2_CTRL(0), value);
++
++		mtu3_setbits(ssusb->mac_base, U3D_MISC_CTRL,
++			      VBUS_FRC_EN | VBUS_ON);
++	}
++}
++
++static void mt6990_clk_mgr_port_off(struct ssusb_mtk *ssusb)
++{
++	void __iomem *ibase = ssusb->ippc_base;
++	u32 value;
++	unsigned int i;
++
++	dev_info(ssusb->dev, "clk-mgr port off\n");
++	synchronize_irq(ssusb->u3d->irq);
++	mtu3_setbits(ibase, SSUSB_U3_CTRL(0),
++		      SSUSB_U3_PORT_PDN | SSUSB_U3_PORT_DIS);
++	mtu3_clrbits(ibase, SSUSB_U3_CTRL(0), SSUSB_U3_PORT_DUAL_MODE);
++	mtu3_setbits(ibase, SSUSB_U2_CTRL(0),
++		      SSUSB_U2_PORT_PDN | SSUSB_U2_PORT_DIS);
++	mtu3_clrbits(ibase, SSUSB_U2_CTRL(0), SSUSB_U2_PORT_OTG_SEL);
++	mtu3_setbits(ibase, U3D_SSUSB_IP_PW_CTRL2, SSUSB_IP_DEV_PDN);
++	mtu3_setbits(ibase, U3D_SSUSB_IP_PW_CTRL1, SSUSB_IP_HOST_PDN);
++	readl_poll_timeout(ibase + U3D_SSUSB_IP_PW_STS1, value,
++			   value & SSUSB_IP_SLEEP_STS, 100, 100000);
++	for (i = 0; i < ssusb->num_phys; i++) {
++		phy_set_mode(ssusb->phys[i], PHY_MODE_INVALID);
++		phy_power_off(ssusb->phys[i]);
++	}
++	clk_bulk_disable_unprepare(BULK_CLKS_CNT, ssusb->clks);
++}
++
++static int mt6990_clk_mgr_device_on(struct ssusb_mtk *ssusb)
++{
++	unsigned int i;
++	int ret;
++
++	dev_info(ssusb->dev, "clk-mgr port on (%d)\n", PHY_MODE_USB_DEVICE);
++	ret = clk_bulk_prepare_enable(BULK_CLKS_CNT, ssusb->clks);
++	if (ret)
++		return ret;
++	for (i = 0; i < ssusb->num_phys; i++) {
++		ret = phy_power_on(ssusb->phys[i]);
++		if (ret)
++			return ret;
++		phy_set_mode(ssusb->phys[i], PHY_MODE_USB_DEVICE);
++	}
++	mtu3_setbits(ssusb->ippc_base, U3D_SSUSB_IP_PW_CTRL0,
++		      SSUSB_IP_SW_RST);
++	udelay(1);
++	mtu3_clrbits(ssusb->ippc_base, U3D_SSUSB_IP_PW_CTRL0,
++		      SSUSB_IP_SW_RST);
++	return mtu3_device_enable(ssusb->u3d);
+ }
+ 
+ int ssusb_set_vbus(struct otg_switch_mtk *otg_sx, int is_on)
+@@ -159,6 +230,16 @@
+ 		ssusb->is_host = true;
+ 		break;
+ 	case USB_ROLE_DEVICE:
++		if (device_property_read_bool(ssusb->dev, "mediatek,clk-mgr")) {
++			/* Match the MT6990 vendor host-to-device sequence. */
++			of_platform_depopulate(ssusb->dev);
++			mt6990_clk_mgr_port_off(ssusb);
++			if (mt6990_clk_mgr_device_on(ssusb)) {
++				dev_err(ssusb->dev,
++					"clk-mgr device power-on failed\n");
++				break;
++			}
++		}
+ 		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
+ 		ssusb->is_host = false;
+ 		ssusb_set_vbus(otg_sx, 0);
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -132,10 +132,12 @@
+ {
+ 	int ret = 0;
+ 
+-	ret = regulator_enable(ssusb->vusb33);
+-	if (ret) {
+-		dev_err(ssusb->dev, "failed to enable vusb33\n");
+-		goto vusb33_err;
++	if (ssusb->vusb33) {
++		ret = regulator_enable(ssusb->vusb33);
++		if (ret) {
++			dev_err(ssusb->dev, "failed to enable vusb33\n");
++			goto vusb33_err;
++		}
+ 	}
+ 
+ 	ret = clk_bulk_prepare_enable(BULK_CLKS_CNT, ssusb->clks);
+@@ -161,7 +163,8 @@
+ phy_init_err:
+ 	clk_bulk_disable_unprepare(BULK_CLKS_CNT, ssusb->clks);
+ clks_err:
+-	regulator_disable(ssusb->vusb33);
++	if (ssusb->vusb33)
++		regulator_disable(ssusb->vusb33);
+ vusb33_err:
+ 	return ret;
+ }
+@@ -169,7 +172,8 @@
+ static void ssusb_rscs_exit(struct ssusb_mtk *ssusb)
+ {
+ 	clk_bulk_disable_unprepare(BULK_CLKS_CNT, ssusb->clks);
+-	regulator_disable(ssusb->vusb33);
++	if (ssusb->vusb33)
++		regulator_disable(ssusb->vusb33);
+ 	ssusb_phy_power_off(ssusb);
+ 	ssusb_phy_exit(ssusb);
+ }
+@@ -226,8 +230,8 @@
+ 
+ 	ssusb->vusb33 = devm_regulator_get(dev, "vusb33");
+ 	if (IS_ERR(ssusb->vusb33)) {
+-		dev_err(dev, "failed to get vusb33\n");
+-		return PTR_ERR(ssusb->vusb33);
++		dev_warn(dev, "vusb33 provider unavailable, relying on boot firmware\n");
++		ssusb->vusb33 = NULL;
+ 	}
+ 
+ 	clks[0].id = "sys_ck";
+--- a/drivers/usb/mtu3/mtu3.h
++++ b/drivers/usb/mtu3/mtu3.h
+@@ -426,6 +426,7 @@
+ void mtu3_ep_stall_set(struct mtu3_ep *mep, bool set);
+ void mtu3_start(struct mtu3 *mtu);
+ void mtu3_stop(struct mtu3 *mtu);
++int mtu3_device_enable(struct mtu3 *mtu);
+ void mtu3_dev_on_off(struct mtu3 *mtu, int is_on);
+ 
+ int mtu3_gadget_setup(struct mtu3 *mtu);
+--- a/drivers/phy/mediatek/phy-mtk-xsphy.c
++++ b/drivers/phy/mediatek/phy-mtk-xsphy.c
+@@ -48,6 +48,7 @@
+ 
+ #define XSP_USBPHYACR0	((SSUSB_SIFSLV_U2PHY_COM) + 0x00)
+ #define P2A0_RG_INTR_EN	BIT(5)
++#define P2A0_RG_TX_PH_ROT_SEL GENMASK(26, 24)
+ 
+ #define XSP_USBPHYACR1		((SSUSB_SIFSLV_U2PHY_COM) + 0x04)
+ #define P2A1_RG_INTR_CAL		GENMASK(23, 19)
+@@ -61,8 +62,32 @@
+ #define XSP_USBPHYACR6		((SSUSB_SIFSLV_U2PHY_COM) + 0x018)
+ #define P2A6_RG_BC11_SW_EN	BIT(23)
+ #define P2A6_RG_OTG_VBUSCMP_EN	BIT(20)
++#define P2A6_RG_U2_PHY_REV6 GENMASK(31, 30)
++#define P2A6_RG_U2_PHY_REV GENMASK(31, 24)
++
++#define XSP_USBPHYACR4 ((SSUSB_SIFSLV_U2PHY_COM) + 0x020)
++#define P2A4_U2_GPIO_CTR_MSK (BIT(9) | BIT(8))
++#define XSP_U2PHYDTM0 ((SSUSB_SIFSLV_U2PHY_COM) + 0x068)
++#define P2D_FORCE_UART_EN BIT(26)
++#define P2D_FORCE_DATAIN BIT(23)
++#define P2D_FORCE_DM_PULLDOWN BIT(21)
++#define P2D_FORCE_DP_PULLDOWN BIT(20)
++#define P2D_FORCE_XCVRSEL BIT(19)
++#define P2D_FORCE_SUSPENDM BIT(18)
++#define P2D_FORCE_TERMSEL BIT(17)
++#define P2D_RG_DATAIN GENMASK(13, 10)
++#define P2D_RG_DMPULLDOWN BIT(7)
++#define P2D_RG_DPPULLDOWN BIT(6)
++#define P2D_RG_XCVRSEL GENMASK(5, 4)
++#define P2D_RG_SUSPENDM BIT(3)
++#define P2D_RG_TERMSEL BIT(2)
++#define P2D_DTM0_PART_MASK (P2D_FORCE_DATAIN | P2D_FORCE_DM_PULLDOWN | \
++	P2D_FORCE_DP_PULLDOWN | P2D_FORCE_XCVRSEL | P2D_FORCE_SUSPENDM | \
++	P2D_FORCE_TERMSEL | P2D_RG_DMPULLDOWN | P2D_RG_DPPULLDOWN | \
++	P2D_RG_TERMSEL)
+ 
+ #define XSP_U2PHYDTM1		((SSUSB_SIFSLV_U2PHY_COM) + 0x06C)
++#define P2D_RG_UART_EN BIT(16)
+ #define P2D_FORCE_IDDIG		BIT(9)
+ #define P2D_RG_VBUSVALID	BIT(5)
+ #define P2D_RG_SESSEND		BIT(4)
+@@ -71,6 +96,22 @@
+ 
+ #define SSPXTP_PHYA_GLB_00		((SSPXTP_SIFSLV_PHYA_GLB) + 0x00)
+ #define RG_XTP_GLB_BIAS_INTR_CTRL		GENMASK(21, 16)
++#define SSPXTP_DIG_GLB_28 ((SSPXTP_SIFSLV_DIG_GLB) + 0x028)
++#define RG_XTP_DAIF_GLB_TXPLL_IR GENMASK(17, 13)
++#define SSPXTP_DIG_GLB_38 ((SSPXTP_SIFSLV_DIG_GLB) + 0x038)
++#define RG_XTP_DAIF_GLB_SPLL_IR GENMASK(17, 13)
++#define SSPXTP_DAIG_LN_DAIF_04 ((SSPXTP_SIFSLV_DIG_LN_DAIF) + 0x04)
++#define RG_XTP0_DAIF_FRC_LN_RX_AEQ_ATT BIT(17)
++#define SSPXTP_DAIG_LN_DAIF_14 ((SSPXTP_SIFSLV_DIG_LN_DAIF) + 0x014)
++#define RG_XTP0_DAIF_LN_RX_AEQ_ATT GENMASK(20, 18)
++#define SSPXTP_DAIG_LN_DAIF_20 ((SSPXTP_SIFSLV_DIG_LN_DAIF) + 0x020)
++#define RG_XTP0_DAIF_LN_G1_RX_SGDT_HF GENMASK(23, 22)
++#define SSPXTP_DAIG_LN_DAIF_2C ((SSPXTP_SIFSLV_DIG_LN_DAIF) + 0x02c)
++#define RG_XTP0_DAIF_LN_G2_RX_SGDT_HF GENMASK(23, 22)
++#define SSPXTP_PHYA_LN_08 ((SSPXTP_SIFSLV_PHYA_LN) + 0x08)
++#define RG_XTP_LN0_TX_RXDET_HZ BIT(13)
++#define SSPXTP_PHYA_LN_30 ((SSPXTP_SIFSLV_PHYA_LN) + 0x030)
++#define RG_XTP_LN0_RX_AEQ_ATT BIT(14)
+ 
+ #define SSPXTP_PHYA_LN_04	((SSPXTP_SIFSLV_PHYA_LN) + 0x04)
+ #define RG_XTP_LN0_TX_IMPSEL		GENMASK(4, 0)
+@@ -116,6 +157,7 @@
+ 	int nphys;
+ 	int src_ref_clk; /* MHZ, reference clock for slew rate calibrate */
+ 	int src_coef;    /* coefficient for slew rate calibrate */
++	bool mt6990_power_seq;
+ };
+ 
+ static void u2_phy_slew_rate_calibrate(struct mtk_xsphy *xsphy,
+@@ -193,15 +235,61 @@
+ 	void __iomem *pbase = inst->port_base;
+ 	u32 index = inst->index;
+ 
++	if (xsphy->mt6990_power_seq) {
++		mtk_phy_set_bits(pbase + XSP_U2PHYDTM0, P2D_FORCE_SUSPENDM);
++		mtk_phy_clear_bits(pbase + XSP_U2PHYDTM0, P2D_RG_SUSPENDM);
++		mtk_phy_set_bits(pbase + XSP_U2PHYDTM0, P2D_RG_SUSPENDM);
++		udelay(30);
++		mtk_phy_clear_bits(pbase + XSP_U2PHYDTM0,
++				   P2D_FORCE_SUSPENDM | P2D_RG_SUSPENDM |
++				   P2D_FORCE_UART_EN | P2D_RG_XCVRSEL |
++				   P2D_RG_DATAIN | P2D_DTM0_PART_MASK);
++		mtk_phy_clear_bits(pbase + XSP_U2PHYDTM1, P2D_RG_UART_EN);
++		mtk_phy_clear_bits(pbase + XSP_USBPHYACR4,
++				   P2A4_U2_GPIO_CTR_MSK);
++		mtk_phy_clear_bits(pbase + XSP_USBPHYACR6, P2A6_RG_BC11_SW_EN);
++	}
++
+ 	mtk_phy_set_bits(pbase + XSP_USBPHYACR6, P2A6_RG_OTG_VBUSCMP_EN);
+ 
+ 	mtk_phy_update_bits(pbase + XSP_U2PHYDTM1,
+ 			    P2D_RG_VBUSVALID | P2D_RG_AVALID | P2D_RG_SESSEND,
+ 			    P2D_RG_VBUSVALID | P2D_RG_AVALID);
++	if (xsphy->mt6990_power_seq) {
++		mtk_phy_update_field(pbase + XSP_USBPHYACR6,
++				     P2A6_RG_U2_PHY_REV6, 1);
++		udelay(800);
++		mtk_phy_update_field(pbase + XSP_USBPHYACR0,
++				     P2A0_RG_TX_PH_ROT_SEL, 0);
++		mtk_phy_update_field(pbase + XSP_USBPHYACR6,
++				     P2A6_RG_U2_PHY_REV, 0);
++	}
+ 
+ 	dev_dbg(xsphy->dev, "%s(%d)\n", __func__, index);
+ }
+ 
++static void u3_phy_instance_power_on(struct mtk_xsphy *xsphy,
++				     struct xsphy_instance *inst)
++{
++	void __iomem *pbase = inst->port_base;
++
++	mtk_phy_clear_bits(pbase + SSPXTP_PHYA_LN_08, RG_XTP_LN0_TX_RXDET_HZ);
++	mtk_phy_update_field(xsphy->glb_base + SSPXTP_DIG_GLB_28,
++			     RG_XTP_DAIF_GLB_TXPLL_IR, 4);
++	mtk_phy_update_field(xsphy->glb_base + SSPXTP_DIG_GLB_38,
++			     RG_XTP_DAIF_GLB_SPLL_IR, 4);
++	mtk_phy_update_field(pbase + SSPXTP_DAIG_LN_DAIF_20,
++			     RG_XTP0_DAIF_LN_G1_RX_SGDT_HF, 2);
++	mtk_phy_update_field(pbase + SSPXTP_DAIG_LN_DAIF_2C,
++			     RG_XTP0_DAIF_LN_G2_RX_SGDT_HF, 2);
++	mtk_phy_set_bits(pbase + SSPXTP_PHYA_LN_30, RG_XTP_LN0_RX_AEQ_ATT);
++	mtk_phy_update_field(pbase + SSPXTP_DAIG_LN_DAIF_14,
++			     RG_XTP0_DAIF_LN_RX_AEQ_ATT, 7);
++	mtk_phy_set_bits(pbase + SSPXTP_DAIG_LN_DAIF_04,
++			 RG_XTP0_DAIF_FRC_LN_RX_AEQ_ATT);
++	dev_info(xsphy->dev, "%s(%d)\n", __func__, inst->index);
++}
++
+ static void u2_phy_instance_power_off(struct mtk_xsphy *xsphy,
+ 				      struct xsphy_instance *inst)
+ {
+@@ -418,7 +506,8 @@
+ 	if (inst->type == PHY_TYPE_USB2) {
+ 		u2_phy_instance_power_on(xsphy, inst);
+ 		u2_phy_slew_rate_calibrate(xsphy, inst);
+-	}
++	} else if (inst->type == PHY_TYPE_USB3 && xsphy->mt6990_power_seq)
++		u3_phy_instance_power_on(xsphy, inst);
+ 
+ 	return 0;
+ }
+@@ -543,6 +632,8 @@
+ 
+ 	xsphy->src_ref_clk = XSP_REF_CLK;
+ 	xsphy->src_coef = XSP_SLEW_RATE_COEF;
++	xsphy->mt6990_power_seq = device_property_read_bool(dev,
++						"mediatek,mt6990-power-sequence");
+ 	/* update parameters of slew rate calibrate if exist */
+ 	device_property_read_u32(dev, "mediatek,src-ref-clk-mhz",
+ 				 &xsphy->src_ref_clk);
+

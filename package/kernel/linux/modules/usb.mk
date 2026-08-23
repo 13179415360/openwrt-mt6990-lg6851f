@@ -1918,6 +1918,28 @@ endef
 $(eval $(call KernelPackage,usb-roles))
 
 
+define KernelPackage/usb-mtu3
+  TITLE:=MediaTek MTU3 dual-role USB controller
+  KCONFIG:= \
+	CONFIG_EXTCON \
+	CONFIG_USB_MTU3 \
+	CONFIG_USB_MTU3_DUAL_ROLE=y \
+	CONFIG_USB_MTU3_HOST=n \
+	CONFIG_USB_MTU3_GADGET=n \
+	CONFIG_USB_MTU3_DEBUG=n
+  DEPENDS:=@TARGET_mediatek +kmod-usb-gadget +kmod-usb-roles +kmod-usb-xhci-mtk
+  FILES:= \
+	$(LINUX_DIR)/drivers/extcon/extcon-core.ko \
+	$(LINUX_DIR)/drivers/usb/mtu3/mtu3.ko
+endef
+
+define KernelPackage/usb-mtu3/description
+ Kernel support for the MediaTek MTU3 dual-role USB controller.
+endef
+
+$(eval $(call KernelPackage,usb-mtu3))
+
+
 define KernelPackage/usb-xhci-hcd
   TITLE:=xHCI HCD (USB 3.0) support
   KCONFIG:= CONFIG_USB_XHCI_HCD
@@ -2001,4 +2023,3 @@ define KernelPackage/chaoskey/description
 endef
 
 $(eval $(call KernelPackage,chaoskey))
-

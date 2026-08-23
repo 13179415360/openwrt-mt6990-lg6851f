@@ -4446,6 +4446,7 @@
 		maximum-speed = "super-speed-plus";
 		mediatek,force-vbus;
 		mediatek,clk-mgr;
+		mediatek,original-qmu-gpd;
 		mediatek,usb3-drd;
 		mediatek,gen1-txdeemph;
 		usb-role-switch;
@@ -4479,6 +4480,7 @@
 	/* stock boot DTB lines 4241-4275: usb-phy0@11ec0000 */
 	usb-phy0@11ec0000 {
 		compatible = "mediatek,xsphy";
+		mediatek,mt6990-power-sequence;
 		reg = <0x00 0x11ec3000 0x00 0x200>;
 		#address-cells = <0x02>;
 		#size-cells = <0x02>;

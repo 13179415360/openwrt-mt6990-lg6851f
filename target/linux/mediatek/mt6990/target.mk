@@ -5,7 +5,7 @@ CPU_TYPE:=cortex-a55
 CPU_SUBTYPE:=neon-vfpv4
 KERNELNAME:=Image dtbs
 
-FEATURES+=boot-part ext4 fpu gpio pci pcie rootfs-part rtc squashfs usb
+FEATURES+=boot-part ext4 fpu gpio pci pcie rootfs-part rtc squashfs usb usbgadget
 
 # LG6851F uses an F2FS loop overlay.  On a newly created/rootfs-replaced
 # overlay, mount_root invokes mkfs.f2fs before it can persist configuration.

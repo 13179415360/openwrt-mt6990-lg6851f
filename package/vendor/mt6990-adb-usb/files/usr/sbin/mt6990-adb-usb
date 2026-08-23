@@ -1,0 +1,130 @@
+#!/bin/sh
+
+G=/sys/kernel/config/usb_gadget/mt6990_adb
+FFS=/dev/usb-ffs/adb
+ADBD=/usr/libexec/mt6990-adb/adbd_usb
+LIBDIR=/usr/libexec/mt6990-adb
+LOG=/tmp/mt6990-adb-usb.log
+VID=0x18d1
+PID=0x4ee7
+
+log() {
+	logger -t mt6990-adb-usb "$*"
+	echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"
+}
+
+unbind_udc() {
+	[ -e "$G/UDC" ] && echo "" > "$G/UDC" 2>/dev/null
+}
+
+stop_adbd() {
+	killall adbd_usb 2>/dev/null
+	for n in 1 2 3; do
+		pidof adbd_usb >/dev/null 2>&1 || break
+		sleep 1
+	done
+}
+
+teardown_gadget() {
+	unbind_udc
+	stop_adbd
+	umount "$FFS" 2>/dev/null
+	rm -f "$G/configs/c.1/ffs.adb" 2>/dev/null
+	rmdir "$G/functions/ffs.adb" 2>/dev/null
+	rmdir "$G/configs/c.1/strings/0x409" 2>/dev/null
+	rmdir "$G/configs/c.1" 2>/dev/null
+	rmdir "$G/strings/0x409" 2>/dev/null
+	rmdir "$G" 2>/dev/null
+}
+
+get_serial() {
+	local serial
+	if [ -r /proc/device-tree/chosen/serialno ]; then
+		serial="$(tr -d '\000\r\n ' </proc/device-tree/chosen/serialno)"
+	fi
+	[ -n "$serial" ] || serial=MT6990ADB
+	echo "$serial"
+}
+
+wait_for_udc() {
+	local n
+	for n in $(seq 1 30); do
+		[ -d /sys/class/udc/11201000.usb ] && return 0
+		sleep 2
+	done
+	return 1
+}
+
+ensure_configfs() {
+	grep -qE '[[:space:]]/sys/kernel/config[[:space:]]+configfs[[:space:]]' \
+		/proc/mounts && return 0
+	mount -t configfs configfs /sys/kernel/config || return 1
+	grep -qE '[[:space:]]/sys/kernel/config[[:space:]]+configfs[[:space:]]' \
+		/proc/mounts
+}
+
+setup_gadget() {
+	local serial
+
+	ensure_configfs || return 1
+	teardown_gadget
+	modprobe usb_f_fs 2>/dev/null
+	modprobe mtu3 2>/dev/null
+	wait_for_udc || return 1
+
+	[ -w /sys/class/usb_role/11201000.usb-role-switch/role ] &&
+		echo device > /sys/class/usb_role/11201000.usb-role-switch/role
+	sleep 2
+
+	serial="$(get_serial)"
+	mkdir -p "$G/strings/0x409" "$G/configs/c.1/strings/0x409"
+	echo "$VID" > "$G/idVendor"
+	echo "$PID" > "$G/idProduct"
+	echo 0x0200 > "$G/bcdUSB"
+	echo 0x0618 > "$G/bcdDevice"
+	echo OpenWrt > "$G/strings/0x409/manufacturer"
+	echo "MT6990 ADB" > "$G/strings/0x409/product"
+	echo "$serial" > "$G/strings/0x409/serialnumber"
+	echo ADB > "$G/configs/c.1/strings/0x409/configuration"
+	echo 120 > "$G/configs/c.1/MaxPower"
+	mkdir -p "$G/functions/ffs.adb" "$FFS"
+	ln -s "$G/functions/ffs.adb" "$G/configs/c.1/ffs.adb"
+	mount -t functionfs adb "$FFS" || return 1
+
+	LD_LIBRARY_PATH="$LIBDIR" "$ADBD" >>/tmp/mt6990-adbd.log 2>&1 &
+	for n in 1 2 3 4 5; do
+		[ -e "$FFS/ep1" ] && [ -e "$FFS/ep2" ] && break
+		sleep 1
+	done
+	[ -e "$FFS/ep1" ] && [ -e "$FFS/ep2" ] || return 1
+
+	echo 11201000.usb > "$G/UDC" || return 1
+	log "ADB-only gadget bound as ${VID}:${PID}, serial=$serial"
+	return 0
+}
+
+daemon_main() {
+	# START=99 runs at late boot.  Keep USB quiescent for a further minute so
+	# modem, Ethernet, Wi-Fi and their PHYs finish claiming their own ports.
+	log "late-boot guard: waiting 60 seconds before enabling ADB USB"
+	sleep 60
+
+	while ! setup_gadget; do
+		log "setup failed; retrying in 15 seconds"
+		sleep 15
+	done
+
+	while :; do
+		sleep 10
+		pidof adbd_usb >/dev/null 2>&1 || {
+			log "adbd exited; rebuilding gadget session"
+			while ! setup_gadget; do sleep 15; done
+		}
+	done
+}
+
+case "$1" in
+	daemon) daemon_main ;;
+	stop) teardown_gadget ;;
+	*) echo "usage: $0 {daemon|stop}" >&2; exit 1 ;;
+esac

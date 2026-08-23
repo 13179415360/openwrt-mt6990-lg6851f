@@ -8,6 +8,7 @@
 - FiberHome LG6851F 设备树和 B 槽启动布局
 - MT7996/MT7990 Wi-Fi 支持
 - LuCI 5G 模组管理
+- 已修复并实机验证 MT6990 专用 ADB USB：纯 FunctionFS ADB、通用 `18d1:4ee7` 标识，系统稳定启动 60 秒后自动启用，不创建 RNDIS/ECM/NCM USB 网卡
 - 兼容新旧硬件的双通道 PWM 风扇温控
 - CAKE 多用户公平性与空闲速率保护
 - APK 用户态兼容软件源
