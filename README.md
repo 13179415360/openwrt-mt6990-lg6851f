@@ -72,13 +72,23 @@ B槽单刷boot和rootfs签名成功包/
 关键产物包括：
 
 ```text
-boot_b.img
-rootfs_b.img
-lg6851f-mt6990-b-signed-sysupgrade.tar.gz
-SHA256SUMS
+A槽单刷boot和rootfs签名成功包/boot_a.img
+A槽单刷boot和rootfs签名成功包/rootfs_a.img
+B槽单刷boot和rootfs签名成功包/boot_b.img
+B槽单刷boot和rootfs签名成功包/rootfs_b.img
+bin/targets/mediatek/mt6990/lg6851f-mt6990-a-signed-sysupgrade.tar.gz
+bin/targets/mediatek/mt6990/lg6851f-mt6990-b-signed-sysupgrade.tar.gz
 ```
 
-Web 升级请使用 `lg6851f-mt6990-b-signed-sysupgrade.tar.gz`。刷写前必须核对设备型号、槽位和 SHA256。
+A 槽和 B 槽均可按个人使用方式选择刷机：需要使用哪个槽，就选择对应槽位的单刷 `boot+rootfs` 包；设备已经在某个槽正常运行时，也可选择同槽位的 Web 升级包继续更新。A 槽 Web 包只能在 A 槽使用，B 槽 Web 包只能在 B 槽使用，升级程序会检查当前启动槽位并拒绝跨槽刷写。刷写前必须核对设备型号、槽位和 SHA256。
+
+传统 OpenWrt 构建产物仍包括：
+
+```text
+boot_b.img
+rootfs_b.img
+SHA256SUMS
+```
 
 ## 配置与开发
 
