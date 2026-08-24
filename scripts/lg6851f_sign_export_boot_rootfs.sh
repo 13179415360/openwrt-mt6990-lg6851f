@@ -36,7 +36,9 @@ WORK="$(mktemp -d /tmp/lg6851f-sign.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 UNSIGNED_BOOT="$WORK/boot.img.unsigned"
+UNSIGNED_BOOT_A="$WORK/boot_a.img.unsigned"
 FINAL_BOOT="$FINAL_DIR/boot_b.img"
+FINAL_BOOT_A="$FINAL_A_DIR/boot_a.img"
 FINAL_ROOTFS="$FINAL_DIR/rootfs_b.img"
 MANIFEST="$FINAL_DIR/lg6851f-signed-boot-rootfs.manifest.json"
 SHA_FILE="$FINAL_DIR/SHA256SUMS.txt"
@@ -72,11 +74,13 @@ need_file "$SIGN_TOOL_DIR/sign_flow.py"
 need_file "${ROOT_KEY}_prvk.pem"
 need_file "${IMAGE_KEY}_prvk.pem"
 
-mkdir -p "$FINAL_DIR" "$WORK/in" "$WORK/log"
+mkdir -p "$FINAL_A_DIR" "$FINAL_DIR" "$WORK/in" "$WORK/in-a" "$WORK/log"
 
 # Never let a failed signing attempt leave an older boot image looking like
 # the result of the current build.
 rm -f "$FINAL_BOOT" "$MANIFEST" "$SHA_FILE"
+rm -f "$FINAL_BOOT_A" "$FINAL_A_DIR/rootfs_a.img" \
+	"$FINAL_A_DIR/SHA256SUMS.txt" "$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json"
 
 echo "===== LG6851F one-key signed boot/rootfs exporter ====="
 echo "OWRT=$OWRT"
@@ -200,6 +204,34 @@ meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
 print(json.dumps(meta, indent=2, sort_keys=True))
 PY
 
+# The board DTS is the B-slot runtime baseline.  Build the A-slot boot from
+# the same current kernel/DTB, changing only the fixed-width root partition
+# token.  Refuse ambiguous input so a future DTS change cannot silently emit
+# another cross-slot boot image.
+python3 - "$UNSIGNED_BOOT" "$UNSIGNED_BOOT_A" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+data = src.read_bytes()
+old = b"root=/dev/mmcblk0p39"
+new = b"root=/dev/mmcblk0p26"
+if len(old) != len(new):
+    raise SystemExit("slot root tokens must remain fixed-width")
+if data.count(old) != 1 or data.count(new) != 0:
+    raise SystemExit(
+        f"ambiguous B boot root tokens: p39={data.count(old)} p26={data.count(new)}"
+    )
+out = data.replace(old, new)
+if out.count(new) != 1 or out.count(old) != 0:
+    raise SystemExit("failed to construct unambiguous A-slot boot image")
+dst.write_bytes(out)
+print(f"A_UNSIGNED_BOOT={dst}")
+print(f"A_UNSIGNED_SHA256={hashlib.sha256(out).hexdigest()}")
+PY
+
 UNSIGNED_SHA="$(sha256_one "$UNSIGNED_BOOT")"
 
 echo
@@ -247,6 +279,28 @@ if [ "$DECISION" = "SIGN" ]; then
 
 	cp -f "$SIGNED_BOOT" "$FINAL_BOOT"
 	truncate -s "$BOOT_PART_SIZE" "$FINAL_BOOT"
+
+	# Sign the independently constructed A-slot boot.  Never rename or copy
+	# boot_b: its embedded DTB deliberately points at rootfs_b (p39).
+	cp -f "$UNSIGNED_BOOT_A" "$WORK/in-a/boot.img"
+	cp -f "$UNSIGNED_BOOT_A" "$WORK/in-a/boot.orig.img"
+
+	cd "$SIGN_TOOL_DIR"
+	PYTHONDONTWRITEBYTECODE=True \
+	PRODUCT_OUT="$WORK/in-a" \
+	BOARD_AVB_ENABLE= \
+	python3 sign_flow.py image mt2737 default \
+	  hsm=1 \
+	  root_key_path="$ROOT_KEY" \
+	  oem_key_path="$IMAGE_KEY" \
+	  root_key_padding=pss \
+	  2>&1 | tee "$WORK/log/sign_boot_a.log"
+	cd "$OWRT"
+
+	SIGNED_BOOT_A="$WORK/in-a/boot-verified.img"
+	need_file "$SIGNED_BOOT_A"
+	cp -f "$SIGNED_BOOT_A" "$FINAL_BOOT_A"
+	truncate -s "$BOOT_PART_SIZE" "$FINAL_BOOT_A"
 fi
 
 echo
@@ -312,15 +366,53 @@ PY
 
 sha256sum "$FINAL_BOOT" "$FINAL_ROOTFS" | tee "$SHA_FILE"
 
-# A and B use the same verified signed kernel/rootfs bytes.  Export explicit
-# slot-named copies so offline flash users cannot confuse the target names.
-mkdir -p "$FINAL_A_DIR"
-rm -f "$FINAL_A_DIR/boot_a.img" "$FINAL_A_DIR/rootfs_a.img" \
-	"$FINAL_A_DIR/SHA256SUMS.txt" "$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json"
-cp -f "$FINAL_BOOT" "$FINAL_A_DIR/boot_a.img"
+# A and B share the current kernel/rootfs content, but their signed boot
+# images must differ because their DTBs select p26 and p39 respectively.
+python3 - "$FINAL_BOOT_A" "$FINAL_BOOT" "$CERT1" "$BOOT_PART_SIZE" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+
+a = Path(sys.argv[1])
+b = Path(sys.argv[2])
+cert1 = Path(sys.argv[3]).read_bytes()
+part_size = int(sys.argv[4])
+ad = a.read_bytes()
+bd = b.read_bytes()
+if len(ad) != part_size or len(bd) != part_size:
+    raise SystemExit("A/B signed boot partition size mismatch")
+if cert1 not in ad or cert1 not in bd:
+    raise SystemExit("A/B signed boot certificate verification failed")
+if ad.count(b"root=/dev/mmcblk0p26") != 1 or b"root=/dev/mmcblk0p39" in ad:
+    raise SystemExit("boot_a root slot verification failed")
+if bd.count(b"root=/dev/mmcblk0p39") != 1 or b"root=/dev/mmcblk0p26" in bd:
+    raise SystemExit("boot_b root slot verification failed")
+asha = hashlib.sha256(ad).hexdigest()
+bsha = hashlib.sha256(bd).hexdigest()
+if asha == bsha:
+    raise SystemExit("A/B signed boot images are unexpectedly identical")
+print(f"A_BOOT_ROOT_VERIFY=PASS root=/dev/mmcblk0p26 sha256={asha}")
+print(f"B_BOOT_ROOT_VERIFY=PASS root=/dev/mmcblk0p39 sha256={bsha}")
+PY
+
 cp -f "$FINAL_ROOTFS" "$FINAL_A_DIR/rootfs_a.img"
 sed 's/boot_b/boot_a/g; s/rootfs_b/rootfs_a/g' "$MANIFEST" > \
 	"$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json"
+python3 - "$FINAL_A_DIR/lg6851f-signed-boot-rootfs.manifest.json" "$FINAL_BOOT_A" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+manifest = Path(sys.argv[1])
+boot = Path(sys.argv[2])
+info = json.loads(manifest.read_text())
+info["boot_a"] = str(boot)
+info["boot_a_size"] = boot.stat().st_size
+info["boot_a_sha256"] = hashlib.sha256(boot.read_bytes()).hexdigest()
+info["root_partition"] = "/dev/mmcblk0p26"
+manifest.write_text(json.dumps(info, indent=2, sort_keys=True) + "\n")
+PY
 sha256sum "$FINAL_A_DIR/boot_a.img" "$FINAL_A_DIR/rootfs_a.img" > "$FINAL_A_DIR/SHA256SUMS.txt"
 
 echo
