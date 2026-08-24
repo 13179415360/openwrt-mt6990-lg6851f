@@ -54,6 +54,14 @@ have_pstore_records() {
 
 discard_clean_shutdown_records() {
 	local record clean=0 crash=0
+	local crash_pattern
+
+	# Do not use a bare "SLUB:" match here.  Every normal boot prints the
+	# allocator banner "SLUB: HWalign=...", which previously turned an
+	# orderly reboot into a false KERNEL_CRASH archive.  Match only explicit
+	# allocator failures; the remaining signatures cover the historical
+	# freelist, stack and list corruptions seen on this device.
+	crash_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|SLUB:.*(corrupt|Corrupt|error|Error|Unable|BUG)|[Ff]reelist|[Ff]reepointer corrupt|corrupted stack|list_(add|del) corruption|general protection fault|watchdog: BUG:|Call trace:'
 
 	# ramoops also preserves the console from an orderly sysupgrade/reboot.
 	# Keep ambiguous or abruptly-ended consoles as evidence; discard records
@@ -62,7 +70,7 @@ discard_clean_shutdown_records() {
 	for record in /sys/fs/pstore/*; do
 		[ -s "$record" ] || continue
 		grep -aEq 'reboot: (Restarting system|Power down)|Restarting system with command' "$record" && clean=1
-		grep -aEq 'Kernel panic|Oops:|BUG:|Unable to handle kernel|SLUB:|Freelist|corrupted stack|list_(add|del) corruption|general protection fault|watchdog: BUG:|Call trace:' "$record" && crash=1
+		grep -aEq "$crash_pattern" "$record" && crash=1
 	done
 
 	[ "$clean" = 1 ] && [ "$crash" = 0 ] || return 1
