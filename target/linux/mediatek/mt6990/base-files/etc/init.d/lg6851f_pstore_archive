@@ -9,6 +9,25 @@ PS_SYS=/sys/class/block/mmcblk0p46
 PS_MNT=/tmp/lg6851f-pstore-user-data
 # Intentionally obvious and grep/find friendly on the shared user_data partition.
 PS_ROOT=MT6990_CRASH_LOGS
+PS_MOUNTED_HERE=0
+
+prepare_user_data_mount() {
+	local source_mount
+
+	source_mount="$(awk -v dev="$PS_DEV" '$1 == dev && $3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ { print $2; exit }' /proc/mounts)"
+	if [ -n "$source_mount" ]; then
+		PS_MNT="$source_mount"
+		return 0
+	fi
+
+	mkdir -p "$PS_MNT"
+	mount -t ext4 -o rw,noatime,nosuid,nodev "$PS_DEV" "$PS_MNT" 2>/dev/null || return 1
+	PS_MOUNTED_HERE=1
+}
+
+release_user_data_mount() {
+	[ "$PS_MOUNTED_HERE" = 1 ] && umount "$PS_MNT"
+}
 
 is_lg6851f_user_data() {
 	[ -b "$PS_DEV" ] || return 1
@@ -33,6 +52,27 @@ have_pstore_records() {
 	return 1
 }
 
+discard_clean_shutdown_records() {
+	local record clean=0 crash=0
+
+	# ramoops also preserves the console from an orderly sysupgrade/reboot.
+	# Keep ambiguous or abruptly-ended consoles as evidence; discard records
+	# only when an explicit clean shutdown marker is present and no kernel
+	# failure signature exists anywhere in pstore.
+	for record in /sys/fs/pstore/*; do
+		[ -s "$record" ] || continue
+		grep -aEq 'reboot: (Restarting system|Power down)|Restarting system with command' "$record" && clean=1
+		grep -aEq 'Kernel panic|Oops:|BUG:|Unable to handle kernel|SLUB:|Freelist|corrupted stack|list_(add|del) corruption|general protection fault|watchdog: BUG:|Call trace:' "$record" && crash=1
+	done
+
+	[ "$clean" = 1 ] && [ "$crash" = 0 ] || return 1
+	for record in /sys/fs/pstore/*; do
+		[ -e "$record" ] && rm -f "$record"
+	done
+	logger -t MT6990-CRASH "ignored: ramoops contains an orderly shutdown without a crash signature"
+	return 0
+}
+
 archive_pstore() {
 	local record fingerprint boot_id short_boot_id stamp final tmp
 
@@ -41,15 +81,15 @@ archive_pstore() {
 		return 0
 	}
 	have_pstore_records || return 0
+	discard_clean_shutdown_records && return 0
 
-	mkdir -p "$PS_MNT"
-	mount -t ext4 -o rw,noatime,nosuid,nodev "$PS_DEV" "$PS_MNT" 2>/dev/null || {
+	prepare_user_data_mount || {
 		logger -t MT6990-CRASH "skip: unable to mount verified user_data"
 		return 0
 	}
 
 	mkdir -p "$PS_MNT/$PS_ROOT" || {
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	}
 
@@ -58,11 +98,11 @@ archive_pstore() {
 		[ -s "$record" ] && sha256sum "$record"
 	done; } | sha256sum | cut -d ' ' -f 1)"
 	[ -n "$fingerprint" ] || {
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	}
 	if grep -Rqx "$fingerprint" "$PS_MNT/$PS_ROOT"/*/fingerprint.sha256 2>/dev/null; then
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	fi
 
@@ -74,7 +114,7 @@ archive_pstore() {
 	tmp="$PS_MNT/$PS_ROOT/.incoming-${boot_id}"
 	rm -rf "$tmp"
 	mkdir -m 0700 "$tmp" || {
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	}
 
@@ -82,7 +122,7 @@ archive_pstore() {
 		[ -s "$record" ] || continue
 		cp -p "$record" "$tmp/" || {
 			rm -rf "$tmp"
-			umount "$PS_MNT"
+			release_user_data_mount
 			return 0
 		}
 	done
@@ -96,18 +136,18 @@ archive_pstore() {
 	} > "$tmp/metadata.txt"
 	(cd "$tmp" && sha256sum ./* > SHA256SUMS) || {
 		rm -rf "$tmp"
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	}
 
 	sync
 	mv "$tmp" "$final" || {
 		rm -rf "$tmp"
-		umount "$PS_MNT"
+		release_user_data_mount
 		return 0
 	}
 	sync
-	umount "$PS_MNT"
+	release_user_data_mount
 	logger -t MT6990-CRASH "saved: user_data/$PS_ROOT/KERNEL_CRASH_${stamp}_${short_boot_id} fingerprint=$fingerprint"
 }
 

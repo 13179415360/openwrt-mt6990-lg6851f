@@ -1,0 +1,4 @@
+#!/bin/sh
+
+/etc/init.d/lg6851f_p46_runtime_log enable
+exit 0

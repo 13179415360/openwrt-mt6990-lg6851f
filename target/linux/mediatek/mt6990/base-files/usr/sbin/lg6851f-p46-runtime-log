@@ -1,0 +1,51 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Keep a bounded, persistent runtime log beside the ramoops crash archive.
+
+DEV=/dev/mmcblk0p46
+SYS=/sys/class/block/mmcblk0p46
+MNT=/mnt/mt6990-data
+ROOT=$MNT/MT6990_RUNTIME_LOGS
+LOG=$ROOT/runtime.log
+PID=$ROOT/logread.pid
+
+valid_user_data() {
+	[ -b "$DEV" ] || return 1
+	[ "$(cat "$SYS/partition" 2>/dev/null)" = 46 ] || return 1
+	[ "$(cat "$SYS/size" 2>/dev/null)" = 5187456 ] || return 1
+	grep -qx 'PARTNAME=user_data' "$SYS/uevent" 2>/dev/null
+}
+
+mounted_rw() {
+	awk -v dev="$DEV" -v mnt="$MNT" '
+		$1 == dev && $2 == mnt && $3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ { found=1 }
+		END { exit !found }
+	' /proc/mounts
+}
+
+valid_user_data || exit 1
+
+# The storage service normally mounts p46 first.  Wait without ever mounting
+# or writing an identity-mismatched partition from this logger.
+tries=0
+while ! mounted_rw; do
+	tries=$((tries + 1))
+	[ "$tries" -le 120 ] || exit 1
+	sleep 1
+done
+
+mkdir -p "$ROOT" || exit 1
+chmod 0700 "$ROOT"
+
+{
+	printf '\n===== MT6990 BOOT %s =====\n' "$(date -Iseconds 2>/dev/null || date)"
+	printf 'boot_id=%s\n' "$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
+	printf 'kernel=%s\n' "$(uname -a)"
+	printf 'cmdline=%s\n' "$(cat /proc/cmdline 2>/dev/null)"
+} >> "$LOG"
+
+# Capture early boot messages that predate the ubus log stream, then follow
+# both kernel and userspace messages.  logread performs an atomic one-backup
+# rotation at 16 MiB, bounding persistent logs to about 32 MiB total.
+dmesg >> "$LOG" 2>/dev/null
+exec /sbin/logread -f -t -F "$LOG" -S 16384 -p "$PID"

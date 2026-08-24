@@ -1,0 +1,33 @@
+From: MT6990 repair <noreply@example.invalid>
+Subject: [PATCH] sched: dump owner of a corrupted stack end
+
+The schedule-time stack end check currently panics without identifying the
+task whose stack marker was corrupted.  That loses the most useful evidence
+when the corruption is detected long after it happened.
+
+Log the task identity, CPU, stack bounds and observed marker, then dump the
+task stack before panicking.  Keep the existing fail-stop behaviour.
+
+---
+ kernel/sched/core.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -5896,7 +5896,15 @@ static inline void schedule_debug(struct
+ {
+ #ifdef CONFIG_SCHED_STACK_END_CHECK
+-	if (task_stack_end_corrupted(prev))
++	if (task_stack_end_corrupted(prev)) {
++		unsigned long *stack_end = end_of_stack(prev);
++
++		pr_emerg("corrupted stack end: task=%s pid=%d tgid=%d cpu=%d stack=%px end=%px value=%#lx expected=%#lx\n",
++			 prev->comm, prev->pid, prev->tgid, task_cpu(prev),
++			 task_stack_page(prev), stack_end, READ_ONCE(*stack_end),
++			 (unsigned long)STACK_END_MAGIC);
++		show_stack(prev, NULL, KERN_EMERG);
+ 		panic("corrupted stack end detected inside scheduler\n");
++	}
+ 
+ 	if (task_scs_end_corrupted(prev))
+ 		panic("corrupted shadow stack detected inside scheduler\n");

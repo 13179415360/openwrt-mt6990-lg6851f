@@ -28,6 +28,36 @@ lg6851f_trace() {
 	sync
 }
 
+lg6851f_reset_crash_baseline() {
+	local slot="$1" record
+
+	# This is called only after every image write and bootctrl readback has
+	# succeeded.  Keep upgrade/config/vendor logs, but start the next firmware
+	# observation window without stale OpenWrt crash or runtime evidence.
+	grep -q " $LG6851F_TRACE_MNT " /proc/mounts || {
+		lg6851f_trace "FAIL crash baseline reset: verified user_data is not mounted"
+		return 1
+	}
+	rm -rf "$LG6851F_TRACE_MNT/MT6990_CRASH_LOGS" \
+		"$LG6851F_TRACE_MNT/MT6990_RUNTIME_LOGS" || return 1
+	mkdir -m 0700 "$LG6851F_TRACE_MNT/MT6990_CRASH_LOGS" \
+		"$LG6851F_TRACE_MNT/MT6990_RUNTIME_LOGS" || return 1
+	{
+		printf 'baseline=successful-web-upgrade\n'
+		printf 'next_slot=%s\n' "$slot"
+		printf 'reset_utc=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+	} > "$LG6851F_TRACE_MNT/MT6990_RUNTIME_LOGS/upgrade-baseline.txt" || return 1
+
+	# Removing a pstore file acknowledges it to ramoops.  Otherwise the next
+	# clean boot can archive an old panic again under its new boot ID.
+	for record in /sys/fs/pstore/*; do
+		[ -f "$record" ] || continue
+		rm -f "$record" || return 1
+	done
+	sync
+	lg6851f_trace "PASS crash baseline reset slot=$slot old-pstore+crash+runtime-cleared"
+}
+
 lg6851f_extract_control() {
 	local image="$1" output="$2" prefix="${2}.prefix"
 
@@ -136,6 +166,10 @@ lg6851f_do_upgrade_a() {
 		sync; lg6851f_trace "FAIL bootctrl A verify expected=$expected actual=$after"; exit 1
 	}
 	rm -f /tmp/lg6851f-bootctrl10.before
+	lg6851f_reset_crash_baseline a || {
+		lg6851f_trace "FAIL verified A images but crash baseline reset failed"
+		exit 1
+	}
 	lg6851f_trace "COMPLETE connsys_gnss_a+boot_a+rootfs_a; verification=GNSS-sha256+boot/rootfs-magic slot_b=untouched bootctrl=A-priority+A-retry-reset"
 	umount "$LG6851F_TRACE_MNT" 2>/dev/null || true
 	echo "LG6851F A-slot upgrade complete; A is the verified next boot target."
@@ -338,6 +372,10 @@ platform_do_upgrade() {
 	lg6851f_trace "PASS bootctrl priority A=0e B=0f B_retry=00 success/up_type/A_state=preserved"
 
 	sync
+	lg6851f_reset_crash_baseline b || {
+		lg6851f_trace "FAIL verified B images but crash baseline reset failed"
+		exit 1
+	}
 	lg6851f_trace "COMPLETE connsys_gnss_b+boot_b+rootfs_b; verification=GNSS-sha256+boot/rootfs-magic slot_a=untouched bootctrl=priority-and-b-retry"
 	umount "$LG6851F_TRACE_MNT" 2>/dev/null || true
 	echo "LG6851F B-slot upgrade complete. Slot A is untouched; B is the verified next boot target."
