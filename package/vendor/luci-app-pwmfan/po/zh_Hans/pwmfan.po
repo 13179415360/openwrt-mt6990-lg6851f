@@ -55,6 +55,21 @@ msgstr "风扇状态"
 msgid "Fan speed"
 msgstr "风扇转速"
 
+msgid "Fan type"
+msgstr "风扇类型"
+
+msgid "3Pin fan"
+msgstr "3Pin 风扇"
+
+msgid "4Pin fan"
+msgstr "4Pin 风扇"
+
+msgid "3Pin fan · no RPM feedback"
+msgstr "3Pin 风扇 · 无转速反馈"
+
+msgid "4Pin fan · %d RPM"
+msgstr "4Pin 风扇 · %d RPM"
+
 msgid "No speed feedback (PWM control operating normally)"
 msgstr "无转速反馈（PWM 控制正常）"
 

@@ -1,5 +1,6 @@
 'use strict';
 'require baseclass';
+'require poll';
 'require rpc';
 'require ui';
 
@@ -46,6 +47,18 @@ return baseclass.extend({
 		const rpm = document.getElementById('pwmfan-rpm');
 		const channels = document.getElementById('pwmfan-channels');
 		const controller = document.getElementById('pwmfan-controller');
+		const fanType = document.getElementById('pwmfan-type');
+		const curve = document.getElementById('pwmfan-curve');
+		const values = {};
+		String(data.controller || '').trim().split(/\n/).forEach(function(line) {
+			const pos = line.indexOf('=');
+			if (pos > 0) values[line.substring(0, pos)] = line.substring(pos + 1);
+		});
+		const threeWire = values.fan_type == '3wire';
+		const controllerTemperature = Number(values.temperature);
+		const pointLabel = ({ low: _('Quiet'), medium: _('Standard'), high: _('Strong wind') })[
+			String(values.speed_point || '').replace('-10khz', '')
+		] || _('Detecting');
 		const cpuTemperatures = (data.temperatures || []).filter(function(sensor) {
 			return /^cpu_little[0-9]+$/.test(sensor.name) && Number.isFinite(sensor.temp);
 		});
@@ -53,23 +66,40 @@ return baseclass.extend({
 			return sensor.temp;
 		})) : null;
 
-		if (pwm) pwm.textContent = '%s (%s)'.format(data.pwm, speedLabel(data.pwm));
+		if (pwm) pwm.textContent = threeWire
+			? '10 kHz / %s · %s'.format(values.threshold || '-', pointLabel)
+			: '%s (%s)'.format(data.pwm, speedLabel(data.pwm));
 		if (state) state.textContent = '%s / %s'.format(data.cooling_state ?? '-', data.max_state ?? '-');
-		if (temp) temp.textContent = cpuTemperature != null ? '%.1f °C'.format(cpuTemperature / 1000) : _('Unavailable');
-		if (bar) bar.style.width = '%d%%'.format(cpuTemperature != null ? Math.max(0, Math.min(100, ((cpuTemperature / 1000) - 35) * 100 / 55)) : 0);
-		if (target) target.textContent = '%s (%s)'.format(data.pwm, data.reverse ? _('Reverse PWM') : _('PWM'));
+		const controlTemperature = threeWire && Number.isFinite(controllerTemperature) && controllerTemperature > 0
+			? controllerTemperature : cpuTemperature;
+		if (temp) temp.textContent = controlTemperature != null ? '%.1f °C'.format(controlTemperature / 1000) : _('Unavailable');
+		if (bar) bar.style.width = '%d%%'.format(controlTemperature != null ? Math.max(0, Math.min(100, ((controlTemperature / 1000) - 35) * 100 / 55)) : 0);
+		if (target) target.textContent = threeWire
+			? '%s · 10 kHz / %s'.format(pointLabel, values.threshold || '-')
+			: '%s (%s)'.format(data.pwm, data.reverse ? _('Reverse PWM') : _('PWM'));
 		if (status) status.textContent = data.pwm > 0 ? _('Running') : _('Stopped');
-		if (rpm) rpm.textContent = data.tach_available ? '%d RPM'.format(data.rpm) : _('No speed feedback (PWM control operating normally)');
+		if (fanType) fanType.textContent = threeWire ? _('3Pin fan') :
+			(values.fan_type == '4wire' ? _('4Pin fan') : _('Detecting'));
+		if (rpm) rpm.textContent = threeWire ? _('3Pin fan · no RPM feedback') :
+			(data.tach_available ? _('4Pin fan · %d RPM').format(data.rpm) : _('No speed feedback (PWM control operating normally)'));
 		if (channels) channels.textContent = (data.pwm_values || []).map(function(fan, index) {
 			return '%s%d=%s'.format(_('Fan channel '), index + 1, fan.pwm ?? '-');
 		}).join(' · ');
 		if (controller) {
-			const values = {};
-			String(data.controller || '').trim().split(/\n/).forEach(function(line) {
-				const pos = line.indexOf('=');
-				if (pos > 0) values[line.substring(0, pos)] = line.substring(pos + 1);
-			});
 			controller.textContent = values.status ? '%s · %s · %s'.format(values.status, values.active, values.direction) : _('Detecting');
+		}
+		if (curve) {
+			const steps = threeWire ? [
+				[ _('Quiet'), '10 kHz / 8 · ≤50°C' ],
+				[ _('Standard'), '10 kHz / 10 · ↑55°C / ↓65°C' ],
+				[ _('Strong wind'), '10 kHz / 12 · ≥70°C' ]
+			] : [
+				[ '<60°C', 'PWM 110' ], [ '60–65°C', 'PWM 110' ], [ '65–70°C', 'PWM 170' ],
+				[ '70–75°C', 'PWM 200' ], [ '75–80°C', 'PWM 220' ], [ '80–85°C', 'PWM 240' ], [ '≥85°C', 'PWM 255' ]
+			];
+			curve.replaceChildren(...steps.map(function(step) {
+				return E('div', { 'class': 'pwmfan-step' }, [ E('strong', {}, step[0]), E('small', {}, step[1]) ]);
+			}));
 		}
 	},
 
@@ -101,12 +131,13 @@ return baseclass.extend({
 		if (!data || !data.available)
 			return E('em', {}, _('No standard pwm-fan hwmon device was found.'));
 
+		const buttonLabels = { 115: _('Quiet'), 180: _('Standard'), 220: _('Strong wind') };
 		const buttons = [ 115, 180, 220 ].map(L.bind(function(value) {
 			return E('button', {
 				'class': 'btn cbi-button pwmfan-speed',
 				'click': ui.createHandlerFn(this, 'handleSet', value),
 				'title': _('Verified reliable fan speed')
-			}, [ '%s · %s'.format(value, speedLabel(value)) ]);
+			}, [ buttonLabels[value] ]);
 		}, this));
 
 		buttons.push(E('button', {
@@ -140,14 +171,15 @@ return baseclass.extend({
 					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('PWM / speed')), E('strong', { 'id': 'pwmfan-value' }) ]),
 					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Target PWM level')), E('strong', { 'id': 'pwmfan-target' }) ]),
 					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Thermal state')), E('strong', { 'id': 'pwmfan-state' }) ]),
-					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan status')), E('strong', { 'id': 'pwmfan-status' }) ])
+					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan status')), E('strong', { 'id': 'pwmfan-status' }) ]),
+					E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan type')), E('strong', { 'id': 'pwmfan-type' }) ])
 					,E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('Fan speed')), E('strong', { 'id': 'pwmfan-rpm' }) ])
 					,E('div', { 'class': 'pwmfan-metric' }, [ E('small', {}, _('PWM channels')), E('strong', { 'id': 'pwmfan-channels' }) ])
 				])
 			]),
 			E('section', { 'class': 'pwmfan-panel' }, [
 				E('h3', {}, _('Automatic Temperature Curve')),
-				E('div', { 'class': 'pwmfan-curve' }, [
+				E('div', { 'class': 'pwmfan-curve', 'id': 'pwmfan-curve' }, [
 					[ '<60°C', 'PWM 110' ], [ '60–65°C', 'PWM 110' ], [ '65–70°C', 'PWM 170' ], [ '70–75°C', 'PWM 200' ], [ '75–80°C', 'PWM 220' ], [ '80–85°C', 'PWM 240' ], [ '≥85°C', 'PWM 255' ]
 				].map(function(step) { return E('div', { 'class': 'pwmfan-step' }, [ E('strong', {}, step[0]), E('small', {}, step[1]) ]); }))
 			]),
@@ -163,6 +195,11 @@ return baseclass.extend({
 		]);
 
 		requestAnimationFrame(L.bind(this.update, this, data));
+		poll.add(L.bind(function() {
+			return L.resolveDefault(callStatus(), null).then(L.bind(function(status) {
+				if (status) this.update(status);
+			}, this));
+		}, this), 2);
 		return view;
 	},
 

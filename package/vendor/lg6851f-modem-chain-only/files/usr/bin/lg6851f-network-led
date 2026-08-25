@@ -98,12 +98,14 @@ while :; do
 	# A single collector owns all periodic MIPC queries. LED and LuCI consume
 	# the same atomic cache, preventing independent control-channel polling.
 	if [ -r "$MODEM_STATE" ]; then
+		cached_sim="$(sed -n 's/^SIM=//p' "$MODEM_STATE" | head -n 1)"
 		cached_rat="$(sed -n 's/^RAT=//p' "$MODEM_STATE" | head -n 1)"
 		cached_raw="$(sed -n 's/^RAT_RAW=//p' "$MODEM_STATE" | head -n 1)"
 		cached_registered="$(sed -n 's/^REGISTERED=//p' "$MODEM_STATE" | head -n 1)"
 		RSRP="$(sed -n 's/^RSRP=//p' "$MODEM_STATE" | head -n 1)"
 		case "$cached_rat" in 4G|5G) RAT="$cached_rat"; RAT_RAW="$cached_raw" ;; esac
 	fi
+	SIM="${cached_sim:-unknown}"
 
 	REGISTERED=NO
 	[ "$UP" = true ] && [ -n "$WAN" ] && ip -4 addr show dev "$WAN" 2>/dev/null | grep -q 'inet ' && REGISTERED=YES
@@ -111,17 +113,28 @@ while :; do
 	if [ "$REGISTERED" = YES ]; then update_signal_quality; else QUALITY=RED; PING_LOSS=100; PING_AVG_MS=9999; fi
 
 	panel_off
-	case "$RAT:$QUALITY" in
-		4G:NORMAL) set_led lg6851f:4g-good 1 ;;
-		4G:ORANGE) set_led lg6851f:4g-fair 1 ;;
-		4G:*) set_led lg6851f:4g-bad 1 ;;
-		5G:NORMAL) set_led lg6851f:5g-good 1 ;;
-		5G:ORANGE) set_led lg6851f:5g-fair 1 ;;
-		5G:*) set_led lg6851f:5g-bad 1 ;;
+	# Never present stale cellular service when the SIM is absent/not ready.
+	# Wi-Fi is handled independently above and must remain available.
+	case "$SIM" in
+		*MIPC_SIM_STATUS_NOT_INSERT*) SIM_READY=NO ;;
+		*MIPC_SIM_STATUS_COMPLETE_READY*) SIM_READY=YES ;;
+		*) [ "$REGISTERED" = YES ] && SIM_READY=YES || SIM_READY=NO ;;
 	esac
+	if [ "$SIM_READY" = YES ] && [ "$REGISTERED" = YES ]; then
+		case "$RAT:$QUALITY" in
+			4G:NORMAL) set_led lg6851f:4g-good 1 ;;
+			4G:ORANGE) set_led lg6851f:4g-fair 1 ;;
+			4G:*) set_led lg6851f:4g-bad 1 ;;
+			5G:NORMAL) set_led lg6851f:5g-good 1 ;;
+			5G:ORANGE) set_led lg6851f:5g-fair 1 ;;
+			5G:*) set_led lg6851f:5g-bad 1 ;;
+		esac
+	fi
 
 	{
 		echo "REGISTERED=$REGISTERED"
+		echo "SIM=$SIM"
+		echo "SIM_READY=$SIM_READY"
 		echo "RAT=$RAT"
 		echo "MODEM_STATE=$MODEM_STATE"
 		echo "WAN=$WAN"

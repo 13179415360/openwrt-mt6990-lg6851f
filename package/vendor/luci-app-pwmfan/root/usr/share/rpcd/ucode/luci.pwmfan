@@ -159,8 +159,6 @@ const methods = {
 			if (value == null)
 				return { success: false, error: 'Unsafe PWM value' };
 
-			if (!set_all_fans(value))
-				return { success: false, error: 'Unable to write PWM value' };
 			if (!writefile(MANUAL, `${value}\n`))
 				return { success: false, error: 'Unable to hold manual PWM value' };
 
@@ -176,7 +174,7 @@ const methods = {
 			/* A zero-byte write reports 0 and was mistaken for failure even though
 			 * automatic control resumed.  A newline trims to an empty command while
 			 * preserving a truthful successful write result. */
-			if (!set_all_fans(100) || !writefile(MANUAL, '\n') ||
+			if (!writefile(MANUAL, '\n') ||
 			    !writefile('/tmp/lg6851f-fan-control.recalibrate', '1\n'))
 				return { success: false, error: 'Unable to restart automatic fan detection' };
 

@@ -4,7 +4,7 @@
 lg6851f_restore_sysupgrade() {
 	local mnt=/tmp/lg6851f-user-data
 	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
-	local rootdev rootuuid source_mount mounted_here=0
+	local rootdev rootuuid source_mount mounted_here=0 reset_marker
 
 	[ -b /dev/mmcblk0p46 ] || return 0
 	[ "$(cat /sys/class/block/mmcblk0p46/partition 2>/dev/null)" = 46 ] || return 0
@@ -18,6 +18,34 @@ lg6851f_restore_sysupgrade() {
 		mkdir -p "$mnt"
 		mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
 		mounted_here=1
+	fi
+	reset_marker="$mnt/.mt6990-factory-reset-pending"
+	# LuCI's generic firstboot cannot erase an ext4 extroot.  The board wrapper
+	# records a reset request on verified user_data, then preinit performs the
+	# destructive part before mount_root can use the old upper directory.
+	# Preserve repair/runtime/crash and storage logs, but remove every active
+	# or archived OpenWrt configuration/software layer containing user state.
+	if [ -f "$reset_marker" ] &&
+	   [ -f "$mnt/.mt6990-extroot-managed" ] &&
+	   [ -d "$mnt/upper" ] && [ -d "$mnt/work" ]; then
+		rm -rf "$mnt/upper" "$mnt/work" "$mnt/etc" \
+			"$mnt/openwrt-extroot-backups" \
+			"$mnt/openwrt-sysupgrade/sysupgrade.tgz" \
+			"$mnt/openwrt-software/apps" \
+			"$mnt/openwrt-software/data" \
+			"$mnt/openwrt-software/cache"
+		mkdir -p "$mnt/upper" "$mnt/work" "$mnt/etc"
+		rootdev="$(sed -n 's/.*[[:space:]]root=\([^[:space:]]*\).*/\1/p' /proc/cmdline)"
+		rootuuid="$(block info "$rootdev" 2>/dev/null | sed -n 's/.*UUID="\([^"]*\)".*/\1/p')"
+		if [ -n "$rootuuid" ]; then
+			echo "$rootuuid" > "$mnt/etc/.extroot-uuid"
+			echo "$rootuuid" > "$mnt/.mt6990-extroot-managed"
+			rm -f "$reset_marker"
+			sync
+			echo "LG6851F: managed p46 factory reset completed"
+		else
+			echo "LG6851F: factory reset blocked: current rootfs UUID unavailable"
+		fi
 	fi
 	# Every signed sysupgrade has a new squashfs UUID. Refresh the extroot
 	# binding before mount_root evaluates it, otherwise a preserved p46

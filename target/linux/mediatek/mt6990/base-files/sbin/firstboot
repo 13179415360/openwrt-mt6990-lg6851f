@@ -1,0 +1,55 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# LG6851F uses a managed ext4 extroot on user_data.  The generic fstools
+# factoryreset only knows how to erase the platform rootfs_data volume.
+
+DEV=/dev/mmcblk0p46
+SYS=/sys/class/block/mmcblk0p46
+MARKER=.mt6990-factory-reset-pending
+
+is_lg6851f_managed_extroot() {
+	case "$(cat /tmp/sysinfo/board_name 2>/dev/null)" in
+		fiberhome,lg6851f|fiberhome_lg6851f) ;;
+		*) return 1 ;;
+	esac
+	[ -b "$DEV" ] || return 1
+	[ "$(cat "$SYS/partition" 2>/dev/null)" = 46 ] || return 1
+	[ "$(cat "$SYS/size" 2>/dev/null)" = 5187456 ] || return 1
+	grep -qx 'PARTNAME=user_data' "$SYS/uevent" 2>/dev/null || return 1
+	grep -q "^$DEV /overlay ext4 " /proc/mounts || return 1
+	[ -f "/overlay/.mt6990-extroot-managed" ] || return 1
+	[ -d /overlay/upper ] && [ -d /overlay/work ]
+}
+
+if ! is_lg6851f_managed_extroot; then
+	exec /sbin/factoryreset "$@"
+fi
+
+assume_yes=0
+do_reboot=0
+for arg in "$@"; do
+	case "$arg" in
+		-y) assume_yes=1 ;;
+		-r) do_reboot=1 ;;
+	esac
+done
+
+if [ "$assume_yes" != 1 ]; then
+	printf 'This will erase all settings and remove any installed packages. Are you sure? [N/y] '
+	read -r answer
+	case "$answer" in y|Y) ;; *) exit 1 ;; esac
+fi
+
+umask 077
+{
+	printf 'requested_utc=%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+	printf 'boot_id=%s\n' "$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)"
+} > "/overlay/$MARKER" || exit 1
+sync
+logger -t lg6851f-factory-reset 'validated managed p46 extroot; reset scheduled for preinit'
+
+if [ "$do_reboot" = 1 ]; then
+	reboot
+fi
+
+echo 'LG6851F factory reset scheduled. Reboot to complete it.'

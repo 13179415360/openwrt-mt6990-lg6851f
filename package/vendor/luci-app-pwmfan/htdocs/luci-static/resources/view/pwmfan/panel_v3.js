@@ -1,6 +1,6 @@
 'use strict';
 'require view';
-'require view.pwmfan.control_v3 as pwmfan';
+'require view.pwmfan.control_v4 as pwmfan';
 
 return view.extend({
 	title: _('PWM Fan Control'),
