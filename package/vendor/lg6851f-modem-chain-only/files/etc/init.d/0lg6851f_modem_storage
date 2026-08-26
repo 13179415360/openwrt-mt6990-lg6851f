@@ -3,6 +3,12 @@
 START=09
 STOP=91
 
+. /lib/functions/system.sh
+
+: "${WIFI_EEPROM_SOURCE:=/mnt/vendor/nvcfg/e2p}"
+: "${WIFI_EEPROM_TEMPLATE:=/rom/lib/firmware/mediatek/mt7996/mt7996_eeprom_mt6990.bin}"
+: "${WIFI_EEPROM_ACTIVE:=/lib/firmware/mediatek/mt7996/mt7996_eeprom_mt6990.bin}"
+
 log_msg() {
 	logger -t lg6851f_modem_storage "$*"
 	echo "lg6851f_modem_storage: $*"
@@ -46,6 +52,71 @@ mount_part() {
 	return 1
 }
 
+valid_unicast_mac() {
+	local mac="$1"
+
+	case "$mac" in
+		""|00:00:00:00:00:00|ff:ff:ff:ff:ff:ff|[13579bdf]:*) return 1 ;;
+	esac
+	return 0
+}
+
+prepare_wifi_eeprom() {
+	local dir tmp source_mac0 source_mac1 active_mac0 active_mac1
+
+	[ -f "$WIFI_EEPROM_TEMPLATE" ] || {
+		log_msg "ERROR: immutable MT7990 EEPROM template is missing"
+		return 1
+	}
+	[ "$(wc -c < "$WIFI_EEPROM_TEMPLATE")" -eq 7680 ] || {
+		log_msg "ERROR: immutable MT7990 EEPROM template has invalid size"
+		return 1
+	}
+	[ "$(hexdump -v -n 2 -e '2/1 "%02x"' "$WIFI_EEPROM_TEMPLATE")" = "9079" ] || {
+		log_msg "ERROR: immutable MT7990 EEPROM template has invalid chip ID"
+		return 1
+	}
+
+	dir="${WIFI_EEPROM_ACTIVE%/*}"
+	mkdir -p "$dir"
+	tmp="$(mktemp "$dir/.mt7990-eeprom.XXXXXX")" || return 1
+	if ! cp "$WIFI_EEPROM_TEMPLATE" "$tmp"; then
+		rm -f "$tmp"
+		return 1
+	fi
+
+	if [ -f "$WIFI_EEPROM_SOURCE" ] &&
+	   [ "$(wc -c < "$WIFI_EEPROM_SOURCE")" -eq 7680 ] &&
+	   [ "$(hexdump -v -n 2 -e '2/1 "%02x"' "$WIFI_EEPROM_SOURCE")" = "9079" ]; then
+		source_mac0="$(get_mac_binary "$WIFI_EEPROM_SOURCE" 4)"
+		source_mac1="$(get_mac_binary "$WIFI_EEPROM_SOURCE" 10)"
+		if valid_unicast_mac "$source_mac0" && valid_unicast_mac "$source_mac1"; then
+			if dd if="$WIFI_EEPROM_SOURCE" of="$tmp" bs=1 skip=4 seek=4 \
+				count=12 conv=notrunc 2>/dev/null; then
+				active_mac0="$(get_mac_binary "$tmp" 4)"
+				active_mac1="$(get_mac_binary "$tmp" 10)"
+				if [ "$active_mac0" = "$source_mac0" ] &&
+				   [ "$active_mac1" = "$source_mac1" ]; then
+					log_msg "using validated device MT7990 MAC slots $active_mac0/$active_mac1"
+				else
+					cp "$WIFI_EEPROM_TEMPLATE" "$tmp"
+					log_msg "WARN: MT7990 MAC copy verification failed; using SDK template"
+				fi
+			else
+				cp "$WIFI_EEPROM_TEMPLATE" "$tmp"
+				log_msg "WARN: cannot copy MT7990 MAC slots; using SDK template"
+			fi
+		else
+			log_msg "WARN: device MT7990 MAC slots are invalid; using SDK template"
+		fi
+	else
+		log_msg "WARN: device MT7990 EEPROM is unavailable or invalid; using SDK template"
+	fi
+
+	chmod 0644 "$tmp"
+	mv -f "$tmp" "$WIFI_EEPROM_ACTIVE"
+}
+
 start() {
 	local slot
 
@@ -72,6 +143,7 @@ start() {
 	[ -e /vendor/etc ] || ln -s /etc /vendor/etc
 
 	mount_part /dev/block/nvcfg /mnt/vendor/nvcfg
+	prepare_wifi_eeprom || log_msg "ERROR: failed to prepare MT7990 EEPROM"
 	mount_part /dev/block/nvdata /mnt/vendor/nvdata
 	mount_part /dev/block/protect1 /mnt/vendor/protect_f
 	mount_part /dev/block/protect2 /mnt/vendor/protect_s

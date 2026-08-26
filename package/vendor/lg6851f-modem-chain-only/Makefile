@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lg6851f-modem-chain-only
 PKG_VERSION:=0.6
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -14,7 +14,9 @@ define Package/lg6851f-modem-chain-only
 endef
 
 define Package/lg6851f-modem-chain-only/description
- 5G modem chain only. WiFi7 is handled by OpenWrt mainline and no vendor WiFi material is packaged.
+ 5G modem chain userspace and early vendor-storage setup. WiFi 7 remains
+ handled by OpenWrt mt76; startup only imports validated per-device MAC slots
+ from the factory MT7990 EEPROM into the known-good SDK dual-band template.
 endef
 
 define Build/Compile
