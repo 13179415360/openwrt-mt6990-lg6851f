@@ -1,0 +1,27 @@
+From: LG6851F MT6990 maintenance <local@lg6851f>
+Date: Wed, 26 Aug 2026 20:18:00 +0800
+Subject: [PATCH] wifi: mt76: mt7996: reject short MCU events
+
+mt7996_mcu_rx_event() reads fields from the MCU RX descriptor before checking
+that the skb contains a complete descriptor. Reject and consume truncated
+events before dispatching them to legacy or unified handlers.
+
+Signed-off-by: LG6851F MT6990 maintenance <local@lg6851f>
+---
+ mt7996/mcu.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- a/mt7996/mcu.c
++++ b/mt7996/mcu.c
+@@ -938,6 +938,11 @@ void mt7996_mcu_rx_event(struct mt7996_d
+ {
+ 	struct mt7996_mcu_rxd *rxd = (struct mt7996_mcu_rxd *)skb->data;
+ 
++	if (skb->len < sizeof(*rxd)) {
++		dev_kfree_skb(skb);
++		return;
++	}
++
+ 	if (rxd->option & MCU_UNI_CMD_UNSOLICITED_EVENT) {
+ 		mt7996_mcu_uni_rx_unsolicited_event(dev, skb);
+ 		return;

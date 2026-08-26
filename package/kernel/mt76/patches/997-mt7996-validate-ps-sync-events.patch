@@ -1,0 +1,67 @@
+From: LG6851F MT6990 maintenance <local@lg6851f>
+Date: Wed, 26 Aug 2026 20:05:00 +0800
+Subject: [PATCH] wifi: mt76: mt7996: validate PS sync event lengths
+
+The PS sync parser pulls the fixed header without checking that it is present
+and accepts TLVs shorter than their header. A zero length TLV leaves both the
+data pointer and remaining length unchanged and spins forever.
+
+Validate the fixed header, common TLV length and known payload sizes. Also
+ensure that all entries declared by the variable-length multi-client event fit
+inside its TLV.
+
+Fixes: b0af99f2 ("wifi: mt76: mt7996: handle UNI PS sync events")
+Signed-off-by: LG6851F MT6990 maintenance <local@lg6851f>
+---
+ mt7996/mcu.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+--- a/mt7996/mcu.c
++++ b/mt7996/mcu.c
+@@ -845,22 +845,28 @@ mt7996_mcu_rx_ps_sync(struct mt7996_dev
+ 	struct tlv *tlv;
+ 	int len;
+ 
++	if (skb->len < sizeof(*event))
++		return;
++
+ 	skb_pull(skb, sizeof(*event));
+ 
+ 	len = skb->len;
+-	while (len > sizeof(*tlv)) {
++	while (len >= sizeof(*tlv)) {
+ 		u16 tag, tag_len;
+ 
+ 		tlv = (struct tlv *)skb->data;
+ 		tag = le16_to_cpu(tlv->tag);
+ 		tag_len = le16_to_cpu(tlv->len);
+-		if (tag_len > len)
++		if (tag_len < sizeof(*tlv) || tag_len > len)
+ 			break;
+ 
+ 		switch (tag) {
+ 		case UNI_PS_CLIENT_INFO: {
+ 			struct mt7996_mcu_ps_client_info *info = (void *)tlv;
+ 
++			if (tag_len < sizeof(*info))
++				break;
++
+ 			mt7996_mcu_ps_transition(dev,
+ 						 le16_to_cpu(info->wlan_idx),
+ 						 info->ps_bit);
+@@ -869,8 +875,15 @@ mt7996_mcu_rx_ps_sync(struct mt7996_dev
+ 		case UNI_PS_MULTI_CLIENT_INFO: {
+ 			struct mt7996_mcu_ps_multi_client_info *info = (void *)tlv;
+ 			u16 cnt = le16_to_cpu(info->sta_cnt);
++			size_t hdr_len = offsetof(typeof(*info), sta_ps_info);
+ 			int i;
+ 
++			if (tag_len < hdr_len)
++				break;
++
++			if (cnt > (tag_len - hdr_len) / sizeof(info->sta_ps_info[0]))
++				break;
++
+ 			for (i = 0; i < cnt; i++) {
+ 				u16 entry = le16_to_cpu(info->sta_ps_info[i]);
+ 
