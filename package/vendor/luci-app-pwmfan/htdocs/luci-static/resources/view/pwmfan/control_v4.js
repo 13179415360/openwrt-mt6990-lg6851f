@@ -30,6 +30,46 @@ function speedLabel(value) {
 return baseclass.extend({
 	title: _('MT6990 PWM Fan'),
 
+	syncTheme(page) {
+		if (!page)
+			return;
+
+		const host = document.body;
+		const style = getComputedStyle(host);
+		let background = style.backgroundColor;
+		let color = style.color;
+		if (!background || background == 'transparent' || background == 'rgba(0, 0, 0, 0)')
+			background = getComputedStyle(document.querySelector('.main-right') || document.documentElement).backgroundColor;
+		if (!color)
+			color = '#222';
+
+		const rgb = function(value) {
+			const match = String(value).match(/[\d.]+/g);
+			return match && match.length >= 3 ? match.slice(0, 3).map(Number) : null;
+		};
+		const luminance = function(value) {
+			const channels = rgb(value);
+			return channels ? channels.reduce(function(sum, channel, index) {
+				channel /= 255;
+				channel = channel <= .03928 ? channel / 12.92 : Math.pow((channel + .055) / 1.055, 2.4);
+				return sum + channel * [ .2126, .7152, .0722 ][index];
+			}, 0) : null;
+		};
+		const bgLum = luminance(background);
+		const textLum = luminance(color);
+		if (bgLum != null && textLum != null) {
+			const contrast = (Math.max(bgLum, textLum) + .05) / (Math.min(bgLum, textLum) + .05);
+			if (contrast < 4.5)
+				color = bgLum < .45 ? '#f0f0f0' : '#202020';
+		}
+
+		page.style.setProperty('color', color, 'important');
+		page.querySelectorAll('.pwmfan-panel').forEach(function(panel) {
+			panel.style.setProperty('background-color', background, 'important');
+			panel.style.setProperty('color', color, 'important');
+		});
+	},
+
 	load() {
 		return L.resolveDefault(callStatus(), { available: false });
 	},
@@ -149,12 +189,12 @@ return baseclass.extend({
 			E('style', {}, [
 				'.pwmfan-page{max-width:1050px;margin:0 auto}.pwmfan-head{display:flex;justify-content:space-between;align-items:center;margin:.2rem 0 1rem}',
 				'.pwmfan-live{color:#278b45;font-weight:600}.pwmfan-live:before{content:"";display:inline-block;width:.65rem;height:.65rem;background:#2ecc71;border-radius:50%;margin-right:.45rem;box-shadow:0 0 0 .2rem rgba(46,204,113,.14)}',
-				'.pwmfan-panel{padding:1.2rem 1.3rem;margin-bottom:1rem;border:1px solid var(--border-color-medium,#ddd);border-radius:.7rem;background:var(--background-color-high,#fff);box-shadow:0 1px 4px rgba(0,0,0,.04)}',
-				'.pwmfan-panel h3{margin:0 0 1rem;font-size:1.15rem}.pwmfan-grid{display:grid;grid-template-columns:repeat(3,minmax(8em,1fr));gap:.75rem;margin-top:1rem}',
-				'.pwmfan-metric{padding:.85rem;border-radius:.5rem;background:var(--background-color-medium,#f5f6f7)}.pwmfan-metric small{display:block;opacity:.68;margin-bottom:.3rem}.pwmfan-metric strong{font-size:1.12rem}',
+				'.pwmfan-panel{padding:1.2rem 1.3rem;margin-bottom:1rem;background-color:transparent!important;color:inherit!important;border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:.55rem}',
+				'.pwmfan-panel h3{margin:0 0 1rem;padding:.75rem 1rem;font-size:1.15rem;border-radius:.25rem;background:color-mix(in srgb,currentColor 12%,transparent);color:inherit}.pwmfan-grid{display:grid;grid-template-columns:repeat(3,minmax(8em,1fr));gap:.75rem;margin-top:1rem}',
+				'.pwmfan-metric{padding:.85rem;border-radius:.5rem;background:transparent;background:color-mix(in srgb,currentColor 6%,transparent);border:1px solid color-mix(in srgb,currentColor 16%,transparent);color:inherit!important}.pwmfan-metric small{display:block;color:inherit!important;opacity:.72;margin-bottom:.3rem}.pwmfan-metric strong{font-size:1.12rem;color:inherit!important;opacity:1!important}',
 				'.pwmfan-temp-line{display:flex;justify-content:space-between;font-weight:600}.pwmfan-gauge{height:2rem;background:linear-gradient(90deg,#84cc16 0%,#facc15 48%,#fb923c 72%,#ef4444 100%);border-radius:.55rem;overflow:hidden;margin:.55rem 0 .25rem;position:relative}',
 				'.pwmfan-gauge span{display:block;height:100%;border-right:3px solid #fff;background:rgba(255,255,255,.15);transition:width .3s}.pwmfan-scale{display:flex;justify-content:space-between;font-size:.78rem;opacity:.7}',
-				'.pwmfan-curve{display:grid;grid-template-columns:repeat(5,1fr);gap:.45rem}.pwmfan-step{text-align:center;padding:.8rem .3rem;border-radius:.45rem;background:var(--background-color-medium,#f5f6f7)}.pwmfan-step strong,.pwmfan-step small{display:block}.pwmfan-step small{opacity:.68;margin-top:.2rem}',
+				'.pwmfan-curve{display:grid;grid-template-columns:repeat(5,1fr);gap:.45rem}.pwmfan-step{text-align:center;padding:.8rem .3rem;border-radius:.45rem;background:transparent;background:color-mix(in srgb,currentColor 6%,transparent);border:1px solid color-mix(in srgb,currentColor 16%,transparent);color:inherit!important}.pwmfan-step strong,.pwmfan-step small{display:block;color:inherit!important}.pwmfan-step strong{opacity:1!important}.pwmfan-step small{opacity:.72;margin-top:.2rem}',
 				'.pwmfan-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem}.pwmfan-actions .btn{min-height:3.4rem;white-space:normal}.pwmfan-speed{border-color:#4c9ed9}.pwmfan-note{display:block;margin-top:.9rem;opacity:.72}',
 				'@media(max-width:700px){.pwmfan-grid{grid-template-columns:repeat(2,1fr)}.pwmfan-actions{grid-template-columns:1fr}.pwmfan-curve{grid-template-columns:1fr}.pwmfan-head{align-items:flex-start;gap:1rem}}'
 			].join('')),
@@ -194,7 +234,12 @@ return baseclass.extend({
 			])
 		]);
 
-		requestAnimationFrame(L.bind(this.update, this, data));
+		this.syncTheme(view);
+		requestAnimationFrame(L.bind(function() {
+			this.syncTheme(view);
+			this.update(data);
+		}, this));
+		window.setTimeout(L.bind(this.syncTheme, this, view), 300);
 		poll.add(L.bind(function() {
 			return L.resolveDefault(callStatus(), null).then(L.bind(function(status) {
 				if (status) this.update(status);

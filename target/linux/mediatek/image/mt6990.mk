@@ -24,6 +24,7 @@ define Device/fiberhome_lg6851f
   DEVICE_DTS := mt6990-fiberhome-lg6851f
   DEVICE_DTS_DIR := ../dts
 	DEVICE_PACKAGES := kmod-mt7996e kmod-mt7990-firmware luci-app-5gmodem luci-app-pwmfan \
+	luci-theme-argon luci-theme-design luci-theme-bootstrap \
 	mt6990-adb-usb \
 	libf2fs mkf2fs f2fsck
   IMAGES += boot_b.img rootfs_b.img

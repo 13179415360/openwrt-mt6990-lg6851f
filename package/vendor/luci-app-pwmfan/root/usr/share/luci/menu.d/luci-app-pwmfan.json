@@ -15,7 +15,7 @@
 		"order": 1,
 		"action": {
 			"type": "view",
-			"path": "pwmfan/panel_v5"
+			"path": "pwmfan/panel_v6"
 		},
 		"depends": {
 			"acl": [ "luci-app-pwmfan" ]

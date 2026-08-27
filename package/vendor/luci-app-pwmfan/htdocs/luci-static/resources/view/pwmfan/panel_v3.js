@@ -9,6 +9,10 @@ return view.extend({
 		return pwmfan.load();
 	},
 
+	syncTheme(page) {
+		return pwmfan.syncTheme(page);
+	},
+
 	update(data) {
 		return pwmfan.update(data);
 	},
