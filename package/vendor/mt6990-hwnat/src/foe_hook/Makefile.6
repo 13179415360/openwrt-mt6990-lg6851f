@@ -1,0 +1,6 @@
+obj-y		+= foe_hook.o
+
+foe_hook-objs	+= hook_ext.o
+ifeq ($(CONFIG_RA_NAT_HW),y)
+        EXTRA_CFLAGS += -DCONFIG_RA_NAT_HW
+endif

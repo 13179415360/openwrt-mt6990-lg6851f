@@ -1,0 +1,154 @@
+--- a/net/core/skbuff.c
++++ b/net/core/skbuff.c
+@@ -95,6 +95,7 @@
+ #include "devmem.h"
+ #include "netmem_priv.h"
+ #include "sock_destructor.h"
+ 
++#include <net/ra_nat.h>
+ #ifdef CONFIG_SKB_EXTENSIONS
+ static struct kmem_cache *skbuff_ext_cache __ro_after_init;
+@@ -1183,6 +1184,8 @@ static void skb_release_all(struct sk_buff *skb, enum skb_drop_reason reason)
+ 
+ void __kfree_skb(struct sk_buff *skb)
+ {
++	hwnat_set_headroom_zero(skb);
++	hwnat_set_tailroom_zero(skb);
+ 	skb_release_all(skb, SKB_DROP_REASON_NOT_SPECIFIED);
+ 	kfree_skbmem(skb);
+ }
+@@ -2269,6 +2272,14 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
+ 	       skb_shinfo(skb),
+ 	       offsetof(struct skb_shared_info, frags[skb_shinfo(skb)->nr_frags]));
+ 
++	/* Preserve a valid vendor FOE descriptor across head expansion. */
++	hwnat_copy_headroom(data, skb);
++	hwnat_copy_tailroom(data, size, skb);
++
++	/* Do not leave a protected descriptor in storage about to be reused. */
++	hwnat_set_headroom_zero(skb);
++	hwnat_set_tailroom_zero(skb);
++
+ 	/*
+ 	 * if shinfo is shared we must drop the old head gracefully, but if it
+ 	 * is not we can just drop the old head and let the existing refcount
+--- a/net/ipv4/ip_output.c
++++ b/net/ipv4/ip_output.c
+@@ -82,6 +82,7 @@
+ #include <linux/netfilter_bridge.h>
+ #include <linux/netlink.h>
+ #include <linux/tcp.h>
++#include <net/ra_nat.h>
+ #include <net/psp.h>
+
+ static int
+ ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
+@@ -527,6 +528,7 @@ packet_routed:
+ 	skb->priority = READ_ONCE(sk->sk_priority);
+ 	skb->mark = READ_ONCE(sk->sk_mark);
+ 
++	hwnat_check_magic_tag(skb);
+ 	res = ip_local_out(net, sk, skb);
+ 	rcu_read_unlock();
+ 	return res;
+--- a/net/ipv4/tcp_input.c
++++ b/net/ipv4/tcp_input.c
+@@ -80,6 +80,7 @@
+ #include <linux/jump_label_ratelimit.h>
+ #include <net/busy_poll.h>
+ #include <net/mptcp.h>
++#include <net/ra_nat.h>
+ 
+ int sysctl_tcp_max_orphans __read_mostly = NR_FILE;
+ 
+@@ -6304,6 +6305,8 @@ void tcp_rcv_established(struct sock *sk, struct sk_buff *skb)
+ 	struct tcp_sock *tp = tcp_sk(sk);
+ 	unsigned int len = skb->len;
+ 
++	/* A locally consumed flow must never retain a forwarding FOE tag. */
++	hwnat_magic_tag_set_zero(skb);
+ 	/* TCP congestion window tracking */
+ 	trace_tcp_probe(sk, skb);
+ 
+--- a/net/ipv4/udp.c
++++ b/net/ipv4/udp.c
+@@ -113,5 +113,6 @@
+ #include <net/sock_reuseport.h>
+ #include <net/addrconf.h>
+ #include <net/udp_tunnel.h>
++#include <net/ra_nat.h>
+ #include <net/gro.h>
+ #if IS_ENABLED(CONFIG_IPV6)
+@@ -2918,5 +2919,6 @@ int udp_v4_early_demux(struct sk_buff *skb)
+ 
+ int udp_rcv(struct sk_buff *skb)
+ {
++	hwnat_magic_tag_set_zero(skb);
+ 	return __udp4_lib_rcv(skb, dev_net(skb->dev)->ipv4.udp_table, IPPROTO_UDP);
+ }
+--- a/net/xfrm/xfrm_output.c
++++ b/net/xfrm/xfrm_output.c
+@@ -16,6 +16,7 @@
+ #include <net/icmp.h>
+ #include <net/inet_ecn.h>
+ #include <net/xfrm.h>
++#include <net/ra_nat.h>
+ 
+ #if IS_ENABLED(CONFIG_IPV6)
+ #include <net/ip6_route.h>
+@@ -539,6 +540,7 @@ static int xfrm_output_one(struct sk_buff *skb, int err)
+ 
+ 		spin_unlock_bh(&x->lock);
+ 
++		hwnat_magic_tag_set_zero(skb);
+ 		skb_dst_force(skb);
+ 		if (!skb_dst(skb)) {
+			XFRM_INC_STATS(net, LINUX_MIB_XFRMOUTERROR);
+--- a/net/netfilter/nf_conntrack_core.c
++++ b/net/netfilter/nf_conntrack_core.c
+@@ -51,6 +51,7 @@
+ #include <net/netfilter/nf_nat_helper.h>
+ #include <net/netns/hash.h>
+ #include <net/ip.h>
++#include <net/ra_nat.h>
+ 
+ #include "nf_internals.h"
+ 
+@@ -1972,6 +1973,7 @@ nf_conntrack_in(struct sk_buff *skb, const struct nf_hook_state *state)
+ {
+ 	enum ip_conntrack_info ctinfo;
+ 	struct nf_conn *ct, *tmpl;
++	const struct nf_conn_help *help;
+ 	u_int8_t protonum;
+ 	int dataoff, ret;
+ 
+@@ -2034,6 +2036,11 @@ repeat:
+ 		goto out;
+ 	}
+ 
++	/* Conntrack helpers/ALGs may rewrite payload; never offload them. */
++	help = nfct_help(ct);
++	if (help && rcu_access_pointer(help->helper))
++		hwnat_magic_tag_set_zero(skb);
++
+ 	if (ctinfo == IP_CT_ESTABLISHED_REPLY &&
+ 	    !test_and_set_bit(IPS_SEEN_REPLY_BIT, &ct->status))
+ 		nf_conntrack_event_cache(IPCT_REPLY, ct);
+--- a/net/netfilter/nf_conntrack_proto.c
++++ b/net/netfilter/nf_conntrack_proto.c
+@@ -41,6 +41,7 @@
+ #include <linux/in6.h>
+ #include <net/ipv6.h>
+ #include <net/inet_frag.h>
++#include <net/ra_nat.h>
+ 
+ static DEFINE_MUTEX(nf_ct_proto_mutex);
+ 
+@@ -175,6 +176,7 @@ unsigned int nf_confirm(void *priv,
+ 		const struct nf_conntrack_helper *helper;
+ 		int ret;
+ 
++		hwnat_magic_tag_set_zero(skb);
+ 		/* rcu_read_lock()ed by nf_hook */
+ 		helper = rcu_dereference(help->helper);
+ 		if (helper) {

@@ -26,6 +26,7 @@ define Device/fiberhome_lg6851f
 	DEVICE_PACKAGES := kmod-mt7996e kmod-mt7990-firmware luci-app-5gmodem luci-app-pwmfan \
 	luci-theme-argon luci-theme-bootstrap \
 	mt6990-adb-usb \
+	kmod-mt6990-hwnat \
 	libf2fs mkf2fs f2fsck
   IMAGES += boot_b.img rootfs_b.img
   IMAGE/boot_b.img := lg6851f-android-boot

@@ -1,0 +1,216 @@
+config RA_HW_NAT
+        tristate "Ralink HW NAT(** Work At Module Mode ONLY **)"
+	depends on RA_NAT_HW
+	---help---
+	  This driver supports Mediatek HW NAT.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Mediatek Ethernet devices. If you say Y,
+	  you will be asked for your specific card in the following questions.
+
+config  RA_HW_NAT_BINDING_THRESHOLD
+        int "Binding Threshold (Unit:Packet Per Second)"
+	depends on RA_HW_NAT
+	default 30
+	help
+	When flow rate > Binding Threshold  (# Packets Per Second),
+	the state will change to bind state
+
+choice
+        prompt "Foe Table Size"
+	depends on RA_HW_NAT
+	default RA_HW_NAT_TBL_4K
+	help
+	Number of entries in FoE Table
+
+config  RA_HW_NAT_TBL_1K
+        bool "1K"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_TBL_2K
+        bool "2K"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_TBL_4K
+        bool "4K"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_TBL_8K
+        bool "8K"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_TBL_16K
+        bool "16K"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_TBL_32K
+        bool "32K"
+	depends on RA_HW_NAT
+endchoice
+
+choice
+	prompt "Hash Algorithm"
+	depends on RA_HW_NAT
+	default RA_HW_NAT_HASH1
+
+config  RA_HW_NAT_HASH0
+        bool "Hash0-Simple"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_HASH1
+        bool "Hash1-Complex"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_HASH2
+        bool "Hash2-Complex"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_HASH3
+        bool "Hash3-Complex"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_HASH_DBG
+        bool "Hash-Debug"
+	depends on RA_HW_NAT
+
+endchoice
+
+choice
+        prompt "HW_NAT OP MODE"
+	depends on RA_HW_NAT && (RA_HW_NAT_HASH1 || RA_HW_NAT_HASH2)
+	default HW_NAT_AUTO_MODE
+	help
+	Say Y here if you want to enable HWNAT Operation mode on
+	MT762x series SoCs. There is three type operation mode you can choose.
+
+config  HW_NAT_AUTO_MODE
+        bool "AUTO_MODE"
+	help
+	Say Y here if you want to enable HWNAT Operation auto mode
+	on MT762x series SoCs.
+	There is hwnat auto learn mode, driver fill ppetable,
+	and set entry bind.
+
+config  HW_NAT_SEMI_AUTO_MODE
+        bool "SEMI_AUTO_MODE"
+	help
+	Say Y here if you want to enable HWNAT Operation auto mode on
+	MT762x series SoCs.
+	There is hwnat semi-auto learn mode, driver fill ppetable,
+	but user set entry bind.
+
+config  HW_NAT_MANUAL_MODE
+        bool "MANUAL_MODE"
+	help
+	Say Y here if you want to enable HWNAT Operation auto mode on
+	MT762x series SoCs.
+	There is hwnat manual mode, user fill ppetable,
+	but user set entry bind.
+
+endchoice
+
+choice
+	prompt "Hash DBG Mode"
+	depends on RA_HW_NAT_HASH_DBG
+	default RA_HW_NAT_HASH_DBG_SPORT
+
+config  RA_HW_NAT_HASH_DBG_IPV6_SIP
+        bool "IPv6 source IP[15:0]"
+
+config  RA_HW_NAT_HASH_DBG_IPV4_SIP
+        bool "IPv4 source IP[15:0]"
+
+config  RA_HW_NAT_HASH_DBG_SPORT
+        bool "source port[15:0]"
+
+endchoice
+
+config  RA_HW_NAT_IPV6
+        bool "IPv6 Acceleration"
+	depends on RA_HW_NAT
+	default y
+	help
+	"ipv6 routing accelerated by HNAT"
+
+config  PPE_MCAST
+        bool "PPE built-in multicast table support"
+	depends on RA_HW_NAT
+
+config  RA_HW_NAT_WIFI
+	bool "WiFi Acceleration"
+	depends on RA_HW_NAT
+	select RA_HW_NAT_WIFI_NEW_ARCH
+
+config  RA_HW_NAT_WIFI_NEW_ARCH
+	bool "WiFi Fast Path(WHNAT)"
+	depends on RA_HW_NAT_WIFI
+
+config  SUPPORT_WLAN_OPTIMIZE
+	bool "Wlan <-> Lan Go SW Path"
+	depends on RA_HW_NAT_WIFI
+	help
+	Say Y here if you want to enable wlan to lan will go sw path
+	on MT762x series SoCs.
+	Because bridge traffic has no benefit when hwnat accelerate.
+	We will judgment wlan and br0 has the same subnet or not.
+
+config WAN_TO_WLAN_SUPPORT_QOS
+	bool "Wan ->Wlan Support QoS"
+	depends on RA_HW_NAT_WIFI
+	default n
+	help
+	Say Y here if you want to enable HWNAT support qos on
+	MT762x series SoCs.
+	HWNAT lan <-> wan will go to qdma schedule.
+	If yoy say Y, short packet cannot wire speed.
+
+config ARCH_MT7622_WIFI_HW_NAT
+	bool "Warp Drive HW NAT"
+	depends on RA_HW_NAT_WIFI
+	help
+	Say Y here if you want to enable Warp Drive HW NAT
+	on MT762x series SoCs.
+	ethernet to wlan will go WHNAT
+	If yoy say Y, ethernet to wlan cpu loading almost equal zero.
+
+config  RA_HW_NAT_PACKET_SAMPLING
+	bool "Packet Sampling to CPU"
+	depends on RA_HW_NAT && (MACH_MT7623 || MTK_EMI_7622)
+
+config RA_HW_NAT_ACCNT_MAINTAINER
+	bool "Get Statistic Counter Periodically(Accounting Group)"
+	depends on RA_HW_NAT
+	help
+	"if you need 64bits bytes/pkts counter, and ask HNAT module to get statistic counter periodically, please enable it"
+
+config PPE_MIB
+	bool "Per Flow Mib Counter"
+	depends on RA_HW_NAT
+	help
+	"if you need bytes/pkts counter per flow entry, and ask HNAT module to get statistic counter periodically, please enable it"
+
+config QDMA_SUPPORT_QOS
+	bool "Wired Ethernet Support QoS"
+	depends on RA_HW_NAT
+	default y
+	help
+	Say Y here if you want to enable HWNAT support qos on
+	MT762x series SoCs.
+	HWNAT lan <-> wan will go to qdma schedule.
+	If yoy say Y, short packet cannot wire speed.
+
+config HW_NAT_SW_DVFS
+	bool "S/W (Timer) Based DVFS"
+	depends on RA_HW_NAT
+	default y
+	help
+	Say Y here if would like to enable SW Based DVFS feature.
+
+config HW_NAT_SW_DVFS_DEFAULT_OPP
+	int "S/W DVFS Default OPP"
+	depends on HW_NAT_SW_DVFS
+	range 0 3
+	default 3
+	help
+	Say Y here if would like to enable SW Based DVFS feature

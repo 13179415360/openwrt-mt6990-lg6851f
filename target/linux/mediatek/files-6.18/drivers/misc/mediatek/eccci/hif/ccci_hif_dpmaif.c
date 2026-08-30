@@ -901,20 +901,15 @@ static int dpmaif_alloc_rx_frag(struct dpmaif_bat_request *bat_req,
 static int dpmaif_set_rx_frag_to_skb(struct dpmaif_rx_queue *rxq,
 	unsigned int skb_idx, struct dpmaifq_normal_pit *pkt_inf_t)
 {
+	unsigned int page_id;
+	struct dpmaif_bat_skb_t *cur_skb_info;
+	struct dpmaif_bat_page_t *cur_page_info;
+	struct sk_buff *base_skb;
+	struct page *page;
 #ifdef _DPMAIF_GEN98_CODA_
-	struct dpmaif_bat_skb_t *cur_skb_info = ((struct dpmaif_bat_skb_t *)
-		rxq->bat_req.bat_skb_ptr + skb_idx);
-	struct sk_buff *base_skb = cur_skb_info->skb;
-	struct dpmaif_bat_page_t *cur_page_info = ((struct dpmaif_bat_page_t *)
-		rxq->bat_frag.bat_skb_ptr + (pkt_inf_t->buffer_id|((pkt_inf_t->h_bid)<<13)));
-	struct page *page = cur_page_info->page;
+	page_id = pkt_inf_t->buffer_id | (pkt_inf_t->h_bid << 13);
 #else
-	struct dpmaif_bat_skb_t *cur_skb_info = ((struct dpmaif_bat_skb_t *)
-		rxq->bat_req.bat_skb_ptr + skb_idx);
-	struct sk_buff *base_skb = cur_skb_info->skb;
-	struct dpmaif_bat_page_t *cur_page_info = ((struct dpmaif_bat_page_t *)
-		rxq->bat_frag.bat_skb_ptr + pkt_inf_t->buffer_id);
-	struct page *page = cur_page_info->page;
+	page_id = pkt_inf_t->buffer_id;
 #endif
 #ifndef REFINE_BAT_OFFSET_REMOVE
 	unsigned long long data_phy_addr, data_base_addr;
@@ -923,23 +918,48 @@ static int dpmaif_set_rx_frag_to_skb(struct dpmaif_rx_queue *rxq,
 	unsigned int data_len;
 	int ret = 0;
 
+	/*
+	 * Both indices originate in the modem/MED PIT.  Validate them against
+	 * the actual AP shadow-table sizes before dereferencing either table or
+	 * unmapping a DMA address.  The vendor 5.15 path checked these only
+	 * after forming pointers (and page == NULL only after dma_unmap_page()).
+	 */
+	if (unlikely(skb_idx >= rxq->bat_req.bat_size_cnt ||
+		     page_id >= rxq->bat_frag.bat_size_cnt ||
+		     skb_idx >= DPMAIF_DL_BAT_ENTRY_SIZE ||
+		     page_id >= DPMAIF_DL_BAT_ENTRY_SIZE)) {
+		CCCI_ERROR_LOG(dpmaif_ctrl->md_id, TAG,
+			"invalid RX frag BID: pit=%u skb=%u/%u page=%u/%u\n",
+			rxq->pit_rd_idx, skb_idx, rxq->bat_req.bat_size_cnt,
+			page_id, rxq->bat_frag.bat_size_cnt);
+		return DATA_CHECK_FAIL;
+	}
+
+	cur_skb_info = (struct dpmaif_bat_skb_t *)
+		rxq->bat_req.bat_skb_ptr + skb_idx;
+	cur_page_info = (struct dpmaif_bat_page_t *)
+		rxq->bat_frag.bat_skb_ptr + page_id;
+	base_skb = cur_skb_info->skb;
+	page = cur_page_info->page;
+	data_len = pkt_inf_t->data_len;
+	if (unlikely(!base_skb || !page || !cur_page_info->data_phy_addr ||
+		     !cur_page_info->data_len ||
+		     data_len > cur_page_info->data_len ||
+		     (base_skb &&
+		      skb_shinfo(base_skb)->nr_frags >= MAX_SKB_FRAGS))) {
+		CCCI_ERROR_LOG(dpmaif_ctrl->md_id, TAG,
+			"invalid RX frag ownership: pit=%u skb=%u ptr=%p page=%u ptr=%p dma=%pad off=%lu len=%u/%u\n",
+			rxq->pit_rd_idx, skb_idx, base_skb, page_id, page,
+			&cur_page_info->data_phy_addr, cur_page_info->offset,
+			data_len, cur_page_info->data_len);
+		return DATA_CHECK_FAIL;
+	}
+
 	/* rx current frag data unmapping */
 	dma_unmap_page(
 		ccci_md_get_dev_by_id(dpmaif_ctrl->md_id),
 		cur_page_info->data_phy_addr, cur_page_info->data_len,
 		DMA_FROM_DEVICE);
-	if (!page) {
-#ifdef _DPMAIF_GEN98_CODA_
-		CCCI_ERROR_LOG(-1, TAG, "frag check fail: 0x%x, 0x%x",
-			pkt_inf_t->buffer_id | ((pkt_inf_t->h_bid) << 13),
-			skb_idx);
-#else
-		CCCI_ERROR_LOG(-1, TAG, "frag check fail: 0x%x, 0x%x",
-			pkt_inf_t->buffer_id, skb_idx);
-#endif
-		return DATA_CHECK_FAIL;
-	}
-
 #ifndef REFINE_BAT_OFFSET_REMOVE
 	/* 2. calculate data address && data len. */
 	data_phy_addr = pkt_inf_t->data_addr_ext;
@@ -949,7 +969,6 @@ static int dpmaif_set_rx_frag_to_skb(struct dpmaif_rx_queue *rxq,
 	data_offset = (int)(data_phy_addr - data_base_addr);
 #endif
 
-	data_len = pkt_inf_t->data_len;
 	/* 3. record to skb for user: fragment data to nr_frags */
 	skb_add_rx_frag(base_skb, skb_shinfo(base_skb)->nr_frags,
 		page, cur_page_info->offset + data_offset,

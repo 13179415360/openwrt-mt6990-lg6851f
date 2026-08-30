@@ -1,0 +1,39 @@
+ccflags-y += -I$(src)/hw_nat
+ccflags-y += -I$(src)/include
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/medmcu/rv33
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/nat46_util
+ccflags-y += -Wno-error=implicit-fallthrough
+ccflags-y += -Wno-missing-prototypes
+ccflags-y += -Wno-missing-declarations
+
+ccflags-y += -DCONFIG_RA_NAT_HW=1
+ccflags-y += -DCONFIG_RA_HW_NAT=1
+ccflags-y += -DCONFIG_RA_HW_NAT_TBL_32K=1
+ccflags-y += -DCONFIG_RA_HW_NAT_HASH1=1
+ccflags-y += -DCONFIG_HW_NAT_AUTO_MODE=1
+ccflags-y += -DCONFIG_RA_HW_NAT_WIFI=1
+ccflags-y += -DCONFIG_RA_HW_NAT_WIFI_NEW_ARCH=1
+ccflags-y += -DCONFIG_ARCH_MT7622_WIFI_HW_NAT=1
+ccflags-y += -DCONFIG_PPE_MIB=1
+ccflags-y += -DCONFIG_ARCH_COLGIN=1
+ccflags-y += -DCONFIG_RA_HW_NAT_IPV6=1
+ccflags-y += -DCONFIG_SUPPORT_OPENWRT=1
+ccflags-y += -DCONFIG_QDMA_SUPPORT_QOS=1
+ccflags-y += -DCONFIG_HW_NAT_SW_DVFS=1
+ccflags-y += -DCONFIG_HNAT_V2=1
+ccflags-y += -DCONFIG_MTK_TINYSYS_MEDMCU_SUPPORT=1
+
+obj-$(CONFIG_MT6990_HWNAT) += hwnat.o
+
+hwnat-y := hw_nat/ra_nat.o
+hwnat-y += hw_nat/hwnat_ioctl.o
+hwnat-y += hw_nat/hnat_dbg_proc.o
+hwnat-y += hw_nat/hnat_common.o
+hwnat-y += hw_nat/foe_fdb.o
+hwnat-y += hw_nat/util.o
+hwnat-y += hw_nat/mcast_tbl.o
+hwnat-y += hw_nat/hnat_monitor.o
+hwnat-y += hw_nat/hnat_power.o
+hwnat-y += hw_nat/hnat_fast.o
+hwnat-y += hw_nat/hnat_swdvfs.o
+hwnat-y += hw_nat/hnat_hwdvfs.o
