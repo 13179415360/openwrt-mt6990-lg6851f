@@ -1,0 +1,133 @@
+From: LG6851F MT6990 maintenance <local@lg6851f>
+Date: Sun, 30 Aug 2026 09:10:00 +0800
+Subject: [PATCH] wifi: mt76: mt7996: quiesce async work before reset
+
+The vendor SDK marks reset before stopping its producers, synchronously drains
+all consumers, and only then releases RX/TX and station objects.  Apply the
+same invariant to mt7996.  mac_work is self-rearming and set_channel can also
+rearm it, so both paths must honor RUNNING and RESET.  Drain rate-control work
+before station links are unlinked, wait for pre-existing RCU readers before
+rebuilding WCID state, and stop dump/reset/RC works in a safe order during
+unregister.
+
+This closes the stale delayed_work and deferred station-link windows observed
+on LG6851F as kick_pool/__queue_work and invalid slab frees from rcu_core.
+
+--- a/mt7996/mac.c
++++ b/mt7996/mac.c
+@@ -2410,6 +2410,11 @@ mt7996_mac_full_reset(struct mt7996_dev *dev)
+ 	wake_up(&dev->mt76.mcu.wait);
+ 	ieee80211_stop_queues(hw);
+ 
++	set_bit(MT76_RESET, &dev->mphy.state);
++	mt7996_for_each_phy(dev, phy)
++		set_bit(MT76_RESET, &phy->mt76->state);
++	cancel_work_sync(&dev->rc_work);
++
+ 	cancel_work_sync(&dev->wed_rro.work);
+ 	mt7996_for_each_phy(dev, phy)
+ 		cancel_delayed_work_sync(&phy->mt76->mac_work);
+@@ -2439,6 +2444,7 @@ mt7996_mac_full_reset(struct mt7996_dev *dev)
+ 	ieee80211_iterate_active_interfaces_atomic(hw,
+ 						   IEEE80211_IFACE_SKIP_SDATA_NOT_IN_DRIVER,
+ 						   mt7996_mac_reset_vif_iter, dev);
++	synchronize_rcu();
+ 
+ 	INIT_LIST_HEAD(&dev->sta_rc_list);
+ 	INIT_LIST_HEAD(&dev->twt_list);
+@@ -2460,6 +2466,8 @@ mt7996_mac_full_reset(struct mt7996_dev *dev)
+ 	i = mt76_wcid_alloc(dev->mt76.wcid_mask, MT7996_WTBL_STA);
+ 	dev->mt76.global_wcid.idx = i;
+ 	dev->recovery.hw_full_reset = false;
++	mt7996_for_each_phy(dev, phy)
++		clear_bit(MT76_RESET, &phy->mt76->state);
+ 
+ 	mutex_unlock(&dev->mt76.mutex);
+ 
+@@ -2526,6 +2534,9 @@ void mt7996_mac_reset_work(struct work_struct *work)
+ 		cancel_delayed_work_sync(&phy->mt76->mac_work);
+ 	}
+ 
++	cancel_work_sync(&dev->rc_work);
++	mutex_lock(&dev->mt76.mutex);
++
+ 	mt76_worker_disable(&dev->mt76.tx_worker);
+ 	mt76_for_each_q_rx(&dev->mt76, i) {
+ 		if (mtk_wed_device_active(&dev->mt76.mmio.wed) &&
+@@ -2547,8 +2558,6 @@ void mt7996_mac_reset_work(struct work_struct *work)
+ 	}
+ 	napi_disable(&dev->mt76.tx_napi);
+ 
+-	mutex_lock(&dev->mt76.mutex);
+-
+ 	mt76_wr(dev, MT_MCU_INT_EVENT, MT_MCU_INT_EVENT_DMA_STOPPED);
+ 
+ 	if (mt7996_wait_reset_state(dev, MT_MCU_CMD_RESET_DONE)) {
+@@ -2619,8 +2628,10 @@ void mt7996_mac_reset_work(struct work_struct *work)
+ 	mutex_unlock(&dev->mt76.mutex);
+ 
+ 	mt7996_for_each_phy(dev, phy)
+-		ieee80211_queue_delayed_work(hw, &phy->mt76->mac_work,
+-					     MT7996_WATCHDOG_TIME);
++		if (test_bit(MT76_STATE_RUNNING, &phy->mt76->state) &&
++		    !test_bit(MT76_RESET, &phy->mt76->state))
++			ieee80211_queue_delayed_work(hw, &phy->mt76->mac_work,
++						     MT7996_WATCHDOG_TIME);
+ 	dev_info(dev->mt76.dev,"\n%s L1 SER recovery completed.",
+ 		 wiphy_name(dev->mt76.hw->wiphy));
+ }
+@@ -2919,8 +2930,16 @@ void mt7996_mac_work(struct work_struct *work)
+ 	mphy = (struct mt76_phy *)container_of(work, struct mt76_phy,
+ 					       mac_work.work);
+ 	phy = mphy->priv;
++	if (!test_bit(MT76_STATE_RUNNING, &mphy->state) ||
++	    test_bit(MT76_RESET, &mphy->state))
++		return;
+ 
+ 	mutex_lock(&mphy->dev->mutex);
++	if (!test_bit(MT76_STATE_RUNNING, &mphy->state) ||
++	    test_bit(MT76_RESET, &mphy->state)) {
++		mutex_unlock(&mphy->dev->mutex);
++		return;
++	}
+ 
+ 	mt76_update_survey(mphy);
+ 	if (++mphy->mac_work_count == 5) {
+@@ -2941,8 +2961,10 @@ void mt7996_mac_work(struct work_struct *work)
+ 	mt76_beacon_mon_check(mphy);
+ 	mt76_tx_status_check(mphy->dev, false);
+ 
+-	ieee80211_queue_delayed_work(mphy->hw, &mphy->mac_work,
+-				     MT7996_WATCHDOG_TIME);
++	if (test_bit(MT76_STATE_RUNNING, &mphy->state) &&
++	    !test_bit(MT76_RESET, &mphy->state))
++		ieee80211_queue_delayed_work(mphy->hw, &mphy->mac_work,
++					     MT7996_WATCHDOG_TIME);
+ }
+ 
+ static void mt7996_dfs_stop_radar_detector(struct mt7996_phy *phy)
+--- a/mt7996/main.c
++++ b/mt7996/main.c
+@@ -670,5 +670,7 @@ out:
+-	ieee80211_queue_delayed_work(mphy->hw, &mphy->mac_work,
+-				     MT7996_WATCHDOG_TIME);
++	if (test_bit(MT76_STATE_RUNNING, &mphy->state) &&
++	    !test_bit(MT76_RESET, &mphy->state))
++		ieee80211_queue_delayed_work(mphy->hw, &mphy->mac_work,
++					     MT7996_WATCHDOG_TIME);
+ 
+ 	return ret;
+ }
+--- a/mt7996/init.c
++++ b/mt7996/init.c
+@@ -1809,7 +1809,10 @@ error:
+ 
+ void mt7996_unregister_device(struct mt7996_dev *dev)
+ {
++	dev->recovery.hw_init_done = false;
+ 	cancel_work_sync(&dev->dump_work);
++	cancel_work_sync(&dev->reset_work);
++	cancel_work_sync(&dev->rc_work);
+ 	cancel_work_sync(&dev->wed_rro.work);
+ 	mt7996_unregister_phy(mt7996_phy3(dev));
+ 	mt7996_unregister_phy(mt7996_phy2(dev));
