@@ -5757,9 +5757,10 @@
 	};
 
 	/*
-	 * Official live isolation: only pwm-fan@1 / PWM0 changes the single
-	 * physical fan RPM. GPIO124 is its output. The circuit is inverted:
-	 * PWM100 gives about 2310 RPM while PWM255 nearly stops it.
+	 * LG6851F has two production fan variants selected by the stock GPIO193
+	 * strap.  A high strap is the four-wire assembly on PWM0/GPIO124 with
+	 * GPIO121 tachometer feedback.  Its circuit is inverted: PWM100 gives
+	 * about 2310 RPM while PWM255 nearly stops it.
 	 */
 	soc_fan: pwm-fan {
 		compatible = "pwm-fan";
@@ -5778,7 +5779,12 @@
 		status = "okay";
 	};
 
-	/* Affected production units also carry a PWM5/GPIO122 fan route. */
+	/*
+	 * A low GPIO193 strap is the three-wire assembly on PWM5/GPIO122.  The
+	 * userspace controller applies its verified 10 kHz fine settings through
+	 * the MT69xx PWM registers (thresholds 8/10/12); this node safely claims
+	 * the pin and supplies the initial hardware state.
+	 */
 	aux_fan: pwm-fan-aux {
 		compatible = "pwm-fan";
 		pwms = <0xb2 5 20000>;
