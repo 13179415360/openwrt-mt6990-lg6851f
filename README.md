@@ -2,6 +2,40 @@
 
 本仓库是基于 OpenWrt SNAPSHOT 的完整源码树，增加 MediaTek MT6990 和烽火 Pro LG6851F 支持。仓库目标是在干净 Linux 环境中克隆后，使用 OpenWrt 原生 `make` 流程生成完整可刷写文件，不需要另行调用外部打包脚本。
 
+## 产品与硬件实物
+
+### 1. 产品外观
+
+<p align="center">
+  <img src="docs/images/lg6851f/01-product-overview.jpg" alt="FiberHome LG6851F Pro Wi-Fi 7 BE7200 产品外观" width="720">
+</p>
+
+烽火 LG6851F Pro 是一款集成 5G 蜂窝网络、Wi-Fi 7（BE7200）和双 2.5G 网口的 CPE。本图用于帮助确认产品外形；不同销售批次的包装、配件和硬件版本可能不同。
+
+### 2. 设备底部与型号识别
+
+<p align="center">
+  <img src="docs/images/lg6851f/02-device-label-redacted.png" alt="FiberHome LG6851F 设备底部铭牌（已脱敏）" width="720">
+</p>
+
+底部铭牌可用于核对型号、电源规格和管理地址。公开图片已遮挡 Wi-Fi 密码、管理密码、IMEI、序列号和 CMITID；请勿公开自己设备的完整铭牌。
+
+### 3. 主板拆解与主要器件
+
+<p align="center">
+  <img src="docs/images/lg6851f/03-mainboard-components.jpg" alt="FiberHome LG6851F 主板拆解和主要器件参考标注" width="720">
+</p>
+
+主板参考标注包括 MT6990V SoC、MT7996CV Wi-Fi 基带/MAC、MT7977 射频、2.4G/5G FEM、RG620T-EU 5G 模组和 YT8821C 2.5G PHY。器件丝印、内存容量和射频布局可能随批次变化，移植或刷机前仍须以实机为准。
+
+### 4. TTL 串口与 USB 调试连接
+
+<p align="center">
+  <img src="docs/images/lg6851f/04-ttl-usb-connection.jpg" alt="FiberHome LG6851F TTL 串口和 USB 调试连接实物" width="720">
+</p>
+
+图中展示拆机状态下的 USB 转 TTL 调试连接。串口必须使用 **3.3V TTL 电平**，连接前应实测并确认 GND、设备 TX 和设备 RX；TX/RX 交叉连接，通常只接 GND/TX/RX，**不要连接转接板 VCC**。线材颜色不能作为引脚定义，接错电压或引脚可能损坏设备。
+
 ## 设备适用与批次说明
 
 - 目标设备：烽火 LG6851F Pro WiFi 7 BE7200。
