@@ -17,7 +17,7 @@
 ### 2. 设备底部与型号识别
 
 <p align="center">
-  <a href="docs/images/lg6851f/02-device-label-redacted.png"><img src="docs/images/lg6851f/02-device-label-redacted.png" alt="FiberHome LG6851F 设备底部铭牌（已脱敏）" width="320"></a>
+  <a href="docs/images/lg6851f/02-device-label-redacted.png"><img src="docs/images/lg6851f/02-device-label-redacted.png" alt="FiberHome LG6851F 设备底部铭牌（已脱敏）" width="160"></a>
 </p>
 
 底部铭牌可用于核对型号、电源规格和管理地址。公开图片已遮挡 Wi-Fi 密码、管理密码、IMEI、序列号和 CMITID；请勿公开自己设备的完整铭牌。
