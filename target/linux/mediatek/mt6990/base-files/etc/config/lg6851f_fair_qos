@@ -1,7 +1,8 @@
 config main 'main'
 	option enabled '1'
-	option wan_device 'ccmni2'
-	option ifb_device 'ifb-ccmni2'
+	# Follow this logical interface's current l3_device across modem redials.
+	option network_interface 'modem5g'
+	option ifb_device 'ifb-cellular'
 	option max_hosts '36'
 	option overhead '44'
 	option diffserv 'diffserv4'

@@ -9,12 +9,39 @@ board="$(cat /tmp/sysinfo/board_name 2>/dev/null)"
 
 config_load lg6851f_fair_qos
 config_get_bool enabled main enabled 1
-config_get wan main wan_device ccmni2
-config_get ifb main ifb_device ifb-ccmni2
+config_get network main network_interface modem5g
+config_get ifb main ifb_device ifb-cellular
 config_get max_hosts main max_hosts 36
 config_get overhead main overhead 44
 config_get diffserv main diffserv diffserv4
 config_get ingress_seed main ingress_seed 1gbit
+
+state_file=/var/run/lg6851f-fair-qos.state
+
+valid_device() {
+	[ -n "$1" ] && [ "${#1}" -le 15 ] &&
+		case "$1" in *[!A-Za-z0-9_.:@-]*) false ;; *) true ;; esac
+}
+
+current_wan() {
+	local device
+	device="$(ubus -S call "network.interface.$network" status 2>/dev/null |
+		jsonfilter -e '@.l3_device' 2>/dev/null)"
+	valid_device "$device" && [ -e "/sys/class/net/$device" ] || return 1
+	printf '%s\n' "$device"
+}
+
+cleanup_device() {
+	valid_device "$1" || return 0
+	tc qdisc del dev "$1" clsact 2>/dev/null || true
+	tc qdisc del dev "$1" root 2>/dev/null || true
+}
+
+read_previous_wan() {
+	local device=
+	[ -r "$state_file" ] && IFS= read -r device < "$state_file"
+	valid_device "$device" && printf '%s\n' "$device"
+}
 
 case "$max_hosts:$overhead" in
 	*[!0-9:]*|'') logger -t LG6851F-FAIR-QOS "invalid numeric configuration"; exit 1 ;;
@@ -25,16 +52,30 @@ esac
 }
 
 stop_qos() {
-	tc qdisc del dev "$wan" clsact 2>/dev/null || true
-	tc qdisc del dev "$wan" root 2>/dev/null || true
+	local current previous
+	previous="$(read_previous_wan)"
+	cleanup_device "$previous"
+	current="$(current_wan 2>/dev/null)" || current=
+	[ "$current" = "$previous" ] || cleanup_device "$current"
 	tc qdisc del dev "$ifb" root 2>/dev/null || true
 	ip link set "$ifb" down 2>/dev/null || true
 	ip link del "$ifb" type ifb 2>/dev/null || true
+	rm -f "$state_file"
 }
 
 [ "${1:-start}" = stop ] && { stop_qos; exit 0; }
 [ "$enabled" -eq 1 ] || { stop_qos; exit 0; }
-ip link show dev "$wan" >/dev/null 2>&1 || exit 2
+valid_device "$ifb" || {
+	logger -t LG6851F-FAIR-QOS "invalid IFB device: $ifb"
+	exit 1
+}
+wan="$(current_wan)" || exit 2
+previous="$(read_previous_wan)"
+if [ -n "$previous" ] && [ "$previous" != "$wan" ]; then
+	cleanup_device "$previous"
+	tc qdisc del dev "$ifb" root 2>/dev/null || true
+	logger -t LG6851F-FAIR-QOS "migrating wan=$previous->$wan"
+fi
 
 if [ "${1:-start}" = start ] &&
 	tc qdisc show dev "$wan" 2>/dev/null | grep -q ' cake ' &&
@@ -68,5 +109,9 @@ tc filter del dev "$wan" ingress protocol all pref 10 2>/dev/null || true
 tc filter add dev "$wan" ingress protocol all pref 10 matchall \
 	action mirred egress redirect dev "$ifb"
 
+umask 022
+printf '%s\n' "$wan" > "$state_file.tmp"
+mv "$state_file.tmp" "$state_file"
+
 logger -t LG6851F-FAIR-QOS \
-	"active wan=$wan ifb=$ifb capacity=automatic seed=$ingress_seed host_fairness=1..${max_hosts} mode=$diffserv"
+	"active network=$network wan=$wan ifb=$ifb capacity=automatic seed=$ingress_seed host_fairness=1..${max_hosts} mode=$diffserv"

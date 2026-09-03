@@ -78,6 +78,7 @@ function qualityClass(value, good, mid) {
 }
 
 let lastTraffic = null;
+let activeTrafficDevice = null;
 
 function speed(bytes) {
 	let mbps = Math.max(0, bytes || 0) * 8 / 1000000;
@@ -92,7 +93,7 @@ function gaugePercent(bytes) {
 }
 
 function updateTraffic(devices) {
-	let stat = devices?.ccmni2?.stats, now = Date.now() / 1000, rx = +stat?.rx_bytes, tx = +stat?.tx_bytes;
+	let stat = devices?.[activeTrafficDevice]?.stats, now = Date.now() / 1000, rx = +stat?.rx_bytes, tx = +stat?.tx_bytes;
 	if (!Number.isFinite(rx) || !Number.isFinite(tx)) return;
 	let down = 0, up = 0;
 	if (lastTraffic && now > lastTraffic.time) {
@@ -135,6 +136,11 @@ return view.extend({
 	load() { return callOverview(); },
 	update(data, cells) {
 		if (!data?.available) return;
+		let nextTrafficDevice = data.network?.l3_device || null;
+		if (nextTrafficDevice !== activeTrafficDevice) {
+			activeTrafficDevice = nextTrafficDevice;
+			lastTraffic = null;
+		}
 		let rows = parseCells(cells?.serving);
 		let values = {
 			'm5-rat': data.rat, 'm5-operator': data.operator, 'm5-registration': data.registration,

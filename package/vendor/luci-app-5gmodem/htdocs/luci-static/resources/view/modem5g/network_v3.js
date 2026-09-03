@@ -26,7 +26,7 @@ function networkState(data) {
 	let n = parsedNetwork(data), up = n.status.up === true;
 	return E('div', {}, [ E('div', { 'class': 'm5-hero m5-net-hero' }, [
 			common.metric(_('Connection'), up ? _('Online') : _('Offline')),
-			common.metric(_('Interface'), n.status.l3_device || 'ccmni2'),
+			common.metric(_('Interface'), n.status.l3_device || '-'),
 			common.metric(_('IPv4 address'), n.address),
 			common.metric(_('Uptime'), n.elapsed),
 			common.metric(_('Protocol'), n.status.proto || '-'),
