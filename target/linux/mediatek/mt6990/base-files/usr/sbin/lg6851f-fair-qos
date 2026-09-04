@@ -53,7 +53,7 @@ esac
 
 stop_qos() {
 	local current previous
-	previous="$(read_previous_wan)"
+	previous="$(read_previous_wan)" || previous=
 	cleanup_device "$previous"
 	current="$(current_wan 2>/dev/null)" || current=
 	[ "$current" = "$previous" ] || cleanup_device "$current"
@@ -70,7 +70,7 @@ valid_device "$ifb" || {
 	exit 1
 }
 wan="$(current_wan)" || exit 2
-previous="$(read_previous_wan)"
+previous="$(read_previous_wan)" || previous=
 if [ -n "$previous" ] && [ "$previous" != "$wan" ]; then
 	cleanup_device "$previous"
 	tc qdisc del dev "$ifb" root 2>/dev/null || true

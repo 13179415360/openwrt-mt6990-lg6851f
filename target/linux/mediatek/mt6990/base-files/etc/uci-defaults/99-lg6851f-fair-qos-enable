@@ -1,6 +1,15 @@
 #!/bin/sh
 
 [ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ] || exit 0
+
+# Settings are preserved across sysupgrade, so migrate the original
+# numbered CCMNI defaults to the logical interface and stable IFB names.
+if uci -q get lg6851f_fair_qos.main >/dev/null; then
+	uci set lg6851f_fair_qos.main.network_interface='modem5g'
+	uci set lg6851f_fair_qos.main.ifb_device='ifb-cellular'
+	uci -q delete lg6851f_fair_qos.main.wan_device
+	uci commit lg6851f_fair_qos
+fi
+
 /etc/init.d/lg6851f_fair_qos enable
 exit 0
-
