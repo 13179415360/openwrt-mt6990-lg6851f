@@ -3859,6 +3859,14 @@ boot()
    enable=$(uci_get_config "enable")
    if [ "$enable" == "1" ] &&
       [ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ]; then
+      # A normal reboot preserves OpenClash's dnsmasq redirect in UCI while
+      # the core is not running.  Restore normal DNS before the 90-second
+      # boot gate, then let start() take DNS over again after the network is
+      # ready.
+      if [ "$(uci_get_config "redirect_dns")" = "1" ]; then
+         get_config
+         revert_dnsmasq
+      fi
       read -r boot_uptime _ </proc/uptime 2>/dev/null || boot_uptime=0
       boot_uptime="${boot_uptime%%.*}"
       case "$boot_uptime" in ''|*[!0-9]*) boot_uptime=0 ;; esac
