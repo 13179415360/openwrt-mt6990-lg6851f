@@ -4,7 +4,7 @@
 lg6851f_restore_sysupgrade() {
 	local mnt=/tmp/lg6851f-user-data
 	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
-	local rootdev rootuuid source_mount mounted_here=0 reset_marker
+	local rootdev rootuuid stored_rootuuid source_mount mounted_here=0 reset_marker
 
 	[ -b /dev/mmcblk0p46 ] || return 0
 	[ "$(cat /sys/class/block/mmcblk0p46/partition 2>/dev/null)" = 46 ] || return 0
@@ -56,6 +56,23 @@ lg6851f_restore_sysupgrade() {
 		rootdev="$(sed -n 's/.*[[:space:]]root=\([^[:space:]]*\).*/\1/p' /proc/cmdline)"
 		rootuuid="$(block info "$rootdev" 2>/dev/null | sed -n 's/.*UUID="\([^"]*\)".*/\1/p')"
 		if [ -n "$rootuuid" ]; then
+			stored_rootuuid="$(cat "$mnt/etc/.extroot-uuid" 2>/dev/null)"
+			if [ -n "$stored_rootuuid" ] && [ "$stored_rootuuid" != "$rootuuid" ]; then
+				# P46 is a persistent extroot and may contain program files from
+				# an older OpenClash package.  Those files mask the new squashfs
+				# versions after sysupgrade, so refresh package-owned code while
+				# retaining /etc/config/openclash, /etc/openclash and rc.d state.
+				rm -f "$mnt/upper/etc/init.d/openclash" \
+				      "$mnt/upper/etc/uci-defaults/luci-openclash" \
+				      "$mnt/upper/usr/lib/lua/luci/openclash.lua" \
+				      "$mnt/upper/usr/lib/lua/luci/controller/openclash.lua" \
+				      "$mnt/upper/usr/lib/lua/luci/i18n/openclash.zh-cn.lmo"
+				rm -rf "$mnt/upper/usr/share/openclash" \
+				       "$mnt/upper/usr/lib/lua/luci/model/cbi/openclash" \
+				       "$mnt/upper/usr/lib/lua/luci/view/openclash" \
+				       "$mnt/upper/www/luci-static/resources/openclash"
+				echo "LG6851F: refreshed OpenClash program files for new firmware"
+			fi
 			mkdir -p "$mnt/etc"
 			echo "$rootuuid" > "$mnt/etc/.extroot-uuid"
 			echo "$rootuuid" > "$mnt/.mt6990-extroot-managed"
