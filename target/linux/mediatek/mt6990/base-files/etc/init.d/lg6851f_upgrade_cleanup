@@ -1,19 +1,40 @@
 #!/bin/sh /etc/rc.common
 # SPDX-License-Identifier: GPL-2.0-only
 
-START=99
+START=98
 
 start() {
-	local mnt=/tmp/lg6851f-user-data-cleanup
+	local mnt=/tmp/lg6851f-user-data-cleanup source_mount mounted_here=0
 	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
+	local openclash_marker=/etc/.mt6990-disable-openclash-once
+
+	# A changed rootfs is marked by preinit before the preserved extroot is
+	# mounted.  Disable OpenClash before its START=99 service can take over DNS
+	# and firewall with rules restored from the previous firmware.
+	if [ -f "$openclash_marker" ]; then
+		if uci -q get openclash.config >/dev/null; then
+			uci set openclash.config.enable='0' || return 1
+			uci commit openclash || return 1
+		fi
+		rm -f "$openclash_marker"
+		sync
+		logger -t lg6851f-upgrade "firmware changed; OpenClash forced disabled for first boot"
+	fi
 
 	[ -b /dev/mmcblk0p46 ] || return 0
-	mkdir -p "$mnt"
-	mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+	source_mount="$(awk '$1 == "/dev/mmcblk0p46" && $3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ { print $2; exit }' /proc/mounts)"
+	if [ -n "$source_mount" ]; then
+		mnt="$source_mount"
+		saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
+	else
+		mkdir -p "$mnt"
+		mount -o rw,noatime /dev/mmcblk0p46 "$mnt" 2>/dev/null || return 0
+		mounted_here=1
+	fi
 	if [ -f "$saved" ]; then
 		rm -f "$saved"
 		sync
 		logger -t lg6851f-upgrade "preserved configuration restored; persistent backup cleared"
 	fi
-	umount "$mnt"
+	[ "$mounted_here" = 1 ] && umount "$mnt"
 }

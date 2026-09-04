@@ -3836,10 +3836,53 @@ reload_service()
    fi
 } >/dev/null 2>&1
 
+lg6851f_boot_network_ready()
+{
+   local status up device
+
+   [ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ] || return 0
+   status="$(ubus -S call network.interface.modem5g status 2>/dev/null)" || return 1
+   up="$(printf '%s' "$status" | jsonfilter -e '@.up' 2>/dev/null)"
+   device="$(printf '%s' "$status" | jsonfilter -e '@.l3_device' 2>/dev/null)"
+   [ "$up" = "true" ] || return 1
+   [ -n "$device" ] && [ "${#device}" -le 15 ] || return 1
+   case "$device" in *[!A-Za-z0-9_.:@-]*) return 1 ;; esac
+   [ -e "/sys/class/net/$device" ] || return 1
+   ip -4 route show default 2>/dev/null | grep -Fq " dev $device" || return 1
+   pidof dnsmasq >/dev/null || return 1
+}
+
 boot()
 {
+   local boot_uptime=0 remaining=0 waited=0 initial_delay=90 check_interval=30 network_timeout=180
    delay_start=$(uci_get_config "delay_start" || echo 0)
    enable=$(uci_get_config "enable")
+   if [ "$enable" == "1" ] &&
+      [ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "fiberhome,lg6851f" ]; then
+      read -r boot_uptime _ </proc/uptime 2>/dev/null || boot_uptime=0
+      boot_uptime="${boot_uptime%%.*}"
+      case "$boot_uptime" in ''|*[!0-9]*) boot_uptime=0 ;; esac
+      waited="$boot_uptime"
+      if [ "$boot_uptime" -lt "$initial_delay" ]; then
+         remaining=$((initial_delay - boot_uptime))
+         LOG_OUT "Waiting ${remaining} Seconds Until LG6851F Reaches ${initial_delay} Seconds Uptime..."
+         sleep "$remaining"
+         waited="$initial_delay"
+      fi
+      while ! lg6851f_boot_network_ready; do
+         if [ "$waited" -ge "$network_timeout" ]; then
+            uci -q set openclash.config.enable='0'
+            uci -q commit openclash
+            logger -t openclash "LG6851F network not ready after ${network_timeout}s; OpenClash forced disabled"
+            LOG_OUT "LG6851F Network Is Not Ready, OpenClash Has Been Disabled..."
+            return 0
+         fi
+         LOG_OUT "LG6851F Network Is Not Ready, Checking Again In ${check_interval} Seconds..."
+         sleep "$check_interval"
+         waited=$((waited + check_interval))
+      done
+      logger -t openclash "LG6851F network ready after ${waited}s; starting OpenClash"
+   fi
    if [ "$delay_start" -gt 0 ] && [ "$enable" == "1" ]; then
       LOG_OUT "Enable Delay Start, OpenClash Will Start After【$delay_start】Seconds..."
       sleep "$delay_start"

@@ -4,7 +4,7 @@
 lg6851f_restore_sysupgrade() {
 	local mnt=/tmp/lg6851f-user-data
 	local saved="$mnt/openwrt-sysupgrade/sysupgrade.tgz"
-	local rootdev rootuuid source_mount mounted_here=0 reset_marker
+	local rootdev rootuuid stored_rootuuid source_mount mounted_here=0 reset_marker
 
 	[ -b /dev/mmcblk0p46 ] || return 0
 	[ "$(cat /sys/class/block/mmcblk0p46/partition 2>/dev/null)" = 46 ] || return 0
@@ -56,6 +56,12 @@ lg6851f_restore_sysupgrade() {
 		rootdev="$(sed -n 's/.*[[:space:]]root=\([^[:space:]]*\).*/\1/p' /proc/cmdline)"
 		rootuuid="$(block info "$rootdev" 2>/dev/null | sed -n 's/.*UUID="\([^"]*\)".*/\1/p')"
 		if [ -n "$rootuuid" ]; then
+			stored_rootuuid="$(cat "$mnt/etc/.extroot-uuid" 2>/dev/null)"
+			if [ -n "$stored_rootuuid" ] && [ "$stored_rootuuid" != "$rootuuid" ]; then
+				mkdir -p "$mnt/upper/etc"
+				: > "$mnt/upper/etc/.mt6990-disable-openclash-once"
+				echo "LG6851F: firmware change detected; OpenClash will start disabled"
+			fi
 			mkdir -p "$mnt/etc"
 			echo "$rootuuid" > "$mnt/etc/.extroot-uuid"
 			echo "$rootuuid" > "$mnt/.mt6990-extroot-managed"
