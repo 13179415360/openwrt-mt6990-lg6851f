@@ -144,6 +144,10 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/*.*.lmo $(1)/usr/lib/lua/luci/i18n/
 	$(CP) $(PKG_BUILD_DIR)/root/* $(1)/
 	$(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
+	# Always let rcS call OpenClash at boot.  The persistent UCI switch still
+	# decides whether the service starts; this link must not be user-state.
+	$(INSTALL_DIR) $(1)/etc/rc.d
+	$(LN) ../init.d/openclash $(1)/etc/rc.d/S99openclash
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

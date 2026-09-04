@@ -61,9 +61,13 @@ lg6851f_restore_sysupgrade() {
 				# P46 is a persistent extroot and may contain program files from
 				# an older OpenClash package.  Those files mask the new squashfs
 				# versions after sysupgrade, so refresh package-owned code while
-				# retaining /etc/config/openclash, /etc/openclash and rc.d state.
+				# retaining /etc/config/openclash and /etc/openclash.  Scheduling
+				# is firmware-owned: rcS must always call the init script, whose
+				# internal UCI switch decides whether OpenClash actually starts.
 				rm -f "$mnt/upper/etc/init.d/openclash" \
 				      "$mnt/upper/etc/uci-defaults/luci-openclash" \
+				      "$mnt/upper/etc/rc.d/S99openclash" \
+				      "$mnt/upper/etc/rc.d/.wh.S99openclash" \
 				      "$mnt/upper/usr/lib/lua/luci/openclash.lua" \
 				      "$mnt/upper/usr/lib/lua/luci/controller/openclash.lua" \
 				      "$mnt/upper/usr/lib/lua/luci/i18n/openclash.zh-cn.lmo"
