@@ -6,6 +6,8 @@ import { glob, readfile, writefile } from 'fs';
 
 const SAFE_LEVELS = [ 115, 180, 220 ];
 const MANUAL = '/tmp/lg6851f-fan-control.manual';
+const STATE = '/tmp/lg6851f-fan-control.state';
+const RECALIBRATE = '/tmp/lg6851f-fan-control.recalibrate';
 
 function supported_board() {
 	let board = readfile('/tmp/sysinfo/board_name');
@@ -168,14 +170,24 @@ const methods = {
 
 	restore_auto: {
 		call: function() {
+			let controller;
+
 			if (!supported_board())
 				return { success: false, error: 'Unsupported board' };
 
 			/* A zero-byte write reports 0 and was mistaken for failure even though
 			 * automatic control resumed.  A newline trims to an empty command while
-			 * preserving a truthful successful write result. */
-			if (!writefile(MANUAL, '\n') ||
-			    !writefile('/tmp/lg6851f-fan-control.recalibrate', '1\n'))
+			 * preserving a truthful successful write result.  Manual PWM does not
+			 * change the already calibrated route or polarity, so normal manual to
+			 * automatic transitions must reuse them instead of probing at PWM 170.
+			 * Only a real stalled/fallback state needs an explicit recalibration. */
+			if (!writefile(MANUAL, '\n'))
+				return { success: false, error: 'Unable to restart automatic fan detection' };
+
+			controller = readfile(STATE);
+			if (controller != null &&
+			    (index(controller, 'status=stalled') >= 0 || index(controller, 'status=fallback') >= 0) &&
+			    !writefile(RECALIBRATE, '1\n'))
 				return { success: false, error: 'Unable to restart automatic fan detection' };
 
 			return { success: true, status: status() };

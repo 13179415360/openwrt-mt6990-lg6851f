@@ -52,8 +52,13 @@ rpm() {
 
 sample_rpm() {
 	local a b c
-	sleep 1
-	a=$(rpm); sleep 1; b=$(rpm); sleep 1; c=$(rpm)
+	# fan1_input and the rotor both lag a PWM transition.  Sampling after only
+	# one second can compare the previous speed with the new duty cycle and
+	# invert the detected polarity.  Give the fan time to settle, then average
+	# three spaced readings so route calibration never depends on one stale
+	# tachometer update.
+	sleep 6
+	a=$(rpm); sleep 2; b=$(rpm); sleep 2; c=$(rpm)
 	echo $(((a + b + c) / 3))
 }
 
@@ -401,7 +406,13 @@ while [ ! -e "$STOP" ]; do
 		115|180|220)
 			set_active "$manual"
 			write_state manual "$(hottest)" "$(rpm)"
-			sleep 5
+			# Wake within one second when LuCI clears the manual override.  A
+			# single five-second sleep made manual-to-auto feedback needlessly
+			# lag behind the button press and the two-second page poll.
+			for wait_step in 1 2 3 4 5; do
+				sleep 1
+				[ "$(cat "$MANUAL" 2>/dev/null)" = "$manual" ] || break
+			done
 			continue
 			;;
 		*) ;;
@@ -423,6 +434,9 @@ while [ ! -e "$STOP" ]; do
 
 	[ "$target" = "$last_target" ] || log "temperature=$temp target=$target active=$ACTIVE direction=$DIRECTION"
 	last_target="$target"
+	# Publish the selected automatic output immediately.  The later update
+	# replaces this preliminary RPM with the settled post-transition reading.
+	write_state automatic "$temp" "$(rpm)"
 	sleep 5
 	speed=$(rpm)
 	if [ "$TACH_VALID" -eq 1 ] && [ "$speed" -eq 0 ]; then
